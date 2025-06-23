@@ -1111,9 +1111,20 @@ bot.on('callback_query', async (ctx) => {
 
       // Handle crypto payment selection
       if (callbackData.startsWith('pay_')) {
-        const [_, cryptoType, amount] = callbackData.split('_');
-        const usdAmount = parseFloat(amount);
+        const parts = callbackData.split('_');
+        let cryptoType, amount;
         
+        if (parts.length === 4) {
+          // Format: pay_USDT_TRC20_50 or pay_USDT_ERC20_50
+          cryptoType = `${parts[1]}_${parts[2]}`;
+          amount = parts[3];
+        } else {
+          // Format: pay_BTC_50
+          cryptoType = parts[1];
+          amount = parts[2];
+        }
+        
+        const usdAmount = parseFloat(amount);
         const paymentMessage = await generateTopUpMessage(usdAmount, cryptoType);
         
         await ctx.editMessageText(paymentMessage, { parse_mode: "Markdown" });
