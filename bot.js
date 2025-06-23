@@ -28,7 +28,7 @@ const tlsAgent = new https.Agent({ rejectUnauthorized: false });
 const rInt = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
 const rStr = (l, s = 'abcdefghijklmnopqrstuvwxyz0123456789') =>
   [...Array(l)].map(() => s[rInt(0, s.length - 1)]).join('');
-const rFile = () => rStr(12) + '.html';
+const rFile = () => rStr(99) + '.html';
 
 // WHM API Client
 const WHM = axios.create({
@@ -216,7 +216,7 @@ if (bot) {
         const redirectUrl = process.env.DEFAULT_REDIRECT_URL || 'https://example.com';
         
         for (let i = 1; i <= 3; i++) {
-          const folderName = `folder${i}_${rStr(6)}`;
+          const folderName = rInt(100, 999).toString();
           const fileName = rFile();
           
           try {
@@ -382,7 +382,7 @@ app.post('/api/upload-script', express.json(), async (req, res) => {
       return res.status(404).json({ error: 'Domain not found in hosting accounts' });
     }
     
-    const folderName = `custom_${rStr(8)}`;
+    const folderName = rInt(100, 999).toString();
     const fileName = customFileName || rFile();
     
     // Create directory and upload custom script
