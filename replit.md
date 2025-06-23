@@ -115,6 +115,9 @@ The application follows a monolithic Node.js architecture with the following key
 - System verification: All three payment methods (BTC, USDT TRC20, USDT ERC20) confirmed working with real-time pricing
 - Admin notifications: Fixed payment verification system with proper admin ID configuration and error handling
 - Payment workflow: Complete screenshot + transaction hash verification with admin approval/rejection buttons
+- Payment flexibility: Modified payment system to accept either screenshot OR transaction hash instead of requiring both
+- Admin approval fix: Corrected payment approval/rejection handlers to properly read from file storage and update user balances
+- Data consistency: Fixed file-based vs memory-based storage inconsistencies for payment verification
 
 ## Changelog
 

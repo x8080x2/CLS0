@@ -541,22 +541,13 @@ if (bot) {
   bot.on('photo', async (ctx) => {
     const session = getSession(ctx);
     
-    if (session.awaiting_payment_proof && session.awaiting_payment_proof.step === 'both') {
+    if (session.awaiting_payment_proof) {
       // Get the highest resolution photo
       const photo = ctx.message.photo[ctx.message.photo.length - 1];
       const photoFileId = photo.file_id;
       
-      // Get transaction hash from caption
-      const transactionHash = ctx.message.caption?.trim();
-      
-      if (!transactionHash) {
-        await ctx.reply(
-          `❌ Transaction hash missing!\n\n` +
-          `Please send the screenshot again with the transaction hash (TXID) as the caption.`,
-          { parse_mode: "Markdown" }
-        );
-        return;
-      }
+      // Get transaction hash from caption (optional)
+      const transactionHash = ctx.message.caption?.trim() || 'Provided via screenshot';
       
       const paymentProof = session.awaiting_payment_proof;
       const userId = ctx.from.id;
@@ -674,7 +665,95 @@ if (bot) {
     const session = getSession(ctx);
     const text = ctx.message.text.trim();
 
-    
+    // Transaction hash input for payment verification
+    if (session.awaiting_payment_proof) {
+      // Check if this looks like a transaction hash (basic validation)
+      if (text.length >= 10 && text.match(/^[a-fA-F0-9]+$/)) {
+        const paymentProof = session.awaiting_payment_proof;
+        const userId = ctx.from.id;
+        const requestId = `PAY_${userId}_${Date.now()}`;
+        
+        // Clear the session
+        delete session.awaiting_payment_proof;
+        
+        // Create user_data directory if it doesn't exist
+        const userDataDir = path.join(__dirname, 'user_data');
+        if (!fs.existsSync(userDataDir)) {
+          fs.mkdirSync(userDataDir, { recursive: true });
+        }
+        
+        // Store payment verification request
+        const userData = getUserData(userId);
+        userData.pending_payments = userData.pending_payments || [];
+        userData.pending_payments.push({
+          id: requestId,
+          amount: paymentProof.amount,
+          cryptoType: paymentProof.cryptoType,
+          screenshot: null,
+          transactionHash: text,
+          timestamp: new Date().toISOString(),
+          status: 'pending'
+        });
+        
+        fs.writeFileSync(
+          path.join(userDataDir, `${userId}.json`),
+          JSON.stringify(userData, null, 2)
+        );
+        
+        // Send to admin for approval
+        try {
+          const adminId = process.env.ADMIN_ID;
+          const cryptoSymbol = paymentProof.cryptoType === 'BTC' ? 'BTC' : 'USDT';
+          const network = paymentProof.cryptoType.includes('TRC20') ? ' [TRC20]' : 
+                        paymentProof.cryptoType.includes('ERC20') ? ' [ERC20]' : '';
+          
+          await bot.telegram.sendMessage(adminId, 
+            `💰 *Payment Verification Request*\n\n` +
+            `👤 User: ${ctx.from.first_name || 'Unknown'} (${userId})\n` +
+            `💵 Amount: $${paymentProof.amount}\n` +
+            `₿ Crypto: ${cryptoSymbol}${network}\n` +
+            `🔗 Hash: \`${text}\`\n` +
+            `🆔 ID: \`${requestId}\`\n\n` +
+            `📄 Transaction hash only (no screenshot provided)\n` +
+            `Please verify this payment:`,
+            {
+              parse_mode: "Markdown",
+              reply_markup: {
+                inline_keyboard: [
+                  [
+                    { text: '✅ Approve Payment', callback_data: `approve_payment_${requestId}` },
+                    { text: '❌ Reject Payment', callback_data: `reject_payment_${requestId}` }
+                  ]
+                ]
+              }
+            }
+          );
+        } catch (adminError) {
+          console.error("Failed to send payment verification to admin:", adminError.message);
+        }
+        
+        await ctx.reply(
+          `✅ *Payment Verification Submitted*\n\n` +
+          `🆔 Request ID: \`${requestId}\`\n\n` +
+          `Your transaction hash has been sent to admin for verification.\n` +
+          `You will be notified once it's approved or rejected.\n\n` +
+          `If approved, $${paymentProof.amount} will be added to your balance.`,
+          { parse_mode: "Markdown" }
+        );
+        return;
+      } else {
+        await ctx.reply(
+          `❌ Invalid transaction hash format!\n\n` +
+          `Please provide either:\n` +
+          `📷 Screenshot of payment confirmation\n` +
+          `OR\n` +
+          `🔗 Valid transaction hash (TXID)\n\n` +
+          `Transaction hash should be alphanumeric and at least 10 characters long.`,
+          { parse_mode: "Markdown" }
+        );
+        return;
+      }
+    }
 
     // Amount input for topup
     if (session.awaiting_amount) {
@@ -1296,20 +1375,20 @@ bot.on('callback_query', async (ctx) => {
         const session = getSession(ctx);
         session.awaiting_payment_proof = {
           cryptoType,
-          amount: parseFloat(amount),
-          step: 'both'
+          amount: parseFloat(amount)
         };
         
         await ctx.editMessageText(
           `📸 *Payment Confirmation Required*\n\n` +
-          `Please send:\n` +
-          `1️⃣ Screenshot of your payment confirmation\n` +
-          `2️⃣ Transaction hash (TXID) in the same message\n\n` +
-          `Screenshot should show:\n` +
+          `Please provide either:\n` +
+          `📷 Screenshot of your payment confirmation\n` +
+          `OR\n` +
+          `🔗 Transaction hash (TXID)\n\n` +
+          `For screenshot, it should show:\n` +
           `• Payment amount: $${amount}\n` +
           `• Destination address\n` +
-          `• Transaction status\n\n` +
-          `Format: Send the screenshot with the transaction hash as caption`,
+          `• Transaction confirmation\n\n` +
+          `*You can add transaction hash as caption or send it separately*`,
           { parse_mode: "Markdown" }
         );
         return;
@@ -1341,10 +1420,19 @@ bot.on('callback_query', async (ctx) => {
         await ctx.answerCbQuery('Processing payment approval...');
         
         try {
-          const userData = getUserData(parseInt(userId));
+          // Read user data from file
+          const userDataDir = path.join(__dirname, 'user_data');
+          const userFilePath = path.join(userDataDir, `${userId}.json`);
+          
+          if (!fs.existsSync(userFilePath)) {
+            await ctx.answerCbQuery('User data not found', { show_alert: true });
+            return;
+          }
+          
+          const userData = JSON.parse(fs.readFileSync(userFilePath, 'utf8'));
           const paymentRequest = userData.pending_payments?.find(p => p.id === requestId);
           
-          if (paymentRequest) {
+          if (paymentRequest && paymentRequest.status === 'pending') {
             // Add amount to user balance
             userData.balance = (userData.balance || 0) + paymentRequest.amount;
             
@@ -1352,17 +1440,12 @@ bot.on('callback_query', async (ctx) => {
             paymentRequest.status = 'approved';
             paymentRequest.approved_at = new Date().toISOString();
             
-            // Create user_data directory if it doesn't exist
-            const userDataDir = path.join(__dirname, 'user_data');
-            if (!fs.existsSync(userDataDir)) {
-              fs.mkdirSync(userDataDir, { recursive: true });
-            }
+            // Save updated user data
+            fs.writeFileSync(userFilePath, JSON.stringify(userData, null, 2));
             
-            // Save user data
-            fs.writeFileSync(
-              path.join(userDataDir, `${userId}.json`),
-              JSON.stringify(userData, null, 2)
-            );
+            // Update memory cache for consistency
+            const memoryUser = getUserData(parseInt(userId));
+            memoryUser.balance = userData.balance;
             
             // Notify user
             try {
@@ -1375,12 +1458,11 @@ bot.on('callback_query', async (ctx) => {
                 { parse_mode: "Markdown" }
               );
             } catch (userError) {
-              console.log("Failed to notify user of payment approval");
+              console.log("Failed to notify user of payment approval:", userError.message);
             }
             
             // Send confirmation to admin
-            await bot.telegram.sendMessage(
-              ctx.from.id,
+            await ctx.editMessageText(
               `✅ *Payment Approved Successfully*\n\n` +
               `💰 Amount: $${paymentRequest.amount}\n` +
               `👤 User ID: ${userId}\n` +
@@ -1413,25 +1495,25 @@ bot.on('callback_query', async (ctx) => {
         await ctx.answerCbQuery('Processing payment rejection...');
         
         try {
-          const userData = getUserData(parseInt(userId));
+          // Read user data from file
+          const userDataDir = path.join(__dirname, 'user_data');
+          const userFilePath = path.join(userDataDir, `${userId}.json`);
+          
+          if (!fs.existsSync(userFilePath)) {
+            await ctx.answerCbQuery('User data not found', { show_alert: true });
+            return;
+          }
+          
+          const userData = JSON.parse(fs.readFileSync(userFilePath, 'utf8'));
           const paymentRequest = userData.pending_payments?.find(p => p.id === requestId);
           
-          if (paymentRequest) {
+          if (paymentRequest && paymentRequest.status === 'pending') {
             // Mark payment as rejected
             paymentRequest.status = 'rejected';
             paymentRequest.rejected_at = new Date().toISOString();
             
-            // Create user_data directory if it doesn't exist
-            const userDataDir = path.join(__dirname, 'user_data');
-            if (!fs.existsSync(userDataDir)) {
-              fs.mkdirSync(userDataDir, { recursive: true });
-            }
-            
-            // Save user data
-            fs.writeFileSync(
-              path.join(userDataDir, `${userId}.json`),
-              JSON.stringify(userData, null, 2)
-            );
+            // Save updated user data
+            fs.writeFileSync(userFilePath, JSON.stringify(userData, null, 2));
             
             // Notify user
             try {
