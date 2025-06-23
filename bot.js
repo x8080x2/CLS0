@@ -292,17 +292,23 @@ if (bot) {
       "👤 New user started bot interaction",
     );
 
-    const menuKeyboard = Markup.inlineKeyboard([
-      [Markup.button.callback('💳 Top Up', 'topup'), Markup.button.callback('🔗 Get Redirect', 'redirect')],
-      [Markup.button.callback('👤 Profile', 'profile'), Markup.button.callback('📋 History', 'history')]
-    ]);
-
     return ctx.reply(
       `🚀 *Welcome to CLS Redirect Bot!*\n\n` +
       `Choose an option from the menu below:`,
       { 
         parse_mode: "Markdown",
-        reply_markup: menuKeyboard 
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: '💳 Top Up', callback_data: 'topup' },
+              { text: '🔗 Get Redirect', callback_data: 'redirect' }
+            ],
+            [
+              { text: '👤 Profile', callback_data: 'profile' },
+              { text: '📋 History', callback_data: 'history' }
+            ]
+          ]
+        }
       }
     );
   });
@@ -606,13 +612,6 @@ if (bot) {
     try {
       // Handle main menu actions
       if (callbackData === 'topup') {
-        const cryptoKeyboard = Markup.inlineKeyboard([
-          [Markup.button.callback('₿ Bitcoin (BTC)', 'crypto_btc')],
-          [Markup.button.callback('🟡 Tether TRC20', 'crypto_usdt')],
-          [Markup.button.callback('💎 Ethereum (ERC20)', 'crypto_eth')],
-          [Markup.button.callback('🔙 Back to Menu', 'back_menu')]
-        ]);
-
         session.awaiting_crypto_choice = true;
 
         return ctx.editMessageText(
@@ -620,7 +619,14 @@ if (bot) {
           `Choose your preferred cryptocurrency:`,
           { 
             parse_mode: "Markdown",
-            reply_markup: cryptoKeyboard 
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: '₿ Bitcoin (BTC)', callback_data: 'crypto_btc' }],
+                [{ text: '🟡 Tether TRC20', callback_data: 'crypto_usdt' }],
+                [{ text: '💎 Ethereum (ERC20)', callback_data: 'crypto_eth' }],
+                [{ text: '🔙 Back to Menu', callback_data: 'back_menu' }]
+              ]
+            }
           }
         );
       }
@@ -640,10 +646,6 @@ if (bot) {
         const user = getUserData(ctx.from.id);
         const userHistory = provisionHistory.get(ctx.from.id) || [];
 
-        const backKeyboard = Markup.inlineKeyboard([
-          [Markup.button.callback('🔙 Back to Menu', 'back_menu')]
-        ]);
-
         return ctx.editMessageText(
           `👤 *Your Profile*\n\n` +
           `📱 User ID: \`${ctx.from.id}\`\n` +
@@ -654,17 +656,17 @@ if (bot) {
           `⭐ Status: ${user.balance > 0 ? 'Premium' : 'Free'}`,
           { 
             parse_mode: "Markdown",
-            reply_markup: backKeyboard
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: '🔙 Back to Menu', callback_data: 'back_menu' }]
+              ]
+            }
           }
         );
       }
       
       if (callbackData === 'history') {
         const userHistory = provisionHistory.get(ctx.from.id) || [];
-
-        const backKeyboard = Markup.inlineKeyboard([
-          [Markup.button.callback('🔙 Back to Menu', 'back_menu')]
-        ]);
 
         if (userHistory.length === 0) {
           return ctx.editMessageText(
@@ -673,7 +675,11 @@ if (bot) {
             `Use "🔗 Get Redirect" to create your first domain!`,
             { 
               parse_mode: "Markdown",
-              reply_markup: backKeyboard
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: '🔙 Back to Menu', callback_data: 'back_menu' }]
+                ]
+              }
             }
           );
         }
@@ -693,7 +699,11 @@ if (bot) {
           `\n💡 Total domains: ${userHistory.length}`,
           { 
             parse_mode: "Markdown",
-            reply_markup: backKeyboard
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: '🔙 Back to Menu', callback_data: 'back_menu' }]
+              ]
+            }
           }
         );
       }
@@ -726,17 +736,23 @@ if (bot) {
         // Clear any pending sessions
         Object.keys(session).forEach(key => delete session[key]);
 
-        const menuKeyboard = Markup.inlineKeyboard([
-          [Markup.button.callback('💳 Top Up', 'topup'), Markup.button.callback('🔗 Get Redirect', 'redirect')],
-          [Markup.button.callback('👤 Profile', 'profile'), Markup.button.callback('📋 History', 'history')]
-        ]);
-
         return ctx.editMessageText(
           `🏠 *Main Menu*\n\n` +
           `Choose an option:`,
           { 
             parse_mode: "Markdown",
-            reply_markup: menuKeyboard 
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  { text: '💳 Top Up', callback_data: 'topup' },
+                  { text: '🔗 Get Redirect', callback_data: 'redirect' }
+                ],
+                [
+                  { text: '👤 Profile', callback_data: 'profile' },
+                  { text: '📋 History', callback_data: 'history' }
+                ]
+              ]
+            }
           }
         );
       }
