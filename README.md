@@ -1,73 +1,113 @@
-# Domain Provisioning Telegram Bot
+# Telegram Domain Provisioning Bot
 
-A sophisticated Telegram bot designed for automated domain provisioning and hosting management through WHM API integration. The application provides streamlined server account creation, domain setup, and management capabilities directly via Telegram interface.
+A professional Telegram bot for automated domain provisioning with cPanel integration. This bot allows users to create hosting accounts and deploy redirect scripts through a simple Telegram interface.
 
 ## Features
 
-- **Instant Domain Setup**: Automatically creates cPanel accounts and hosting infrastructure
-- **File Management**: Creates 3 organized folders with script files per domain
-- **Secure Access**: Generates unique credentials for full account control
-- **Real-time Updates**: Instant notifications throughout the provisioning process
-- **Web Dashboard**: Modern interface for monitoring bot operations
+- **Domain Provisioning**: Automated cPanel account creation via WHM API
+- **Payment System**: User balance management with admin approval
+- **Admin Controls**: Admin access for free provisioning and user management
+- **Rate Limiting**: 3 requests per minute per user for security
+- **Script Generation**: Automatic redirect script deployment
+- **Comprehensive Logging**: Detailed request tracking and monitoring
 
-## Tech Stack
+## Bot Commands
 
-- **Backend**: Node.js 20 with Express.js
-- **Bot Framework**: Telegraf for Telegram interactions  
-- **API Integration**: WHM/cPanel API with secure authentication
-- **Logging**: Pino for structured logging
-- **Frontend**: Responsive HTML dashboard
+- `/start` - Initialize bot and show main menu
+- `/help` - Display available commands
+- `/cancel` - Cancel current operation
 
-## Quick Start
+## Main Features
 
-1. Clone the repository
-2. Install dependencies: `npm install`
-3. Configure environment variables (see `.env.example`)
-4. Start the bot: `node bot.js`
+### 💳 Top Up
+- Request account balance top-up
+- Support for Bitcoin, Tether TRC20, and Ethereum
+- Admin approval system for payments
+
+### 🔗 Get Redirect
+- Domain provisioning service ($80 per domain)
+- Creates cPanel hosting account
+- Deploys 3 redirect script folders
+- Returns URLs and server credentials
+
+### 👤 Profile
+- View user balance and statistics
+- Member since date
+- Total domains provisioned
+
+### 📋 History
+- View last 10 provisioned domains
+- Domain creation dates and redirect URLs
+- Complete provisioning history
+
+### 🔑 Admin Access
+- Request admin approval for free domain provisioning
+- Instant access for admin users
+- One-time free access after approval
 
 ## Environment Variables
 
-Create a `.env` file with the following variables:
+Required environment variables:
 
-```env
-TELEGRAM_BOT_TOKEN=your_bot_token_here
+```
+TELEGRAM_BOT_TOKEN=your_telegram_bot_token
 WHM_SERVER=https://your-whm-server.com:2087
 WHM_USERNAME=your_whm_username
 WHM_PASSWORD=your_whm_password
-ADMIN_USER_ID=your_telegram_user_id
-WEBHOOK_DOMAIN=your_webhook_domain (for production)
-LOG_LEVEL=info
-NODE_ENV=development
+WHM_PACKAGE_NAME=default_package
+ADMIN_ID=your_telegram_user_id
 ```
 
-## Usage
+Optional:
+```
+NODE_ENV=production
+LOG_LEVEL=info
+WEBHOOK_DOMAIN=https://your-domain.com
+```
 
-1. Start a conversation with the bot on Telegram
-2. Send `/start` command
-3. Enter your domain name when prompted
-4. Wait for automated setup completion
-5. Receive cPanel credentials and script URLs
-6. Update domain nameservers as instructed
+## Security Features
+
+- Rate limiting (3 requests/minute)
+- Input validation for domains and URLs
+- Secure password generation
+- Request ID tracking for audit trails
+- Admin-only access controls
 
 ## API Endpoints
 
-- `GET /` - Redirects to dashboard
-- `GET /dashboard` - Web dashboard interface
-- `GET /health` - System health check
-- `POST /api/provision` - Domain provisioning endpoint
+- `GET /health` - Health check endpoint
+- `GET /api/stats` - Bot statistics
+- `POST /api/provision` - Direct domain provisioning
 - `POST /api/upload-script` - Custom script upload
 
-## System Status
+## Installation
 
-- **WHM Integration**: Connected to cp13.syd1.ultacp.com
-- **Package**: pecuwoli_default (10GB quota, 1GB bandwidth)  
-- **Server IP**: 212.81.47.13
-- **Test Status**: Successfully provisioning domains
+1. Clone the repository
+2. Install dependencies: `npm install`
+3. Configure environment variables
+4. Start the bot: `npm start`
 
-## Contributing
+## Development
 
-This is a private project. Contact the repository owner for access and contribution guidelines.
+Run in development mode: `npm run dev`
 
-## License
+The bot includes pretty logging and auto-restart in development mode.
 
-Private - All rights reserved
+## Architecture
+
+- **Express Server**: Web dashboard and API endpoints
+- **Telegram Bot**: User interface and command handling
+- **WHM Integration**: cPanel account creation and management
+- **In-Memory Storage**: User sessions and data (consider database for production)
+
+## Admin Features
+
+Admins can:
+- Approve/deny top-up requests
+- Grant free domain provisioning access
+- Access unlimited free domain provisioning
+- Monitor bot statistics and health
+
+## Support
+
+For support and configuration assistance, contact the administrator.

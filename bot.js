@@ -1,5 +1,5 @@
 require("dotenv").config();
-const { Telegraf, Markup } = require("telegraf");
+const { Telegraf } = require("telegraf");
 const axios = require("axios");
 const https = require("https");
 const crypto = require("crypto");
@@ -242,23 +242,24 @@ function generateCustomScriptContent(redirectUrl) {
   return template;
 }
 
-// Bot initialization - only if token is provided
+// ==========================================
+// TELEGRAM BOT INITIALIZATION
+// ==========================================
+
 let bot = null;
-if (
-  process.env.TELEGRAM_BOT_TOKEN &&
-  process.env.TELEGRAM_BOT_TOKEN !== "your_telegram_bot_token_here"
-) {
+if (process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_BOT_TOKEN !== "your_telegram_bot_token_here") {
   bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
 
   // Set webhook if in production
   if (process.env.NODE_ENV === "production" && process.env.WEBHOOK_DOMAIN) {
-    bot.telegram.setWebhook(
-      `${process.env.WEBHOOK_DOMAIN}/bot${process.env.TELEGRAM_BOT_TOKEN}`,
-    );
+    bot.telegram.setWebhook(`${process.env.WEBHOOK_DOMAIN}/bot${process.env.TELEGRAM_BOT_TOKEN}`);
   }
 }
 
-// User database (in production, use a real database)
+// ==========================================
+// DATA STORAGE & USER MANAGEMENT
+// ==========================================
+
 const users = new Map();
 const provisionHistory = new Map();
 const topupRequests = new Map();
@@ -275,9 +276,12 @@ function getUserData(userId) {
   return users.get(userId);
 }
 
-// Configure bot commands only if bot is available
+// ==========================================
+// TELEGRAM BOT COMMAND HANDLERS
+// ==========================================
+
 if (bot) {
-  // Start command with menu
+  // Start command with main menu
   bot.start((ctx) => {
     const session = getSession(ctx);
     const user = getUserData(ctx.from.id);
@@ -342,7 +346,10 @@ if (bot) {
     return ctx.reply("❌ Operation cancelled. Use /start to begin again.");
   });
 
-  // Main text handler
+  // ==========================================
+  // TEXT MESSAGE HANDLERS
+  // ==========================================
+
   bot.on("text", async (ctx) => {
     const session = getSession(ctx);
     const text = ctx.message.text.trim();
@@ -650,7 +657,10 @@ if (bot) {
     }
   });
 
-  // Combined callback query handler for all inline buttons
+  // ==========================================
+  // INLINE KEYBOARD CALLBACK HANDLERS
+  // ==========================================
+
   bot.on('callback_query', async (ctx) => {
     const callbackData = ctx.callbackQuery.data;
     const session = getSession(ctx);
@@ -1087,14 +1097,17 @@ if (bot) {
   app.use(`/bot${process.env.TELEGRAM_BOT_TOKEN}`, bot.webhookCallback("/"));
 }
 
-// Statistics tracking
+// ==========================================
+// EXPRESS SERVER & API ENDPOINTS
+// ==========================================
+
 const stats = {
   domainsCreated: 0,
   requestsProcessed: 0,
   startTime: Date.now()
 };
 
-// Enhanced health check endpoint
+// Health check endpoint
 app.get("/health", (req, res) => {
   const log = L("health-check");
   const healthData = {
@@ -1243,7 +1256,10 @@ app.post("/api/upload-script", express.json(), async (req, res) => {
   }
 });
 
-// Start server
+// ==========================================
+// SERVER STARTUP & SHUTDOWN HANDLERS
+// ==========================================
+
 const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, "0.0.0.0", () => {
   const log = L("server");
@@ -1254,13 +1270,11 @@ const server = app.listen(PORT, "0.0.0.0", () => {
     bot.launch();
     log.info("Bot started with polling");
   } else if (!bot) {
-    log.info(
-      "Bot not initialized - Telegram token missing. Dashboard available at /dashboard",
-    );
+    log.info("Bot not initialized - Telegram token missing. Dashboard available at /dashboard");
   }
 });
 
-// Graceful shutdown
+// Graceful shutdown handlers
 process.once("SIGINT", () => {
   const log = L("shutdown");
   log.info("Shutting down gracefully");
