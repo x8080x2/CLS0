@@ -361,28 +361,22 @@ async function calculateCryptoAmount(usdAmount, cryptoType) {
   }
 }
 
-// Generate top-up payment message with all wallets
-async function generateTopUpMessage(usdAmount) {
-  const btcAmount = await calculateCryptoAmount(usdAmount, 'BTC');
-  const usdtAmount = usdAmount; // USDT is 1:1 with USD
-  
-  if (!btcAmount) {
+// Generate top-up payment message for specific crypto
+async function generateTopUpMessage(usdAmount, cryptoType) {
+  const amount = await calculateCryptoAmount(usdAmount, cryptoType);
+  if (!amount) {
     return "❌ Unable to fetch current crypto prices. Please try again.";
   }
   
+  const wallet = CRYPTO_WALLETS[cryptoType];
+  const cryptoSymbol = cryptoType === 'BTC' ? 'BTC' : 'USDT';
+  const network = cryptoType.includes('TRC20') ? ' [TRC20]' : cryptoType.includes('ERC20') ? ' [ERC20]' : '';
+  
   return `⚠️ *Please send the exact amount to the address below:*
 
-*Amount of payment:* ${usdAmount}.000000
+*Address:* \`${wallet}\`
+*Amount of payment:* ${amount}.000000
 *Status:* 🕜 WAITING FOR PAYMENT...
-
-*BTC* \`${btcAmount}\`
-\`${CRYPTO_WALLETS.BTC}\`
-
-*USDT [TRC20]* \`${usdtAmount}\`
-\`${CRYPTO_WALLETS.USDT_TRC20}\`
-
-*USDT [ERC20]* \`${usdtAmount}\`
-\`${CRYPTO_WALLETS.USDT_ERC20}\`
 
 ❗️ *Ensure the funds are sent within 30 minutes.*
 🟢 *The transaction will be credited automatically*
@@ -519,9 +513,25 @@ if (bot) {
         );
       }
 
-      // Generate payment message with all wallets
-      const paymentMessage = await generateTopUpMessage(amount);
-      return ctx.reply(paymentMessage, { parse_mode: "Markdown" });
+      // Show crypto selection for payment
+      return ctx.reply(
+        `💰 *Top-Up Amount: $${amount}*\n\nSelect your preferred payment method:`,
+        {
+          parse_mode: "Markdown",
+          reply_markup: {
+            inline_keyboard: [
+              [
+                { text: '₿ Bitcoin (BTC)', callback_data: `pay_BTC_${amount}` },
+                { text: '💵 USDT (TRC20)', callback_data: `pay_USDT_TRC20_${amount}` }
+              ],
+              [
+                { text: '💵 USDT (ERC20)', callback_data: `pay_USDT_ERC20_${amount}` },
+                { text: '❌ Cancel', callback_data: 'cancel_topup' }
+              ]
+            ]
+          }
+        }
+      );
     }
 
     // Domain input handling
@@ -1068,7 +1078,25 @@ bot.on('callback_query', async (ctx) => {
         );
       }
 
+      // Handle crypto payment selection
+      if (callbackData.startsWith('pay_')) {
+        const [_, cryptoType, amount] = callbackData.split('_');
+        const usdAmount = parseFloat(amount);
+        
+        const paymentMessage = await generateTopUpMessage(usdAmount, cryptoType);
+        
+        await ctx.editMessageText(paymentMessage, { parse_mode: "Markdown" });
+        return;
+      }
 
+      // Handle topup cancellation
+      if (callbackData === 'cancel_topup') {
+        await ctx.editMessageText(
+          "❌ Top-up cancelled. Use /start to return to main menu.",
+          { parse_mode: "Markdown" }
+        );
+        return;
+      }
 
       // Handle back to menu
       if (callbackData === 'back_menu') {
