@@ -784,7 +784,7 @@ if (bot) {
       if (callbackData === 'admin_access') {
         const user = getUserData(ctx.from.id);
         
-        // Check if user is admin - gets approval access (still needs $80)
+        // Check if user is admin - gets free access
         const log = L("admin-access");
         log.info({
           userId: ctx.from.id,
@@ -795,13 +795,13 @@ if (bot) {
         
         if (process.env.ADMIN_ID && ctx.from.id.toString() === process.env.ADMIN_ID) {
           session.awaiting_domain = true;
-          session.admin_approved = true;
+          session.admin_free_access = true;
 
           return ctx.editMessageText(
-            "🔑 *Admin Access - Approved*\n\n" +
+            "🔑 *Admin Access - Free Access Granted*\n\n" +
             "✨ Send: `domain.com redirect-url`\n" +
             "📝 Example: `mysite.com https://fb.com`\n\n" +
-            "💰 Cost: $80 (standard rate applies)",
+            "💎 Free access for admin - no payment required",
             { parse_mode: "Markdown" }
           );
         }
@@ -855,7 +855,7 @@ if (bot) {
           `🆔 Request ID: \`${requestId}\`\n\n` +
           `⏳ Your request has been sent to admin for approval.\n` +
           `You will be notified once it's processed.\n\n` +
-          `This will grant you one free domain provisioning.`,
+          `If approved, you'll get free domain provisioning access.`,
           { 
             parse_mode: "Markdown",
             reply_markup: {
@@ -932,9 +932,9 @@ if (bot) {
       }
 
       if (action === 'grant') {
-        // Grant admin access to user (still requires payment)
+        // Grant free admin access to user
         const userSession = sessions.get(request.userId) || {};
-        userSession.admin_approved = true;
+        userSession.admin_free_access = true;
         sessions.set(request.userId, userSession);
         
         request.status = 'approved';
@@ -945,8 +945,8 @@ if (bot) {
             request.userId,
             `✅ *Admin Access Granted!*\n\n` +
             `🆔 Request ID: \`${requestId}\`\n\n` +
-            `You are now approved to use domain provisioning.\n` +
-            `Use "🔗 Get Redirect" and pay $80 to provision your domain.`,
+            `You now have free domain provisioning access.\n` +
+            `Use "🔗 Get Redirect" to provision your domain without payment.`,
             { parse_mode: "Markdown" }
           );
         } catch (error) {
