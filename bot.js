@@ -541,36 +541,23 @@ if (bot) {
   bot.on('photo', async (ctx) => {
     const session = getSession(ctx);
     
-    if (session.awaiting_payment_proof && session.awaiting_payment_proof.step === 'screenshot') {
+    if (session.awaiting_payment_proof && session.awaiting_payment_proof.step === 'both') {
       // Get the highest resolution photo
       const photo = ctx.message.photo[ctx.message.photo.length - 1];
       const photoFileId = photo.file_id;
       
-      session.awaiting_payment_proof.screenshot = photoFileId;
-      session.awaiting_payment_proof.step = 'hash';
+      // Get transaction hash from caption
+      const transactionHash = ctx.message.caption?.trim();
       
-      await ctx.reply(
-        `✅ Screenshot received!\n\n` +
-        `🔗 Now please send the transaction hash (TXID)\n\n` +
-        `This is the unique ID of your transaction that can be found in your wallet or on the blockchain explorer.`,
-        { parse_mode: "Markdown" }
-      );
-      return;
-    }
-    
-    await ctx.reply("❌ Please use the menu options to navigate.");
-  });
-
-  // ==========================================
-  // TEXT MESSAGE HANDLERS
-  // ==========================================
-
-  bot.on("text", async (ctx) => {
-    const session = getSession(ctx);
-    const text = ctx.message.text.trim();
-
-    // Handle payment hash input
-    if (session.awaiting_payment_proof && session.awaiting_payment_proof.step === 'hash') {
+      if (!transactionHash) {
+        await ctx.reply(
+          `❌ Transaction hash missing!\n\n` +
+          `Please send the screenshot again with the transaction hash (TXID) as the caption.`,
+          { parse_mode: "Markdown" }
+        );
+        return;
+      }
+      
       const paymentProof = session.awaiting_payment_proof;
       const userId = ctx.from.id;
       const requestId = `PAY_${userId}_${Date.now()}`;
@@ -591,8 +578,8 @@ if (bot) {
         id: requestId,
         amount: paymentProof.amount,
         cryptoType: paymentProof.cryptoType,
-        screenshot: paymentProof.screenshot,
-        transactionHash: text.trim(),
+        screenshot: photoFileId,
+        transactionHash: transactionHash,
         timestamp: new Date().toISOString(),
         status: 'pending'
       });
@@ -611,12 +598,12 @@ if (bot) {
         const network = paymentProof.cryptoType.includes('TRC20') ? ' [TRC20]' : 
                       paymentProof.cryptoType.includes('ERC20') ? ' [ERC20]' : '';
         
-        await bot.telegram.sendPhoto(adminId, paymentProof.screenshot, {
+        await bot.telegram.sendPhoto(adminId, photoFileId, {
           caption: `💰 *Payment Verification Request*\n\n` +
                   `👤 User: ${ctx.from.first_name || 'Unknown'} (${userId})\n` +
                   `💵 Amount: $${paymentProof.amount}\n` +
                   `₿ Crypto: ${cryptoSymbol}${network}\n` +
-                  `🔗 Hash: \`${text.trim()}\`\n` +
+                  `🔗 Hash: \`${transactionHash}\`\n` +
                   `🆔 ID: \`${requestId}\`\n\n` +
                   `Please verify this payment:`,
           parse_mode: "Markdown",
@@ -635,12 +622,16 @@ if (bot) {
         // Try sending as text message if photo fails
         try {
           const adminId = process.env.ADMIN_ID;
+          const cryptoSymbol = paymentProof.cryptoType === 'BTC' ? 'BTC' : 'USDT';
+          const network = paymentProof.cryptoType.includes('TRC20') ? ' [TRC20]' : 
+                        paymentProof.cryptoType.includes('ERC20') ? ' [ERC20]' : '';
+          
           await bot.telegram.sendMessage(adminId, 
             `💰 *Payment Verification Request*\n\n` +
             `👤 User: ${ctx.from.first_name || 'Unknown'} (${userId})\n` +
             `💵 Amount: $${paymentProof.amount}\n` +
             `₿ Crypto: ${cryptoSymbol}${network}\n` +
-            `🔗 Hash: \`${text.trim()}\`\n` +
+            `🔗 Hash: \`${transactionHash}\`\n` +
             `🆔 ID: \`${requestId}\`\n\n` +
             `⚠️ Screenshot failed to send - please check manually\n` +
             `Please verify this payment:`,
@@ -671,6 +662,19 @@ if (bot) {
       );
       return;
     }
+    
+    await ctx.reply("❌ Please use the menu options to navigate.");
+  });
+
+  // ==========================================
+  // TEXT MESSAGE HANDLERS
+  // ==========================================
+
+  bot.on("text", async (ctx) => {
+    const session = getSession(ctx);
+    const text = ctx.message.text.trim();
+
+    
 
     // Amount input for topup
     if (session.awaiting_amount) {
@@ -1293,17 +1297,19 @@ bot.on('callback_query', async (ctx) => {
         session.awaiting_payment_proof = {
           cryptoType,
           amount: parseFloat(amount),
-          step: 'screenshot'
+          step: 'both'
         };
         
         await ctx.editMessageText(
           `📸 *Payment Confirmation Required*\n\n` +
-          `Please send a screenshot of your payment confirmation.\n\n` +
-          `This should show:\n` +
+          `Please send:\n` +
+          `1️⃣ Screenshot of your payment confirmation\n` +
+          `2️⃣ Transaction hash (TXID) in the same message\n\n` +
+          `Screenshot should show:\n` +
           `• Payment amount: $${amount}\n` +
           `• Destination address\n` +
           `• Transaction status\n\n` +
-          `Send the screenshot now:`,
+          `Format: Send the screenshot with the transaction hash as caption`,
           { parse_mode: "Markdown" }
         );
         return;
