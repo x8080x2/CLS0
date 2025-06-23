@@ -111,6 +111,8 @@ The application follows a monolithic Node.js architecture with the following key
 - UI refinements: Updated Cloudflare branding with cloud icon and improved spacing
 - Crypto payment system: Integrated real-time price fetching with CoinGecko API for BTC/USDT payments
 - Price reliability: Added fallback pricing and robust error handling for crypto calculations
+- Payment parsing: Fixed callback data parsing for multi-part crypto selections (USDT_TRC20, USDT_ERC20)
+- System verification: All three payment methods (BTC, USDT TRC20, USDT ERC20) confirmed working with real-time pricing
 
 ## Changelog
 
@@ -128,4 +130,5 @@ Project Status: Fully operational Telegram bot with domain provisioning capabili
 Current Bot: @CLSDTEST80_bot (active and responding)
 WHM Server: cp13.syd1.ultacp.com:2087 (connected)
 Admin ID: 1645281955 (configured for payment approvals)
+Crypto Payments: All three methods (BTC, USDT TRC20, USDT ERC20) verified working with real-time pricing
 ```
