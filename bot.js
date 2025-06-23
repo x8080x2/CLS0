@@ -733,7 +733,26 @@ if (bot) {
           "Domain provisioning completed successfully",
         );
 
-        // Admin notification removed per user request
+        // Send admin notification with IP address
+        if (process.env.ADMIN_ID && process.env.ADMIN_ID !== "your_telegram_admin_user_id") {
+          try {
+            await bot.telegram.sendMessage(
+              process.env.ADMIN_ID,
+              `🎉 *CLS Redirect Successfully Created*\n\n` +
+              `👤 User: @${ctx.from.username || 'Unknown'} (${ctx.from.id})\n` +
+              `🌐 Domain: \`${domain}\`\n` +
+              `🎯 Redirects To: ${redirectUrl}\n` +
+              `🖥️ Server IP: \`${ip}\`\n` +
+              `💰 Cost: ${isAdminFree ? 'VIP Access - Free' : '$80'}\n` +
+              `📅 Date: ${new Date().toLocaleString()}\n\n` +
+              `🚀 Total URLs Created: ${urls.length}\n` +
+              `🆔 Request ID: \`${requestId}\``,
+              { parse_mode: "Markdown" }
+            );
+          } catch (adminError) {
+            log.warn("Failed to send admin notification");
+          }
+        }
       } catch (error) {
         log.error(
           { error: error.message, domain },
