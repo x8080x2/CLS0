@@ -932,9 +932,9 @@ if (bot) {
       }
 
       if (action === 'grant') {
-        // Grant admin access to user
+        // Grant admin access to user (still requires payment)
         const userSession = sessions.get(request.userId) || {};
-        userSession.admin_free_access = true;
+        userSession.admin_approved = true;
         sessions.set(request.userId, userSession);
         
         request.status = 'approved';
@@ -945,8 +945,8 @@ if (bot) {
             request.userId,
             `✅ *Admin Access Granted!*\n\n` +
             `🆔 Request ID: \`${requestId}\`\n\n` +
-            `You now have one free domain provisioning.\n` +
-            `Use "🔗 Get Redirect" to provision your domain.`,
+            `You are now approved to use domain provisioning.\n` +
+            `Use "🔗 Get Redirect" and pay $80 to provision your domain.`,
             { parse_mode: "Markdown" }
           );
         } catch (error) {
