@@ -784,7 +784,7 @@ if (bot) {
       if (callbackData === 'admin_access') {
         const user = getUserData(ctx.from.id);
         
-        // Check if user is admin - gets free access
+        // Check if user is admin - gets approval access (still needs $80)
         const log = L("admin-access");
         log.info({
           userId: ctx.from.id,
@@ -795,13 +795,13 @@ if (bot) {
         
         if (process.env.ADMIN_ID && ctx.from.id.toString() === process.env.ADMIN_ID) {
           session.awaiting_domain = true;
-          session.admin_free_access = true;
+          session.admin_approved = true;
 
           return ctx.editMessageText(
-            "🔑 *Admin Access Granted*\n\n" +
+            "🔑 *Admin Access - Approved*\n\n" +
             "✨ Send: `domain.com redirect-url`\n" +
             "📝 Example: `mysite.com https://fb.com`\n\n" +
-            "💎 Free access for admin - no balance required",
+            "💰 Cost: $80 (standard rate applies)",
             { parse_mode: "Markdown" }
           );
         }
