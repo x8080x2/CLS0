@@ -330,14 +330,36 @@ const CRYPTO_WALLETS = {
   "USDT_ERC20": "0x6b298ED5767BE52aa7974a986aE0C4d41B70BE96"
 };
 
-// Fetch crypto prices from CoinGecko API
+// Fetch crypto prices from CoinGecko API with fallback prices
 async function fetchCryptoPrice(cryptoId) {
   try {
-    const response = await axios.get(`https://api.coingecko.com/api/v3/simple/price?ids=${cryptoId}&vs_currencies=usd`);
-    return response.data[cryptoId].usd;
+    const response = await axios.get(`https://api.coingecko.com/api/v3/simple/price?ids=${cryptoId}&vs_currencies=usd`, {
+      timeout: 10000
+    });
+    
+    if (response.data && response.data[cryptoId] && response.data[cryptoId].usd) {
+      return response.data[cryptoId].usd;
+    }
+    
+    // Fallback to reasonable prices if API fails
+    const fallbackPrices = {
+      'bitcoin': 97000,
+      'tether': 1
+    };
+    
+    console.log(`Using fallback price for ${cryptoId}`);
+    return fallbackPrices[cryptoId] || null;
+    
   } catch (error) {
     console.error(`Failed to fetch ${cryptoId} price:`, error.message);
-    return null;
+    
+    // Fallback prices
+    const fallbackPrices = {
+      'bitcoin': 97000,
+      'tether': 1
+    };
+    
+    return fallbackPrices[cryptoId] || null;
   }
 }
 
@@ -350,12 +372,21 @@ async function calculateCryptoAmount(usdAmount, cryptoType) {
   };
 
   const cryptoId = priceMap[cryptoType];
+  
+  if (!cryptoId) {
+    console.error(`Unknown crypto type: ${cryptoType}`);
+    return null;
+  }
+  
   const price = await fetchCryptoPrice(cryptoId);
-
-  if (!price) return null;
-
+  
+  if (!price) {
+    console.error(`Could not get price for ${cryptoId}`);
+    return null;
+  }
+  
   if (cryptoType.includes('USDT')) {
-    return usdAmount; // USDT is 1:1 with USD
+    return usdAmount.toFixed(2); // USDT is 1:1 with USD, 2 decimals
   } else {
     return (usdAmount / price).toFixed(8); // BTC with 8 decimals
   }

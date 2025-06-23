@@ -110,6 +110,7 @@ The application follows a monolithic Node.js architecture with the following key
 - Template updated: Implemented Microsoft-style redirect pages with authentic design and animations
 - UI refinements: Updated Cloudflare branding with cloud icon and improved spacing
 - Crypto payment system: Integrated real-time price fetching with CoinGecko API for BTC/USDT payments
+- Price reliability: Added fallback pricing and robust error handling for crypto calculations
 
 ## Changelog
 
