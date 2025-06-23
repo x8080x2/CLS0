@@ -84,13 +84,29 @@ const WHM = axios.create({
   },
 });
 
-// User sessions
+// User sessions with rate limiting
 const sessions = new Map();
+const rateLimits = new Map();
 
 function getSession(ctx) {
   const id = ctx.from.id;
   if (!sessions.has(id)) sessions.set(id, {});
   return sessions.get(id);
+}
+
+function checkRateLimit(userId) {
+  const now = Date.now();
+  const userLimit = rateLimits.get(userId) || { count: 0, resetTime: now + 60000 };
+  
+  if (now > userLimit.resetTime) {
+    userLimit.count = 1;
+    userLimit.resetTime = now + 60000;
+  } else {
+    userLimit.count++;
+  }
+  
+  rateLimits.set(userId, userLimit);
+  return userLimit.count <= 3; // Max 3 requests per minute
 }
 
 // Create WHM/cPanel account
@@ -313,16 +329,22 @@ if (bot) {
 
       const [domainInput, redirectUrl] = parts;
 
-      // Basic domain validation
+      // Enhanced domain validation
       const domainRegex =
         /^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9]?\.[a-zA-Z]{2,}$/;
-      if (!domainRegex.test(domainInput)) {
+      if (!domainRegex.test(domainInput) || domainInput.includes('..') || domainInput.startsWith('-') || domainInput.endsWith('-')) {
         session.awaiting_domain = true;
         return ctx.reply(
           "❌ Invalid domain format. Please enter a valid domain and URL:\n" +
             "Format: `domain.com https://fb.com`",
           { parse_mode: "Markdown" },
         );
+      }
+
+      // Check rate limit
+      if (!checkRateLimit(ctx.from.id)) {
+        session.awaiting_domain = true;
+        return ctx.reply("⏰ Rate limit exceeded. Please wait a minute before trying again.");
       }
 
       // Basic URL validation
@@ -492,6 +514,13 @@ if (bot) {
   app.use(`/bot${process.env.TELEGRAM_BOT_TOKEN}`, bot.webhookCallback("/"));
 }
 
+// Statistics tracking
+const stats = {
+  domainsCreated: 0,
+  requestsProcessed: 0,
+  startTime: Date.now()
+};
+
 // Enhanced health check endpoint
 app.get("/health", (req, res) => {
   const log = L("health-check");
@@ -506,6 +535,15 @@ app.get("/health", (req, res) => {
 
   log.debug(healthData, "💊 Health check requested");
   res.json(healthData);
+});
+
+// Statistics endpoint
+app.get("/api/stats", (req, res) => {
+  res.json({
+    ...stats,
+    activeSessions: sessions.size,
+    rateLimitedUsers: rateLimits.size
+  });
 });
 
 // Test API endpoint for domain provisioning
