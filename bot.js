@@ -320,6 +320,77 @@ function generateCustomScriptContent(redirectUrl) {
 }
 
 // ==========================================
+// CRYPTO PRICE API & TOP-UP FUNCTIONALITY
+// ==========================================
+
+// Crypto wallet addresses
+const CRYPTO_WALLETS = {
+  BTC: "bc1qsttwav3g9p3fcvwhu0je2swttca5zyu7lq47hm",
+  "USDT_TRC20": "TBQbur14oKop1THRNyy7rSJU9cbG2EPtC4",
+  "USDT_ERC20": "0x6b298ED5767BE52aa7974a986aE0C4d41B70BE96"
+};
+
+// Fetch crypto prices from CoinGecko API
+async function fetchCryptoPrice(cryptoId) {
+  try {
+    const response = await axios.get(`https://api.coingecko.com/api/v3/simple/price?ids=${cryptoId}&vs_currencies=usd`);
+    return response.data[cryptoId].usd;
+  } catch (error) {
+    console.error(`Failed to fetch ${cryptoId} price:`, error.message);
+    return null;
+  }
+}
+
+// Calculate crypto amount needed for USD amount
+async function calculateCryptoAmount(usdAmount, cryptoType) {
+  const priceMap = {
+    BTC: 'bitcoin',
+    USDT_TRC20: 'tether',
+    USDT_ERC20: 'tether'
+  };
+  
+  const cryptoId = priceMap[cryptoType];
+  const price = await fetchCryptoPrice(cryptoId);
+  
+  if (!price) return null;
+  
+  if (cryptoType.includes('USDT')) {
+    return usdAmount; // USDT is 1:1 with USD
+  } else {
+    return (usdAmount / price).toFixed(8); // BTC with 8 decimals
+  }
+}
+
+// Generate top-up payment message
+async function generateTopUpMessage(usdAmount, cryptoType) {
+  const amount = await calculateCryptoAmount(usdAmount, cryptoType);
+  if (!amount) {
+    return "❌ Unable to fetch current crypto prices. Please try again.";
+  }
+  
+  const wallet = CRYPTO_WALLETS[cryptoType];
+  const cryptoSymbol = cryptoType === 'BTC' ? 'BTC' : 'USDT';
+  const network = cryptoType.includes('TRC20') ? ' [TRC20]' : cryptoType.includes('ERC20') ? ' [ERC20]' : '';
+  
+  return `⚠️ *Please send the exact amount to the address below:*
+
+*Address:* \`${wallet}\`
+*Currency:* ${cryptoSymbol}${network}
+*Amount of payment:* \`${amount}\`
+*USD Value:* $${usdAmount}
+*Status:* 🕜 WAITING FOR PAYMENT...
+
+❗️ *Ensure the funds are sent within 30 minutes.*
+🟢 *The transaction will be credited automatically*
+⚠️ *This address is valid for one-time use only.*
+
+*Available Payment Methods:*
+• BTC: \`${CRYPTO_WALLETS.BTC}\`
+• USDT [TRC20]: \`${CRYPTO_WALLETS.USDT_TRC20}\`
+• USDT [ERC20]: \`${CRYPTO_WALLETS.USDT_ERC20}\``;
+}
+
+// ==========================================
 // TELEGRAM BOT INITIALIZATION
 // ==========================================
 
@@ -449,54 +520,24 @@ if (bot) {
         );
       }
 
-      // Generate topup request
-      const requestId = crypto.randomUUID().slice(0, 8);
-      const topupRequest = {
-        id: requestId,
-        userId: ctx.from.id,
-        username: ctx.from.username || 'Unknown',
-        amount: amount,
-        crypto: session.selected_crypto,
-        date: new Date(),
-        status: 'pending'
-      };
-
-      topupRequests.set(requestId, topupRequest);
-
-      // Send to admin for approval
-      if (process.env.ADMIN_ID && process.env.ADMIN_ID !== "your_telegram_admin_user_id") {
-        try {
-          const adminKeyboard = Markup.inlineKeyboard([
-            [Markup.button.callback('✅ Approve', `approve_${requestId}`)],
-            [Markup.button.callback('❌ Reject', `reject_${requestId}`)]
-          ]);
-
-          await bot.telegram.sendMessage(
-            process.env.ADMIN_ID,
-            `💳 *New Top-Up Request*\n\n` +
-            `👤 User: @${topupRequest.username} (${topupRequest.userId})\n` +
-            `💰 Amount: $${amount}\n` +
-            `🪙 Method: ${session.selected_crypto}\n` +
-            `📅 Date: ${topupRequest.date.toLocaleString()}\n` +
-            `🆔 Request ID: \`${requestId}\``,
-            { 
-              parse_mode: "Markdown",
-              reply_markup: adminKeyboard
-            }
-          );
-        } catch (adminError) {
-          console.log("Failed to send admin notification");
-        }
-      }
-
+      // Show crypto selection for payment
       return ctx.reply(
-        `💳 *Top-Up Request Submitted*\n\n` +
-        `💰 Amount: $${amount}\n` +
-        `🪙 Method: ${session.selected_crypto}\n` +
-        `🆔 Request ID: \`${requestId}\`\n\n` +
-        `⏳ Your request has been sent to admin for approval.\n` +
-        `You will be notified once it's processed.`,
-        { parse_mode: "Markdown" }
+        `💰 *Top-Up Amount: $${amount}*\n\nSelect your preferred payment method:`,
+        {
+          parse_mode: "Markdown",
+          reply_markup: {
+            inline_keyboard: [
+              [
+                { text: '₿ Bitcoin (BTC)', callback_data: `pay_BTC_${amount}` },
+                { text: '💵 USDT (TRC20)', callback_data: `pay_USDT_TRC20_${amount}` }
+              ],
+              [
+                { text: '💵 USDT (ERC20)', callback_data: `pay_USDT_ERC20_${amount}` },
+                { text: '❌ Cancel', callback_data: 'cancel_topup' }
+              ]
+            ]
+          }
+        }
       );
     }
 
@@ -793,6 +834,7 @@ if (bot) {
   bot.on('callback_query', async (ctx) => {
     const callbackData = ctx.callbackQuery.data;
     const session = getSession(ctx);
+    const user = getUserData(ctx.from.id);
     
     // Always answer callback query first to remove loading state
     await ctx.answerCbQuery();
@@ -811,9 +853,9 @@ if (bot) {
             parse_mode: "Markdown",
             reply_markup: {
               inline_keyboard: [
-                [{ text: '₿ Bitcoin (BTC)', callback_data: 'crypto_btc' }],
-                [{ text: '🟡 Tether TRC20', callback_data: 'crypto_usdt' }],
-                [{ text: '💎 Ethereum (ERC20)', callback_data: 'crypto_eth' }],
+                [{ text: '₿ Bitcoin (BTC)', callback_data: 'select_BTC' }],
+                [{ text: '🟡 Tether TRC20', callback_data: 'select_USDT_TRC20' }],
+                [{ text: '💎 USDT ERC20', callback_data: 'select_USDT_ERC20' }],
                 [{ text: '🔙 Back to Menu', callback_data: 'back_menu' }]
               ]
             }
@@ -1035,26 +1077,43 @@ if (bot) {
       }
       
       // Handle crypto selection
-      if (['crypto_btc', 'crypto_usdt', 'crypto_eth'].includes(callbackData)) {
-        if (!session.awaiting_crypto_choice) return;
-
-        session.awaiting_crypto_choice = false;
+      if (callbackData.startsWith('select_')) {
+        const cryptoType = callbackData.replace('select_', '');
+        session.selected_crypto = cryptoType;
         session.awaiting_amount = true;
         
         const cryptoNames = {
-          'crypto_btc': '₿ Bitcoin (BTC)',
-          'crypto_usdt': '🟡 Tether TRC20',
-          'crypto_eth': '💎 Ethereum (ERC20)'
+          'BTC': '₿ Bitcoin (BTC)',
+          'USDT_TRC20': '🟡 Tether TRC20',
+          'USDT_ERC20': '💎 USDT ERC20'
         };
-        
-        session.selected_crypto = cryptoNames[callbackData];
 
         return ctx.editMessageText(
-          `💰 *${session.selected_crypto}*\n\n` +
+          `💰 *${cryptoNames[cryptoType]}*\n\n` +
           `Please enter the amount you want to top up (in USD):\n\n` +
           `Example: 50`,
           { parse_mode: "Markdown" }
         );
+      }
+
+      // Handle crypto payment selection
+      if (callbackData.startsWith('pay_')) {
+        const [_, cryptoType, amount] = callbackData.split('_');
+        const usdAmount = parseFloat(amount);
+        
+        const paymentMessage = await generateTopUpMessage(usdAmount, cryptoType);
+        
+        await ctx.editMessageText(paymentMessage, { parse_mode: "Markdown" });
+        return ctx.answerCbQuery("Payment details generated!");
+      }
+
+      // Handle topup cancellation
+      if (callbackData === 'cancel_topup') {
+        await ctx.editMessageText(
+          "❌ Top-up cancelled. Use /start to return to main menu.",
+          { parse_mode: "Markdown" }
+        );
+        return ctx.answerCbQuery();
       }
       
       // Handle back to menu
