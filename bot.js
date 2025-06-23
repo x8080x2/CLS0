@@ -1,4 +1,12 @@
-require("dotenv").config();
+// In Replit, environment variables are managed through the Secrets tab
+// Remove dotenv dependency for production compatibility
+if (process.env.NODE_ENV !== 'production') {
+  try {
+    require("dotenv").config();
+  } catch (e) {
+    console.log("Dotenv not available, using environment variables directly");
+  }
+}
 const { Telegraf } = require("telegraf");
 const axios = require("axios");
 const https = require("https");
