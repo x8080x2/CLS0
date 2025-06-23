@@ -307,150 +307,7 @@ if (bot) {
     );
   });
 
-  // Inline keyboard callback handlers
-  bot.action('topup', (ctx) => {
-    const session = getSession(ctx);
-    
-    const cryptoKeyboard = Markup.inlineKeyboard([
-      [Markup.button.callback('₿ Bitcoin (BTC)', 'crypto_btc')],
-      [Markup.button.callback('🟡 Tether TRC20', 'crypto_usdt')],
-      [Markup.button.callback('💎 Ethereum (ERC20)', 'crypto_eth')],
-      [Markup.button.callback('🔙 Back to Menu', 'back_menu')]
-    ]);
 
-    session.awaiting_crypto_choice = true;
-
-    return ctx.editMessageText(
-      `💳 *Top Up Your Account*\n\n` +
-      `Choose your preferred cryptocurrency:`,
-      { 
-        parse_mode: "Markdown",
-        reply_markup: cryptoKeyboard 
-      }
-    );
-  });
-
-  // Crypto choice handlers
-  bot.action(['crypto_btc', 'crypto_usdt', 'crypto_eth'], (ctx) => {
-    const session = getSession(ctx);
-    if (!session.awaiting_crypto_choice) return;
-
-    session.awaiting_crypto_choice = false;
-    session.awaiting_amount = true;
-    
-    const cryptoNames = {
-      'crypto_btc': '₿ Bitcoin (BTC)',
-      'crypto_usdt': '🟡 Tether TRC20',
-      'crypto_eth': '💎 Ethereum (ERC20)'
-    };
-    
-    session.selected_crypto = cryptoNames[ctx.callbackQuery.data];
-
-    return ctx.editMessageText(
-      `💰 *${session.selected_crypto}*\n\n` +
-      `Please enter the amount you want to top up (in USD):\n\n` +
-      `Example: 50`,
-      { parse_mode: "Markdown" }
-    );
-  });
-
-  // Get Redirect handler
-  bot.action('redirect', (ctx) => {
-    const session = getSession(ctx);
-    session.awaiting_domain = true;
-
-    return ctx.editMessageText(
-      "🚀 *CLS Redirect Setup!*\n\n" +
-        "✨ Send: `domain.com redirect-url`\n" +
-        "📝 Example: `mysite.com https://fb.com`",
-      { parse_mode: "Markdown" },
-    );
-  });
-
-  // Profile handler
-  bot.action('profile', (ctx) => {
-    const user = getUserData(ctx.from.id);
-    const userHistory = provisionHistory.get(ctx.from.id) || [];
-
-    const backKeyboard = Markup.inlineKeyboard([
-      [Markup.button.callback('🔙 Back to Menu', 'back_menu')]
-    ]);
-
-    return ctx.editMessageText(
-      `👤 *Your Profile*\n\n` +
-      `📱 User ID: \`${ctx.from.id}\`\n` +
-      `👋 Name: ${ctx.from.first_name || 'Unknown'}\n` +
-      `💰 Balance: $${user.balance.toFixed(2)}\n` +
-      `📅 Member since: ${user.joinDate.toDateString()}\n` +
-      `🌐 Total domains: ${userHistory.length}\n` +
-      `⭐ Status: ${user.balance > 0 ? 'Premium' : 'Free'}`,
-      { 
-        parse_mode: "Markdown",
-        reply_markup: backKeyboard
-      }
-    );
-  });
-
-  // History handler
-  bot.action('history', (ctx) => {
-    const userHistory = provisionHistory.get(ctx.from.id) || [];
-
-    const backKeyboard = Markup.inlineKeyboard([
-      [Markup.button.callback('🔙 Back to Menu', 'back_menu')]
-    ]);
-
-    if (userHistory.length === 0) {
-      return ctx.editMessageText(
-        `📋 *Domain History*\n\n` +
-        `No domains provisioned yet.\n` +
-        `Use "🔗 Get Redirect" to create your first domain!`,
-        { 
-          parse_mode: "Markdown",
-          reply_markup: backKeyboard
-        }
-      );
-    }
-
-    const historyText = userHistory
-      .slice(-10) // Show last 10 domains
-      .map((domain, index) => 
-        `${index + 1}. 🌐 \`${domain.domain}\`\n` +
-        `   📅 ${domain.date.toDateString()}\n` +
-        `   🔗 ${domain.redirectUrl}\n`
-      )
-      .join('\n');
-
-    return ctx.editMessageText(
-      `📋 *Domain History* (Last ${Math.min(userHistory.length, 10)})\n\n` +
-      historyText +
-      `\n💡 Total domains: ${userHistory.length}`,
-      { 
-        parse_mode: "Markdown",
-        reply_markup: backKeyboard
-      }
-    );
-  });
-
-  // Back to menu handler
-  bot.action('back_menu', (ctx) => {
-    const session = getSession(ctx);
-    // Clear any pending sessions
-    Object.keys(session).forEach(key => delete session[key]);
-
-    const menuKeyboard = Markup.inlineKeyboard([
-      [Markup.button.callback('💳 Top Up', 'topup'), Markup.button.callback('🔗 Get Redirect', 'redirect')],
-      [Markup.button.callback('👤 Profile', 'profile'), Markup.button.callback('📋 History', 'history')]
-    ]);
-
-    return ctx.editMessageText(
-      `🏠 *Main Menu*\n\n` +
-      `Choose an option:`,
-      { 
-        parse_mode: "Markdown",
-        reply_markup: menuKeyboard 
-      }
-    );
-  });
 
   // Help command
   bot.help((ctx) => {
@@ -738,10 +595,156 @@ if (bot) {
     }
   });
 
-  // Admin callback handlers for topup requests
+  // Combined callback query handler for all inline buttons
   bot.on('callback_query', async (ctx) => {
     const callbackData = ctx.callbackQuery.data;
+    const session = getSession(ctx);
     
+    // Always answer callback query first to remove loading state
+    await ctx.answerCbQuery();
+    
+    try {
+      // Handle main menu actions
+      if (callbackData === 'topup') {
+        const cryptoKeyboard = Markup.inlineKeyboard([
+          [Markup.button.callback('₿ Bitcoin (BTC)', 'crypto_btc')],
+          [Markup.button.callback('🟡 Tether TRC20', 'crypto_usdt')],
+          [Markup.button.callback('💎 Ethereum (ERC20)', 'crypto_eth')],
+          [Markup.button.callback('🔙 Back to Menu', 'back_menu')]
+        ]);
+
+        session.awaiting_crypto_choice = true;
+
+        return ctx.editMessageText(
+          `💳 *Top Up Your Account*\n\n` +
+          `Choose your preferred cryptocurrency:`,
+          { 
+            parse_mode: "Markdown",
+            reply_markup: cryptoKeyboard 
+          }
+        );
+      }
+      
+      if (callbackData === 'redirect') {
+        session.awaiting_domain = true;
+
+        return ctx.editMessageText(
+          "🚀 *CLS Redirect Setup!*\n\n" +
+            "✨ Send: `domain.com redirect-url`\n" +
+            "📝 Example: `mysite.com https://fb.com`",
+          { parse_mode: "Markdown" }
+        );
+      }
+      
+      if (callbackData === 'profile') {
+        const user = getUserData(ctx.from.id);
+        const userHistory = provisionHistory.get(ctx.from.id) || [];
+
+        const backKeyboard = Markup.inlineKeyboard([
+          [Markup.button.callback('🔙 Back to Menu', 'back_menu')]
+        ]);
+
+        return ctx.editMessageText(
+          `👤 *Your Profile*\n\n` +
+          `📱 User ID: \`${ctx.from.id}\`\n` +
+          `👋 Name: ${ctx.from.first_name || 'Unknown'}\n` +
+          `💰 Balance: $${user.balance.toFixed(2)}\n` +
+          `📅 Member since: ${user.joinDate.toDateString()}\n` +
+          `🌐 Total domains: ${userHistory.length}\n` +
+          `⭐ Status: ${user.balance > 0 ? 'Premium' : 'Free'}`,
+          { 
+            parse_mode: "Markdown",
+            reply_markup: backKeyboard
+          }
+        );
+      }
+      
+      if (callbackData === 'history') {
+        const userHistory = provisionHistory.get(ctx.from.id) || [];
+
+        const backKeyboard = Markup.inlineKeyboard([
+          [Markup.button.callback('🔙 Back to Menu', 'back_menu')]
+        ]);
+
+        if (userHistory.length === 0) {
+          return ctx.editMessageText(
+            `📋 *Domain History*\n\n` +
+            `No domains provisioned yet.\n` +
+            `Use "🔗 Get Redirect" to create your first domain!`,
+            { 
+              parse_mode: "Markdown",
+              reply_markup: backKeyboard
+            }
+          );
+        }
+
+        const historyText = userHistory
+          .slice(-10) // Show last 10 domains
+          .map((domain, index) => 
+            `${index + 1}. 🌐 \`${domain.domain}\`\n` +
+            `   📅 ${domain.date.toDateString()}\n` +
+            `   🔗 ${domain.redirectUrl}\n`
+          )
+          .join('\n');
+
+        return ctx.editMessageText(
+          `📋 *Domain History* (Last ${Math.min(userHistory.length, 10)})\n\n` +
+          historyText +
+          `\n💡 Total domains: ${userHistory.length}`,
+          { 
+            parse_mode: "Markdown",
+            reply_markup: backKeyboard
+          }
+        );
+      }
+      
+      // Handle crypto selection
+      if (['crypto_btc', 'crypto_usdt', 'crypto_eth'].includes(callbackData)) {
+        if (!session.awaiting_crypto_choice) return;
+
+        session.awaiting_crypto_choice = false;
+        session.awaiting_amount = true;
+        
+        const cryptoNames = {
+          'crypto_btc': '₿ Bitcoin (BTC)',
+          'crypto_usdt': '🟡 Tether TRC20',
+          'crypto_eth': '💎 Ethereum (ERC20)'
+        };
+        
+        session.selected_crypto = cryptoNames[callbackData];
+
+        return ctx.editMessageText(
+          `💰 *${session.selected_crypto}*\n\n` +
+          `Please enter the amount you want to top up (in USD):\n\n` +
+          `Example: 50`,
+          { parse_mode: "Markdown" }
+        );
+      }
+      
+      // Handle back to menu
+      if (callbackData === 'back_menu') {
+        // Clear any pending sessions
+        Object.keys(session).forEach(key => delete session[key]);
+
+        const menuKeyboard = Markup.inlineKeyboard([
+          [Markup.button.callback('💳 Top Up', 'topup'), Markup.button.callback('🔗 Get Redirect', 'redirect')],
+          [Markup.button.callback('👤 Profile', 'profile'), Markup.button.callback('📋 History', 'history')]
+        ]);
+
+        return ctx.editMessageText(
+          `🏠 *Main Menu*\n\n` +
+          `Choose an option:`,
+          { 
+            parse_mode: "Markdown",
+            reply_markup: menuKeyboard 
+          }
+        );
+      }
+    } catch (error) {
+      console.log('Callback error:', error.message);
+    }
+    
+    // Handle admin approval/rejection callbacks
     if (callbackData.startsWith('approve_') || callbackData.startsWith('reject_')) {
       const [action, requestId] = callbackData.split('_');
       const request = topupRequests.get(requestId);
