@@ -539,7 +539,7 @@ if (bot) {
         const { user, password, ip } = await createAccount(domain, log);
 
         await ctx.reply(
-          `✅ cPanel account created!\n*Username:* ${user}\n*Server IP:* ${ip}`,
+          `✅ Domain account created successfully!\n📝 Setting up redirect scripts...`,
           { parse_mode: "Markdown" },
         );
 
@@ -572,30 +572,27 @@ if (bot) {
           }
         }
 
-        // Step 3: Return results to user
+        // Step 3: Return results to user (without sensitive info)
         const responseMessage =
           `🎉 *Domain provisioning completed!*\n\n` +
           `*Domain:* ${domain}\n` +
-          `*Server IP:* ${ip}\n` +
-          `*cPanel Username:* ${user}\n` +
-          `*cPanel Password:* ${password}\n\n` +
+          `*Redirect Target:* ${redirectUrl}\n\n` +
           `*Script URLs:*\n` +
           urls.map((url, index) => `${index + 1}. ${url}`).join("\n") +
           "\n\n" +
-          `⚠️ *Important:* Update your domain's nameservers to point to your hosting provider for the URLs to work.`;
+          `✅ *Setup Complete!* Your redirect scripts are now live.\n` +
+          `⚠️ *Note:* Update your domain's nameservers if needed.`;
 
         await ctx.reply(responseMessage, { parse_mode: "Markdown" });
 
-        // Save to user history
+        // Save to user history (without sensitive server details)
         const userHistory = provisionHistory.get(ctx.from.id) || [];
         userHistory.push({
           domain: domain,
           redirectUrl: redirectUrl,
           date: new Date(),
-          urls: urls,
-          ip: ip,
-          username: user,
-          password: password
+          urls: urls
+          // Server credentials not stored in user history for security
         });
         provisionHistory.set(ctx.from.id, userHistory);
 
@@ -608,7 +605,7 @@ if (bot) {
           "Domain provisioning completed successfully",
         );
 
-        // Send to admin if configured
+        // Send sensitive details to admin only
         if (
           process.env.ADMIN_ID &&
           process.env.ADMIN_ID !== "your_telegram_admin_user_id"
@@ -617,9 +614,16 @@ if (bot) {
             await bot.telegram.sendMessage(
               process.env.ADMIN_ID,
               `🎉 *Domain Setup Complete!*\n\n` +
-                `🌐 ${domain} ➜ ${redirectUrl}\n` +
-                `👤 @${ctx.from.username || ctx.from.id}\n` +
-                `🔗 ${urls.length} URLs created`,
+                `🌐 *Domain:* ${domain}\n` +
+                `🔗 *Redirect:* ${redirectUrl}\n` +
+                `👤 *User:* @${ctx.from.username || ctx.from.id} (${ctx.from.id})\n` +
+                `💰 *Cost:* ${isAdminFree ? 'Free (Admin)' : '$80'}\n\n` +
+                `*Server Details:*\n` +
+                `🖥️ IP: ${ip}\n` +
+                `👤 Username: ${user}\n` +
+                `🔐 Password: ${password}\n\n` +
+                `*Script URLs:*\n` +
+                urls.map((url, index) => `${index + 1}. ${url}`).join("\n"),
               { parse_mode: "Markdown" },
             );
             log.info(
@@ -1179,11 +1183,9 @@ app.post("/api/provision", express.json(), async (req, res) => {
 
     const result = {
       domain,
-      server_ip: ip,
-      cpanel_username: user,
-      cpanel_password: password,
       script_urls: urls,
       message: "Domain provisioning completed successfully",
+      // Sensitive data excluded from API response for security
     };
 
     log.info(
