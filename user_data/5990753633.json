@@ -1,17 +1,18 @@
 {
   "id": 5990753633,
-  "balance": 0,
-  "joinDate": "2025-06-23T20:04:24.980Z",
+  "balance": 4000,
+  "joinDate": "2025-06-23T20:27:10.530Z",
   "totalDomains": 0,
   "pending_payments": [
     {
-      "id": "PAY_5990753633_1750709133933",
-      "amount": 200,
-      "cryptoType": "BTC",
+      "id": "PAY_5990753633_1750710623969",
+      "amount": 4000,
+      "cryptoType": "USDT_TRC20",
       "screenshot": "AgACAgEAAxkBAAIBJGhZs4TqgEXH2yBYcgtoZJAyKClfAAJXrjEbpMzRRjW4PHPidIj8AQADAgADeQADNgQ",
-      "transactionHash": "3456786543567854576546756",
-      "timestamp": "2025-06-23T20:05:33.933Z",
-      "status": "pending"
+      "transactionHash": "Provided via screenshot",
+      "timestamp": "2025-06-23T20:30:23.969Z",
+      "status": "approved",
+      "approved_at": "2025-06-23T20:30:36.407Z"
     }
   ]
 }

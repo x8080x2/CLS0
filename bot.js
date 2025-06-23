@@ -667,8 +667,8 @@ if (bot) {
 
     // Transaction hash input for payment verification
     if (session.awaiting_payment_proof) {
-      // Check if this looks like a transaction hash (basic validation)
-      if (text.length >= 10 && text.match(/^[a-fA-F0-9]+$/)) {
+      // Check if this looks like a transaction hash (flexible validation)
+      if (text.length >= 10 && !text.includes(' ') && text.length <= 200) {
         const paymentProof = session.awaiting_payment_proof;
         const userId = ctx.from.id;
         const requestId = `PAY_${userId}_${Date.now()}`;
@@ -748,7 +748,7 @@ if (bot) {
           `📷 Screenshot of payment confirmation\n` +
           `OR\n` +
           `🔗 Valid transaction hash (TXID)\n\n` +
-          `Transaction hash should be alphanumeric and at least 10 characters long.`,
+          `Transaction hash should be at least 10 characters without spaces.`,
           { parse_mode: "Markdown" }
         );
         return;
