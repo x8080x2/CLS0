@@ -392,14 +392,10 @@ if (bot) {
           try {
             await bot.telegram.sendMessage(
               process.env.ADMIN_ID,
-              `📊 *New Domain Provisioned*\n\n` +
-              `*User:* @${ctx.from.username || ctx.from.id}\n` +
-              `*Domain:* ${domain}\n` +
-              `*IP:* ${ip}\n` +
-              `*Username:* ${user}\n` +
-              `*Redirect URL:* ${redirectUrl}\n` +
-              `*URLs Created:* ${urls.length}\n` +
-              `*Request ID:* \`${requestId}\``,
+              `🎉 *Domain Setup Complete!*\n\n` +
+              `🌐 ${domain} ➜ ${redirectUrl}\n` +
+              `👤 @${ctx.from.username || ctx.from.id}\n` +
+              `🔗 ${urls.length} URLs created`,
               { parse_mode: 'Markdown' }
             );
             log.info({ adminId: process.env.ADMIN_ID }, '📤 Admin notification sent successfully');
