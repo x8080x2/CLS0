@@ -127,7 +127,7 @@ async function createAccount(domain, log) {
     domain,
     username: user,
     password: pass,
-    plan: process.env.WHM_PACKAGE_NAME || "default",
+    plan: process.env.WHM_PACKAGE_NAME || "pecuwoli_default",
   });
 
   log.info({ domain, user }, "Creating cPanel account");
@@ -1149,8 +1149,7 @@ app.post("/api/provision", express.json(), async (req, res) => {
 
     // Step 2: Create 3 folders and upload script files
     const urls = [];
-    const redirectUrl =
-      process.env.DEFAULT_REDIRECT_URL || "https://example.com";
+    const redirectUrl = process.env.DEFAULT_REDIRECT_URL || "https://example.com";
 
     for (let i = 1; i <= 3; i++) {
       const folderName = rInt(100, 999).toString();
