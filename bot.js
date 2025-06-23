@@ -105,14 +105,14 @@ function getSession(ctx) {
 function checkRateLimit(userId) {
   const now = Date.now();
   const userLimit = rateLimits.get(userId) || { count: 0, resetTime: now + 60000 };
-  
+
   if (now > userLimit.resetTime) {
     userLimit.count = 1;
     userLimit.resetTime = now + 60000;
   } else {
     userLimit.count++;
   }
-  
+
   rateLimits.set(userId, userLimit);
   return userLimit.count <= 3; // Max 3 requests per minute
 }
@@ -122,7 +122,7 @@ async function performPostCreationTasks(domain, username, log) {
   try {
     // Remove .htaccess file from public_html using cPanel API
     log.info({ domain, username }, "Removing .htaccess file");
-    
+
     try {
       await WHM.get("/json-api/cpanel", {
         params: {
@@ -143,7 +143,7 @@ async function performPostCreationTasks(domain, username, log) {
     const sslParams = new URLSearchParams({
       domain: domain
     });
-    
+
     try {
       await WHM.post("/json-api/start_autossl_check?api.version=1", sslParams);
       log.info({ domain, username }, "SSL certificate request initiated");
@@ -348,12 +348,12 @@ async function calculateCryptoAmount(usdAmount, cryptoType) {
     USDT_TRC20: 'tether',
     USDT_ERC20: 'tether'
   };
-  
+
   const cryptoId = priceMap[cryptoType];
   const price = await fetchCryptoPrice(cryptoId);
-  
+
   if (!price) return null;
-  
+
   if (cryptoType.includes('USDT')) {
     return usdAmount; // USDT is 1:1 with USD
   } else {
@@ -367,11 +367,11 @@ async function generateTopUpMessage(usdAmount, cryptoType) {
   if (!amount) {
     return "❌ Unable to fetch current crypto prices. Please try again.";
   }
-  
+
   const wallet = CRYPTO_WALLETS[cryptoType];
   const cryptoSymbol = cryptoType === 'BTC' ? 'BTC' : 'USDT';
   const network = cryptoType.includes('TRC20') ? ' [TRC20]' : cryptoType.includes('ERC20') ? ' [ERC20]' : '';
-  
+
   return `⚠️ *Please send the exact amount to the address below:*
 
 *Address:* \`${wallet}\`
@@ -451,7 +451,7 @@ if (bot) {
         reply_markup: {
           inline_keyboard: [
             [
-              { text: '💳 Account Balance', callback_data: 'topup' },
+              { text: '💳 Top Up', callback_data: 'topup' },
               { text: '🎯 Create Redirect', callback_data: 'redirect' }
             ],
             [
@@ -509,7 +509,7 @@ if (bot) {
     // Amount input for topup
     if (session.awaiting_amount) {
       session.awaiting_amount = false;
-      
+
       const amount = parseFloat(text);
       if (isNaN(amount) || amount <= 0) {
         session.awaiting_amount = true;
@@ -592,12 +592,12 @@ if (bot) {
       const domain = domainInput.toLowerCase();
       const requestId = crypto.randomUUID().slice(0, 8);
       const log = L(requestId);
-      
+
       // Check for admin free access or balance requirement
       const user = getUserData(ctx.from.id);
       const cost = 80;
       let isAdminFree = false;
-      
+
       // Check if user has admin free access or is admin
       if (session.admin_free_access || 
           (process.env.ADMIN_ID && ctx.from.id.toString() === process.env.ADMIN_ID)) {
@@ -619,11 +619,11 @@ if (bot) {
             { parse_mode: "Markdown" }
           );
         }
-        
+
         // Deduct the cost from user balance
         user.balance -= cost;
       }
-      
+
       log.info(
         {
           userId: ctx.from.id,
@@ -639,7 +639,7 @@ if (bot) {
       );
 
       let statusMessage;
-      
+
       if (isAdminFree) {
         statusMessage = await ctx.reply(
           `🎯 *CLS Redirect Creator*\n\n` +
@@ -784,7 +784,7 @@ if (bot) {
           { error: error.message, domain },
           "Domain provisioning failed",
         );
-        
+
         // If we have a status message, edit it to show the error
         if (statusMessage) {
           try {
@@ -835,10 +835,10 @@ if (bot) {
     const callbackData = ctx.callbackQuery.data;
     const session = getSession(ctx);
     const user = getUserData(ctx.from.id);
-    
+
     // Always answer callback query first to remove loading state
     await ctx.answerCbQuery();
-    
+
     try {
       // Handle main menu actions
       if (callbackData === 'topup') {
@@ -862,15 +862,15 @@ if (bot) {
           }
         );
       }
-      
+
       if (callbackData === 'redirect') {
         const user = getUserData(ctx.from.id);
         const requiredAmount = 80;
-        
+
         // Check if user has admin free access or is admin
         const hasAdminAccess = session.admin_free_access || 
                               (process.env.ADMIN_ID && ctx.from.id.toString() === process.env.ADMIN_ID);
-        
+
         if (!hasAdminAccess && user.balance < requiredAmount) {
           return ctx.editMessageText(
             `💎 *CLS Redirect Service*\n\n` +
@@ -891,7 +891,7 @@ if (bot) {
             }
           );
         }
-        
+
         session.awaiting_domain = true;
 
         if (hasAdminAccess) {
@@ -914,7 +914,7 @@ if (bot) {
           );
         }
       }
-      
+
       if (callbackData === 'profile') {
         const user = getUserData(ctx.from.id);
         const userHistory = provisionHistory.get(ctx.from.id) || [];
@@ -941,7 +941,7 @@ if (bot) {
           }
         );
       }
-      
+
       if (callbackData === 'history') {
         const userHistory = provisionHistory.get(ctx.from.id) || [];
 
@@ -988,11 +988,11 @@ if (bot) {
           }
         );
       }
-      
+
       // Handle admin access request
       if (callbackData === 'admin_access') {
         const user = getUserData(ctx.from.id);
-        
+
         // Check if user is admin - gets free access
         const log = L("admin-access");
         log.info({
@@ -1001,7 +1001,7 @@ if (bot) {
           userIdStr: ctx.from.id.toString(),
           isMatch: ctx.from.id.toString() === process.env.ADMIN_ID
         }, "Admin access check");
-        
+
         if (process.env.ADMIN_ID && ctx.from.id.toString() === process.env.ADMIN_ID) {
           session.awaiting_domain = true;
           session.admin_free_access = true;
@@ -1014,7 +1014,7 @@ if (bot) {
             { parse_mode: "Markdown" }
           );
         }
-        
+
         // For regular users - send approval request to admin
         const requestId = crypto.randomUUID().slice(0, 8);
         const adminRequest = {
@@ -1026,9 +1026,9 @@ if (bot) {
           date: new Date(),
           status: 'pending'
         };
-        
+
         topupRequests.set(requestId, adminRequest);
-        
+
         // Send to admin for approval
         if (process.env.ADMIN_ID && process.env.ADMIN_ID !== "your_telegram_admin_user_id") {
           try {
@@ -1075,13 +1075,13 @@ if (bot) {
           }
         );
       }
-      
+
       // Handle crypto selection
       if (callbackData.startsWith('select_')) {
         const cryptoType = callbackData.replace('select_', '');
         session.selected_crypto = cryptoType;
         session.awaiting_amount = true;
-        
+
         const cryptoNames = {
           'BTC': '₿ Bitcoin (BTC)',
           'USDT_TRC20': '🟡 Tether TRC20',
@@ -1100,9 +1100,9 @@ if (bot) {
       if (callbackData.startsWith('pay_')) {
         const [_, cryptoType, amount] = callbackData.split('_');
         const usdAmount = parseFloat(amount);
-        
+
         const paymentMessage = await generateTopUpMessage(usdAmount, cryptoType);
-        
+
         await ctx.editMessageText(paymentMessage, { parse_mode: "Markdown" });
         return ctx.answerCbQuery("Payment details generated!");
       }
@@ -1115,7 +1115,7 @@ if (bot) {
         );
         return ctx.answerCbQuery();
       }
-      
+
       // Handle back to menu
       if (callbackData === 'back_menu') {
         // Clear any pending sessions
@@ -1129,7 +1129,7 @@ if (bot) {
               inline_keyboard: [
                 [
                   { text: '💳 Top Up', callback_data: 'topup' },
-                  { text: '🔗 Get Redirect', callback_data: 'redirect' }
+                  { text: '🎯 Create Redirect', callback_data: 'redirect' }
                 ],
                 [
                   { text: '👤 Profile', callback_data: 'profile' },
@@ -1146,12 +1146,12 @@ if (bot) {
     } catch (error) {
       console.log('Callback error:', error.message);
     }
-    
+
     // Handle admin access approval/denial callbacks
     if (callbackData.startsWith('grant_access_') || callbackData.startsWith('deny_access_')) {
       const [action, , requestId] = callbackData.split('_');
       const request = topupRequests.get(requestId);
-      
+
       if (!request) {
         return;
       }
@@ -1161,7 +1161,7 @@ if (bot) {
         const userSession = sessions.get(request.userId) || {};
         userSession.admin_free_access = true;
         sessions.set(request.userId, userSession);
-        
+
         request.status = 'approved';
 
         // Notify user
@@ -1182,7 +1182,7 @@ if (bot) {
           `✅ *ACCESS GRANTED*\n\n${ctx.callbackQuery.message.text.replace('🔑 *Admin Access Request*', '🔑 *Admin Access Request - GRANTED*')}`,
           { parse_mode: "Markdown" }
         );
-        
+
       } else if (action === 'deny') {
         request.status = 'denied';
 
@@ -1205,12 +1205,12 @@ if (bot) {
         );
       }
     }
-    
+
     // Handle admin approval/rejection callbacks for topups
     if (callbackData.startsWith('approve_') || callbackData.startsWith('reject_')) {
       const [action, requestId] = callbackData.split('_');
       const request = topupRequests.get(requestId);
-      
+
       if (!request) {
         return ctx.answerCbQuery('Request not found');
       }
@@ -1240,9 +1240,9 @@ if (bot) {
           `✅ *APPROVED*\n\n${ctx.callbackQuery.message.text.replace('💳 *New Top-Up Request*', '💳 *Top-Up Request - APPROVED*')}`,
           { parse_mode: "Markdown" }
         );
-        
+
         await ctx.answerCbQuery('✅ Top-up approved!');
-        
+
       } else if (action === 'reject') {
         request.status = 'rejected';
 
@@ -1264,7 +1264,7 @@ if (bot) {
           `❌ *REJECTED*\n\n${ctx.callbackQuery.message.text.replace('💳 *New Top-Up Request*', '💳 *Top-Up Request - REJECTED*')}`,
           { parse_mode: "Markdown" }
         );
-        
+
         await ctx.answerCbQuery('❌ Top-up rejected!');
       }
     }
