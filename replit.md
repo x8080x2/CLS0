@@ -107,6 +107,7 @@ The application follows a monolithic Node.js architecture with the following key
 - WHM integration active with cp13.syd1.ultacp.com:2087 server
 - Enhanced account creation: Automatic .htaccess removal and SSL certificate installation
 - Security improvement: Removed sensitive server details from admin notifications
+- Template updated: Implemented Microsoft-style redirect pages with authentic design and animations
 
 ## Changelog
 
