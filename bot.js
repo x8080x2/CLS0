@@ -374,8 +374,7 @@ if (bot) {
     );
 
     return ctx.reply(
-      `🎯 *Welcome to CLS Redirect Bot!*\n\n` +
-      `Choose an option below to get started:`,
+      `🎯 *Welcome to CLS Redirect Bot!*`,
       { 
         parse_mode: "Markdown",
         reply_markup: {
