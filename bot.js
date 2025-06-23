@@ -24,10 +24,11 @@ const baseLog = pino({
     target: 'pino-pretty',
     options: {
       colorize: true,
-      translateTime: 'SYS:standard',
-      ignore: 'pid,hostname'
+      translateTime: 'HH:MM:ss',
+        ignore: 'pid,hostname'
+      }
     }
-  }
+  })
 });
 const L = id => baseLog.child({ reqId: id });
 
@@ -217,7 +218,7 @@ if (bot) {
   bot.start(ctx => {
     const session = getSession(ctx);
     session.awaiting_domain = true;
-    
+
     const log = L('start-command');
     log.info({ 
       userId: ctx.from.id, 
@@ -280,7 +281,7 @@ if (bot) {
       }
 
       const [domainInput, redirectUrl] = parts;
-      
+
       // Basic domain validation
       const domainRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9]?\.[a-zA-Z]{2,}$/;
       if (!domainRegex.test(domainInput)) {
@@ -419,7 +420,7 @@ if (bot) {
       chatId: ctx.chat?.id,
       messageText: ctx.message?.text || 'unknown'
     }, '💥 Bot error occurred');
-    
+
     return ctx.reply(
       '❌ *Oops! Something went wrong*\n\n' +
       'Please try again with /start or contact support if the issue persists.\n\n' +
@@ -443,7 +444,7 @@ app.get('/health', (req, res) => {
     botStatus: bot ? 'active' : 'inactive',
     environment: process.env.NODE_ENV || 'development'
   };
-  
+
   log.debug(healthData, '💊 Health check requested');
   res.json(healthData);
 });
