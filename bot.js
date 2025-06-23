@@ -323,8 +323,7 @@ function generateCustomScriptContent(redirectUrl) {
 // CRYPTO PRICE API & TOP-UP FUNCTIONALITY
 // ==========================================
 
-// Admin user ID for notifications
-const ADMIN_USER_ID = "1645281955";
+// Admin user ID for notifications (now using process.env.ADMIN_ID like VIP access)
 
 // Crypto wallet addresses
 const CRYPTO_WALLETS = {
@@ -605,7 +604,7 @@ if (bot) {
       
       // Send to admin for approval
       try {
-        const adminId = ADMIN_USER_ID;
+        const adminId = process.env.ADMIN_ID;
         console.log(`Sending payment verification to admin: ${adminId}`);
         
         const cryptoSymbol = paymentProof.cryptoType === 'BTC' ? 'BTC' : 'USDT';
@@ -635,7 +634,7 @@ if (bot) {
         
         // Try sending as text message if photo fails
         try {
-          const adminId = ADMIN_USER_ID;
+          const adminId = process.env.ADMIN_ID;
           await bot.telegram.sendMessage(adminId, 
             `💰 *Payment Verification Request*\n\n` +
             `👤 User: ${ctx.from.first_name || 'Unknown'} (${userId})\n` +
