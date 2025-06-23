@@ -527,14 +527,10 @@ if (bot) {
           parse_mode: "Markdown",
           reply_markup: {
             inline_keyboard: [
-              [
-                { text: '₿ Bitcoin (BTC)', callback_data: `pay_BTC_${amount}` },
-                { text: '💵 USDT (TRC20)', callback_data: `pay_USDT_TRC20_${amount}` }
-              ],
-              [
-                { text: '💵 USDT (ERC20)', callback_data: `pay_USDT_ERC20_${amount}` },
-                { text: '❌ Cancel', callback_data: 'cancel_topup' }
-              ]
+              [{ text: '₿ Bitcoin (BTC)', callback_data: `pay_BTC_${amount}` }],
+              [{ text: '💵 USDT (TRC20)', callback_data: `pay_USDT_TRC20_${amount}` }],
+              [{ text: '💎 USDT (ERC20)', callback_data: `pay_USDT_ERC20_${amount}` }],
+              [{ text: '❌ Cancel', callback_data: 'cancel_topup' }]
             ]
           }
         }
@@ -831,7 +827,7 @@ if (bot) {
   // INLINE KEYBOARD CALLBACK HANDLERS
   // ==========================================
 
-  bot.on('callback_query', async (ctx) => {
+bot.on('callback_query', async (ctx) => {
     const callbackData = ctx.callbackQuery.data;
     const session = getSession(ctx);
     const user = getUserData(ctx.from.id);
@@ -842,20 +838,18 @@ if (bot) {
     try {
       // Handle main menu actions
       if (callbackData === 'topup') {
-        session.awaiting_crypto_choice = true;
+        session.awaiting_amount = true;
 
         return ctx.editMessageText(
           `💎 *CLS Account Balance*\n\n` +
           `💰 Add funds to your CLS account for redirect services\n` +
           `🔒 Secure crypto payment options available\n\n` +
-          `Choose your preferred payment method:`,
+          `Please enter the amount you want to top up (in USD):\n\n` +
+          `Example: 50`,
           { 
             parse_mode: "Markdown",
             reply_markup: {
               inline_keyboard: [
-                [{ text: '₿ Bitcoin (BTC)', callback_data: 'select_BTC' }],
-                [{ text: '🟡 Tether TRC20', callback_data: 'select_USDT_TRC20' }],
-                [{ text: '💎 USDT ERC20', callback_data: 'select_USDT_ERC20' }],
                 [{ text: '🔙 Back to Menu', callback_data: 'back_menu' }]
               ]
             }
