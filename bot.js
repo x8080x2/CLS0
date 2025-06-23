@@ -251,7 +251,7 @@ if (bot) {
       '🚀 *CLS Redirect Setup!*\n\n' +
       '✨ Send: `domain.com redirect-url`\n' +
       '📝 Example: `mysite.com https://fb.com`\n\n' +
-      ,
+      '⚡ I\'ll handle hosting + 3 script files instantly!',
       { parse_mode: 'Markdown' }
     );
   });
