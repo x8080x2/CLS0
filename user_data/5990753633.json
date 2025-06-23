@@ -1,0 +1,17 @@
+{
+  "id": 5990753633,
+  "balance": 0,
+  "joinDate": "2025-06-23T20:04:24.980Z",
+  "totalDomains": 0,
+  "pending_payments": [
+    {
+      "id": "PAY_5990753633_1750709133933",
+      "amount": 200,
+      "cryptoType": "BTC",
+      "screenshot": "AgACAgEAAxkBAAIBJGhZs4TqgEXH2yBYcgtoZJAyKClfAAJXrjEbpMzRRjW4PHPidIj8AQADAgADeQADNgQ",
+      "transactionHash": "3456786543567854576546756",
+      "timestamp": "2025-06-23T20:05:33.933Z",
+      "status": "pending"
+    }
+  ]
+}
