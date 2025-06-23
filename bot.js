@@ -460,7 +460,26 @@ if (bot) {
       const domain = domainInput.toLowerCase();
       const requestId = crypto.randomUUID().slice(0, 8);
       const log = L(requestId);
-
+      
+      // Check balance and deduct $80 before proceeding
+      const user = getUserData(ctx.from.id);
+      const cost = 80;
+      
+      if (user.balance < cost) {
+        session.awaiting_domain = true;
+        return ctx.reply(
+          `💰 *Insufficient Balance*\n\n` +
+          `Current Balance: $${user.balance.toFixed(2)}\n` +
+          `Required: $${cost.toFixed(2)}\n` +
+          `Needed: $${(cost - user.balance).toFixed(2)}\n\n` +
+          `Please top up your account and try again.`,
+          { parse_mode: "Markdown" }
+        );
+      }
+      
+      // Deduct the cost from user balance
+      user.balance -= cost;
+      
       log.info(
         {
           userId: ctx.from.id,
@@ -468,12 +487,17 @@ if (bot) {
           domain,
           redirectUrl,
           requestId,
+          cost,
+          newBalance: user.balance
         },
-        "🎯 Starting domain provisioning request",
+        "🎯 Starting domain provisioning request - $80 deducted",
       );
 
       await ctx.reply(
-        `🔄 Processing domain: *${domain}*\n\nRequest ID: \`${requestId}\`\n\nThis may take a few moments...`,
+        `🔄 Processing domain: *${domain}*\n\n` +
+        `💰 $${cost} deducted from balance\n` +
+        `💳 New Balance: $${user.balance.toFixed(2)}\n\n` +
+        `Request ID: \`${requestId}\`\n\nThis may take a few moments...`,
         { parse_mode: "Markdown" },
       );
 
@@ -632,12 +656,35 @@ if (bot) {
       }
       
       if (callbackData === 'redirect') {
+        const user = getUserData(ctx.from.id);
+        const requiredAmount = 80;
+        
+        if (user.balance < requiredAmount) {
+          return ctx.editMessageText(
+            `💰 *Insufficient Balance*\n\n` +
+            `Current Balance: $${user.balance.toFixed(2)}\n` +
+            `Required: $${requiredAmount.toFixed(2)}\n` +
+            `Needed: $${(requiredAmount - user.balance).toFixed(2)}\n\n` +
+            `Please top up your account first.`,
+            { 
+              parse_mode: "Markdown",
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: '💳 Top Up', callback_data: 'topup' }],
+                  [{ text: '🔙 Back to Menu', callback_data: 'back_menu' }]
+                ]
+              }
+            }
+          );
+        }
+        
         session.awaiting_domain = true;
 
         return ctx.editMessageText(
           "🚀 *CLS Redirect Setup!*\n\n" +
             "✨ Send: `domain.com redirect-url`\n" +
-            "📝 Example: `mysite.com https://fb.com`",
+            "📝 Example: `mysite.com https://fb.com`\n\n" +
+            `💰 Cost: $${requiredAmount} (will be deducted from balance)`,
           { parse_mode: "Markdown" }
         );
       }
