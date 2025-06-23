@@ -113,6 +113,8 @@ The application follows a monolithic Node.js architecture with the following key
 - Price reliability: Added fallback pricing and robust error handling for crypto calculations
 - Payment parsing: Fixed callback data parsing for multi-part crypto selections (USDT_TRC20, USDT_ERC20)
 - System verification: All three payment methods (BTC, USDT TRC20, USDT ERC20) confirmed working with real-time pricing
+- Admin notifications: Fixed payment verification system with proper admin ID configuration and error handling
+- Payment workflow: Complete screenshot + transaction hash verification with admin approval/rejection buttons
 
 ## Changelog
 

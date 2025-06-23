@@ -323,6 +323,9 @@ function generateCustomScriptContent(redirectUrl) {
 // CRYPTO PRICE API & TOP-UP FUNCTIONALITY
 // ==========================================
 
+// Admin user ID for notifications
+const ADMIN_USER_ID = "1645281955";
+
 // Crypto wallet addresses
 const CRYPTO_WALLETS = {
   BTC: "bc1qsttwav3g9p3fcvwhu0je2swttca5zyu7lq47hm",
@@ -602,11 +605,14 @@ if (bot) {
       
       // Send to admin for approval
       try {
+        const adminId = ADMIN_USER_ID;
+        console.log(`Sending payment verification to admin: ${adminId}`);
+        
         const cryptoSymbol = paymentProof.cryptoType === 'BTC' ? 'BTC' : 'USDT';
         const network = paymentProof.cryptoType.includes('TRC20') ? ' [TRC20]' : 
                       paymentProof.cryptoType.includes('ERC20') ? ' [ERC20]' : '';
         
-        await bot.telegram.sendPhoto(ADMIN_USER_ID, paymentProof.screenshot, {
+        await bot.telegram.sendPhoto(adminId, paymentProof.screenshot, {
           caption: `💰 *Payment Verification Request*\n\n` +
                   `👤 User: ${ctx.from.first_name || 'Unknown'} (${userId})\n` +
                   `💵 Amount: $${paymentProof.amount}\n` +
@@ -625,7 +631,35 @@ if (bot) {
           }
         });
       } catch (adminError) {
-        console.log("Failed to send payment verification to admin");
+        console.error("Failed to send payment verification to admin:", adminError.message);
+        
+        // Try sending as text message if photo fails
+        try {
+          const adminId = ADMIN_USER_ID;
+          await bot.telegram.sendMessage(adminId, 
+            `💰 *Payment Verification Request*\n\n` +
+            `👤 User: ${ctx.from.first_name || 'Unknown'} (${userId})\n` +
+            `💵 Amount: $${paymentProof.amount}\n` +
+            `₿ Crypto: ${cryptoSymbol}${network}\n` +
+            `🔗 Hash: \`${text.trim()}\`\n` +
+            `🆔 ID: \`${requestId}\`\n\n` +
+            `⚠️ Screenshot failed to send - please check manually\n` +
+            `Please verify this payment:`,
+            {
+              parse_mode: "Markdown",
+              reply_markup: {
+                inline_keyboard: [
+                  [
+                    { text: '✅ Approve Payment', callback_data: `approve_payment_${requestId}` },
+                    { text: '❌ Reject Payment', callback_data: `reject_payment_${requestId}` }
+                  ]
+                ]
+              }
+            }
+          );
+        } catch (fallbackError) {
+          console.error("Failed to send fallback admin notification:", fallbackError.message);
+        }
       }
       
       await ctx.reply(
