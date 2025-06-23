@@ -785,6 +785,14 @@ if (bot) {
         const user = getUserData(ctx.from.id);
         
         // Check if user is admin - gets free access
+        const log = L("admin-access");
+        log.info({
+          userId: ctx.from.id,
+          adminId: process.env.ADMIN_ID,
+          userIdStr: ctx.from.id.toString(),
+          isMatch: ctx.from.id.toString() === process.env.ADMIN_ID
+        }, "Admin access check");
+        
         if (process.env.ADMIN_ID && ctx.from.id.toString() === process.env.ADMIN_ID) {
           session.awaiting_domain = true;
           session.admin_free_access = true;
