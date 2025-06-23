@@ -1338,8 +1338,10 @@ bot.on('callback_query', async (ctx) => {
         const requestId = callbackData.replace('approve_payment_', '');
         const userId = requestId.split('_')[1];
         
+        await ctx.answerCbQuery('Processing payment approval...');
+        
         try {
-          const userData = getUserData(userId);
+          const userData = getUserData(parseInt(userId));
           const paymentRequest = userData.pending_payments?.find(p => p.id === requestId);
           
           if (paymentRequest) {
@@ -1367,7 +1369,7 @@ bot.on('callback_query', async (ctx) => {
               await bot.telegram.sendMessage(userId, 
                 `✅ *Payment Approved!*\n\n` +
                 `💰 Amount: $${paymentRequest.amount}\n` +
-                `💳 New Balance: $${userData.balance}\n\n` +
+                `💳 New Balance: $${userData.balance.toFixed(2)}\n\n` +
                 `Your payment has been verified and added to your account.\n` +
                 `You can now use your balance for domain provisioning.`,
                 { parse_mode: "Markdown" }
@@ -1376,16 +1378,29 @@ bot.on('callback_query', async (ctx) => {
               console.log("Failed to notify user of payment approval");
             }
             
-            await ctx.editMessageText(
-              `✅ Payment approved and $${paymentRequest.amount} added to user balance.`,
+            // Send confirmation to admin
+            await bot.telegram.sendMessage(
+              ctx.from.id,
+              `✅ *Payment Approved Successfully*\n\n` +
+              `💰 Amount: $${paymentRequest.amount}\n` +
+              `👤 User ID: ${userId}\n` +
+              `💳 User's New Balance: $${userData.balance.toFixed(2)}\n` +
+              `🆔 Request ID: \`${requestId}\`\n\n` +
+              `User has been notified and balance updated.`,
               { parse_mode: "Markdown" }
             );
           } else {
-            await ctx.editMessageText("❌ Payment request not found.");
+            await bot.telegram.sendMessage(
+              ctx.from.id,
+              "❌ Payment request not found or already processed."
+            );
           }
         } catch (error) {
           console.error('Payment approval error:', error);
-          await ctx.editMessageText("❌ Error processing payment approval.");
+          await bot.telegram.sendMessage(
+            ctx.from.id,
+            "❌ Error processing payment approval. Please check logs."
+          );
         }
         return;
       }
@@ -1395,8 +1410,10 @@ bot.on('callback_query', async (ctx) => {
         const requestId = callbackData.replace('reject_payment_', '');
         const userId = requestId.split('_')[1];
         
+        await ctx.answerCbQuery('Processing payment rejection...');
+        
         try {
-          const userData = getUserData(userId);
+          const userData = getUserData(parseInt(userId));
           const paymentRequest = userData.pending_payments?.find(p => p.id === requestId);
           
           if (paymentRequest) {
@@ -1404,9 +1421,15 @@ bot.on('callback_query', async (ctx) => {
             paymentRequest.status = 'rejected';
             paymentRequest.rejected_at = new Date().toISOString();
             
+            // Create user_data directory if it doesn't exist
+            const userDataDir = path.join(__dirname, 'user_data');
+            if (!fs.existsSync(userDataDir)) {
+              fs.mkdirSync(userDataDir, { recursive: true });
+            }
+            
             // Save user data
             fs.writeFileSync(
-              path.join(__dirname, 'user_data', `${userId}.json`),
+              path.join(userDataDir, `${userId}.json`),
               JSON.stringify(userData, null, 2)
             );
             
@@ -1425,16 +1448,28 @@ bot.on('callback_query', async (ctx) => {
               console.log("Failed to notify user of payment rejection");
             }
             
-            await ctx.editMessageText(
-              `❌ Payment rejected. User has been notified.`,
+            // Send confirmation to admin
+            await bot.telegram.sendMessage(
+              ctx.from.id,
+              `❌ *Payment Rejected*\n\n` +
+              `💰 Amount: $${paymentRequest.amount}\n` +
+              `👤 User ID: ${userId}\n` +
+              `🆔 Request ID: \`${requestId}\`\n\n` +
+              `User has been notified of the rejection.`,
               { parse_mode: "Markdown" }
             );
           } else {
-            await ctx.editMessageText("❌ Payment request not found.");
+            await bot.telegram.sendMessage(
+              ctx.from.id,
+              "❌ Payment request not found or already processed."
+            );
           }
         } catch (error) {
           console.error('Payment rejection error:', error);
-          await ctx.editMessageText("❌ Error processing payment rejection.");
+          await bot.telegram.sendMessage(
+            ctx.from.id,
+            "❌ Error processing payment rejection. Please check logs."
+          );
         }
         return;
       }
