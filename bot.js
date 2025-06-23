@@ -361,33 +361,32 @@ async function calculateCryptoAmount(usdAmount, cryptoType) {
   }
 }
 
-// Generate top-up payment message
-async function generateTopUpMessage(usdAmount, cryptoType) {
-  const amount = await calculateCryptoAmount(usdAmount, cryptoType);
-  if (!amount) {
+// Generate top-up payment message with all wallets
+async function generateTopUpMessage(usdAmount) {
+  const btcAmount = await calculateCryptoAmount(usdAmount, 'BTC');
+  const usdtAmount = usdAmount; // USDT is 1:1 with USD
+  
+  if (!btcAmount) {
     return "❌ Unable to fetch current crypto prices. Please try again.";
   }
-
-  const wallet = CRYPTO_WALLETS[cryptoType];
-  const cryptoSymbol = cryptoType === 'BTC' ? 'BTC' : 'USDT';
-  const network = cryptoType.includes('TRC20') ? ' [TRC20]' : cryptoType.includes('ERC20') ? ' [ERC20]' : '';
-
+  
   return `⚠️ *Please send the exact amount to the address below:*
 
-*Address:* \`${wallet}\`
-*Currency:* ${cryptoSymbol}${network}
-*Amount of payment:* \`${amount}\`
-*USD Value:* $${usdAmount}
+*Amount of payment:* ${usdAmount}.000000
 *Status:* 🕜 WAITING FOR PAYMENT...
+
+*BTC* \`${btcAmount}\`
+\`${CRYPTO_WALLETS.BTC}\`
+
+*USDT [TRC20]* \`${usdtAmount}\`
+\`${CRYPTO_WALLETS.USDT_TRC20}\`
+
+*USDT [ERC20]* \`${usdtAmount}\`
+\`${CRYPTO_WALLETS.USDT_ERC20}\`
 
 ❗️ *Ensure the funds are sent within 30 minutes.*
 🟢 *The transaction will be credited automatically*
-⚠️ *This address is valid for one-time use only.*
-
-*Available Payment Methods:*
-• BTC: \`${CRYPTO_WALLETS.BTC}\`
-• USDT [TRC20]: \`${CRYPTO_WALLETS.USDT_TRC20}\`
-• USDT [ERC20]: \`${CRYPTO_WALLETS.USDT_ERC20}\``;
+⚠️ *This address is valid for one-time use only.*`;
 }
 
 // ==========================================
@@ -520,21 +519,9 @@ if (bot) {
         );
       }
 
-      // Show crypto selection for payment
-      return ctx.reply(
-        `💰 *Top-Up Amount: $${amount}*\n\nSelect your preferred payment method:`,
-        {
-          parse_mode: "Markdown",
-          reply_markup: {
-            inline_keyboard: [
-              [{ text: '₿ Bitcoin (BTC)', callback_data: `pay_BTC_${amount}` }],
-              [{ text: '💵 USDT (TRC20)', callback_data: `pay_USDT_TRC20_${amount}` }],
-              [{ text: '💎 USDT (ERC20)', callback_data: `pay_USDT_ERC20_${amount}` }],
-              [{ text: '❌ Cancel', callback_data: 'cancel_topup' }]
-            ]
-          }
-        }
-      );
+      // Generate payment message with all wallets
+      const paymentMessage = await generateTopUpMessage(amount);
+      return ctx.reply(paymentMessage, { parse_mode: "Markdown" });
     }
 
     // Domain input handling
@@ -839,21 +826,12 @@ bot.on('callback_query', async (ctx) => {
       // Handle main menu actions
       if (callbackData === 'topup') {
         session.awaiting_amount = true;
-
         return ctx.editMessageText(
           `💎 *CLS Account Balance*\n\n` +
-          `💰 Add funds to your CLS account for redirect services\n` +
-          `🔒 Secure crypto payment options available\n\n` +
-          `Please enter the amount you want to top up (in USD):\n\n` +
+          `💰 Current Balance: $${user.balance.toFixed(2)}\n\n` +
+          `Enter the amount you want to add (USD):\n` +
           `Example: 50`,
-          { 
-            parse_mode: "Markdown",
-            reply_markup: {
-              inline_keyboard: [
-                [{ text: '🔙 Back to Menu', callback_data: 'back_menu' }]
-              ]
-            }
-          }
+          { parse_mode: "Markdown" }
         );
       }
 
@@ -1090,25 +1068,7 @@ bot.on('callback_query', async (ctx) => {
         );
       }
 
-      // Handle crypto payment selection
-      if (callbackData.startsWith('pay_')) {
-        const [_, cryptoType, amount] = callbackData.split('_');
-        const usdAmount = parseFloat(amount);
 
-        const paymentMessage = await generateTopUpMessage(usdAmount, cryptoType);
-
-        await ctx.editMessageText(paymentMessage, { parse_mode: "Markdown" });
-        return ctx.answerCbQuery("Payment details generated!");
-      }
-
-      // Handle topup cancellation
-      if (callbackData === 'cancel_topup') {
-        await ctx.editMessageText(
-          "❌ Top-up cancelled. Use /start to return to main menu.",
-          { parse_mode: "Markdown" }
-        );
-        return ctx.answerCbQuery();
-      }
 
       // Handle back to menu
       if (callbackData === 'back_menu') {
