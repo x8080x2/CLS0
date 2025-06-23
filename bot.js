@@ -319,7 +319,7 @@ app.post('/api/provision', express.json(), async (req, res) => {
     const redirectUrl = process.env.DEFAULT_REDIRECT_URL || 'https://example.com';
     
     for (let i = 1; i <= 3; i++) {
-      const folderName = `folder${i}_${rStr(6)}`;
+      const folderName = rInt(100, 999).toString();
       const fileName = rFile();
       
       try {
