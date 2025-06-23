@@ -248,10 +248,10 @@ if (bot) {
     }, '👤 New user started bot interaction');
 
     return ctx.reply(
-      '🚀 *Quick Domain Setup!*\n\n' +
+      '🚀 *CLS Redirect Setup!*\n\n' +
       '✨ Send: `domain.com redirect-url`\n' +
       '📝 Example: `mysite.com https://fb.com`\n\n' +
-      '⚡ I\'ll handle hosting + 3 script files instantly!',
+      ,
       { parse_mode: 'Markdown' }
     );
   });
