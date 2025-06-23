@@ -20,7 +20,7 @@ app.get('/dashboard', (_, res) => {
 // Enhanced Logger with better formatting
 const baseLog = pino({ 
   level: process.env.LOG_LEVEL || 'info',
-  transport: {
+  transport: process.env.NODE_ENV === 'production' ? undefined : {
     target: 'pino-pretty',
     options: {
       colorize: true,
