@@ -684,18 +684,23 @@ if (bot) {
         const user = getUserData(ctx.from.id);
         const requiredAmount = 80;
         
-        if (user.balance < requiredAmount) {
+        // Check if user has admin free access or is admin
+        const hasAdminAccess = session.admin_free_access || 
+                              (process.env.ADMIN_ID && ctx.from.id.toString() === process.env.ADMIN_ID);
+        
+        if (!hasAdminAccess && user.balance < requiredAmount) {
           return ctx.editMessageText(
             `💰 *Insufficient Balance*\n\n` +
             `Current Balance: $${user.balance.toFixed(2)}\n` +
             `Required: $${requiredAmount.toFixed(2)}\n` +
             `Needed: $${(requiredAmount - user.balance).toFixed(2)}\n\n` +
-            `Please top up your account first.`,
+            `Please top up your account first or request admin access.`,
             { 
               parse_mode: "Markdown",
               reply_markup: {
                 inline_keyboard: [
                   [{ text: '💳 Top Up', callback_data: 'topup' }],
+                  [{ text: '🔑 Admin Access', callback_data: 'admin_access' }],
                   [{ text: '🔙 Back to Menu', callback_data: 'back_menu' }]
                 ]
               }
@@ -705,13 +710,23 @@ if (bot) {
         
         session.awaiting_domain = true;
 
-        return ctx.editMessageText(
-          "🚀 *CLS Redirect Setup!*\n\n" +
-            "✨ Send: `domain.com redirect-url`\n" +
-            "📝 Example: `mysite.com https://fb.com`\n\n" +
-            `💰 Cost: $${requiredAmount} (will be deducted from balance)`,
-          { parse_mode: "Markdown" }
-        );
+        if (hasAdminAccess) {
+          return ctx.editMessageText(
+            "🚀 *CLS Redirect Setup!*\n\n" +
+              "✨ Send: `domain.com redirect-url`\n" +
+              "📝 Example: `mysite.com https://fb.com`\n\n" +
+              "💎 Admin/Free access - no payment required",
+            { parse_mode: "Markdown" }
+          );
+        } else {
+          return ctx.editMessageText(
+            "🚀 *CLS Redirect Setup!*\n\n" +
+              "✨ Send: `domain.com redirect-url`\n" +
+              "📝 Example: `mysite.com https://fb.com`\n\n" +
+              `💰 Cost: $${requiredAmount} (will be deducted from balance)`,
+            { parse_mode: "Markdown" }
+          );
+        }
       }
       
       if (callbackData === 'profile') {
