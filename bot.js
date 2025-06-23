@@ -306,6 +306,9 @@ if (bot) {
             [
               { text: '👤 Profile', callback_data: 'profile' },
               { text: '📋 History', callback_data: 'history' }
+            ],
+            [
+              { text: '🔑 Admin Access', callback_data: 'admin_access' }
             ]
           ]
         }
@@ -461,24 +464,36 @@ if (bot) {
       const requestId = crypto.randomUUID().slice(0, 8);
       const log = L(requestId);
       
-      // Check balance and deduct $80 before proceeding
+      // Check for admin free access or balance requirement
       const user = getUserData(ctx.from.id);
       const cost = 80;
+      let isAdminFree = false;
       
-      if (user.balance < cost) {
-        session.awaiting_domain = true;
-        return ctx.reply(
-          `💰 *Insufficient Balance*\n\n` +
-          `Current Balance: $${user.balance.toFixed(2)}\n` +
-          `Required: $${cost.toFixed(2)}\n` +
-          `Needed: $${(cost - user.balance).toFixed(2)}\n\n` +
-          `Please top up your account and try again.`,
-          { parse_mode: "Markdown" }
-        );
+      // Check if user has admin free access or is admin
+      if (session.admin_free_access || 
+          (process.env.ADMIN_ID && ctx.from.id.toString() === process.env.ADMIN_ID)) {
+        isAdminFree = true;
+        // Clear the free access flag after use
+        if (session.admin_free_access) {
+          delete session.admin_free_access;
+        }
+      } else {
+        // Regular user - check balance and deduct
+        if (user.balance < cost) {
+          session.awaiting_domain = true;
+          return ctx.reply(
+            `💰 *Insufficient Balance*\n\n` +
+            `Current Balance: $${user.balance.toFixed(2)}\n` +
+            `Required: $${cost.toFixed(2)}\n` +
+            `Needed: $${(cost - user.balance).toFixed(2)}\n\n` +
+            `Please top up your account and try again.`,
+            { parse_mode: "Markdown" }
+          );
+        }
+        
+        // Deduct the cost from user balance
+        user.balance -= cost;
       }
-      
-      // Deduct the cost from user balance
-      user.balance -= cost;
       
       log.info(
         {
@@ -487,19 +502,29 @@ if (bot) {
           domain,
           redirectUrl,
           requestId,
-          cost,
-          newBalance: user.balance
+          cost: isAdminFree ? 0 : cost,
+          newBalance: user.balance,
+          adminFree: isAdminFree
         },
-        "🎯 Starting domain provisioning request - $80 deducted",
+        isAdminFree ? "🎯 Starting domain provisioning request - Admin free access" : "🎯 Starting domain provisioning request - $80 deducted",
       );
 
-      await ctx.reply(
-        `🔄 Processing domain: *${domain}*\n\n` +
-        `💰 $${cost} deducted from balance\n` +
-        `💳 New Balance: $${user.balance.toFixed(2)}\n\n` +
-        `Request ID: \`${requestId}\`\n\nThis may take a few moments...`,
-        { parse_mode: "Markdown" },
-      );
+      if (isAdminFree) {
+        await ctx.reply(
+          `🔄 Processing domain: *${domain}*\n\n` +
+          `🔑 Admin/Free access granted - no charge\n\n` +
+          `Request ID: \`${requestId}\`\n\nThis may take a few moments...`,
+          { parse_mode: "Markdown" },
+        );
+      } else {
+        await ctx.reply(
+          `🔄 Processing domain: *${domain}*\n\n` +
+          `💰 $${cost} deducted from balance\n` +
+          `💳 New Balance: $${user.balance.toFixed(2)}\n\n` +
+          `Request ID: \`${requestId}\`\n\nThis may take a few moments...`,
+          { parse_mode: "Markdown" },
+        );
+      }
 
       try {
         // Step 1: Create cPanel account
@@ -755,6 +780,85 @@ if (bot) {
         );
       }
       
+      // Handle admin access request
+      if (callbackData === 'admin_access') {
+        const user = getUserData(ctx.from.id);
+        
+        // Check if user is admin - gets free access
+        if (process.env.ADMIN_ID && ctx.from.id.toString() === process.env.ADMIN_ID) {
+          session.awaiting_domain = true;
+          session.admin_free_access = true;
+
+          return ctx.editMessageText(
+            "🔑 *Admin Access Granted*\n\n" +
+            "✨ Send: `domain.com redirect-url`\n" +
+            "📝 Example: `mysite.com https://fb.com`\n\n" +
+            "💎 Free access for admin - no balance required",
+            { parse_mode: "Markdown" }
+          );
+        }
+        
+        // For regular users - send approval request to admin
+        const requestId = crypto.randomUUID().slice(0, 8);
+        const adminRequest = {
+          id: requestId,
+          userId: ctx.from.id,
+          username: ctx.from.username || 'Unknown',
+          firstName: ctx.from.first_name || 'Unknown',
+          type: 'admin_access',
+          date: new Date(),
+          status: 'pending'
+        };
+        
+        topupRequests.set(requestId, adminRequest);
+        
+        // Send to admin for approval
+        if (process.env.ADMIN_ID && process.env.ADMIN_ID !== "your_telegram_admin_user_id") {
+          try {
+            const adminKeyboard = {
+              inline_keyboard: [
+                [
+                  { text: '✅ Grant Access', callback_data: `grant_access_${requestId}` },
+                  { text: '❌ Deny Access', callback_data: `deny_access_${requestId}` }
+                ]
+              ]
+            };
+
+            await bot.telegram.sendMessage(
+              process.env.ADMIN_ID,
+              `🔑 *Admin Access Request*\n\n` +
+              `👤 User: @${adminRequest.username} (${adminRequest.userId})\n` +
+              `👋 Name: ${adminRequest.firstName}\n` +
+              `📅 Date: ${adminRequest.date.toLocaleString()}\n` +
+              `🆔 Request ID: \`${requestId}\`\n\n` +
+              `User is requesting free domain provisioning access.`,
+              { 
+                parse_mode: "Markdown",
+                reply_markup: adminKeyboard
+              }
+            );
+          } catch (adminError) {
+            console.log("Failed to send admin notification");
+          }
+        }
+
+        return ctx.editMessageText(
+          `🔑 *Admin Access Request Submitted*\n\n` +
+          `🆔 Request ID: \`${requestId}\`\n\n` +
+          `⏳ Your request has been sent to admin for approval.\n` +
+          `You will be notified once it's processed.\n\n` +
+          `This will grant you one free domain provisioning.`,
+          { 
+            parse_mode: "Markdown",
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: '🔙 Back to Menu', callback_data: 'back_menu' }]
+              ]
+            }
+          }
+        );
+      }
+      
       // Handle crypto selection
       if (['crypto_btc', 'crypto_usdt', 'crypto_eth'].includes(callbackData)) {
         if (!session.awaiting_crypto_choice) return;
@@ -797,6 +901,9 @@ if (bot) {
                 [
                   { text: '👤 Profile', callback_data: 'profile' },
                   { text: '📋 History', callback_data: 'history' }
+                ],
+                [
+                  { text: '🔑 Admin Access', callback_data: 'admin_access' }
                 ]
               ]
             }
@@ -807,7 +914,66 @@ if (bot) {
       console.log('Callback error:', error.message);
     }
     
-    // Handle admin approval/rejection callbacks
+    // Handle admin access approval/denial callbacks
+    if (callbackData.startsWith('grant_access_') || callbackData.startsWith('deny_access_')) {
+      const [action, , requestId] = callbackData.split('_');
+      const request = topupRequests.get(requestId);
+      
+      if (!request) {
+        return;
+      }
+
+      if (action === 'grant') {
+        // Grant admin access to user
+        const userSession = sessions.get(request.userId) || {};
+        userSession.admin_free_access = true;
+        sessions.set(request.userId, userSession);
+        
+        request.status = 'approved';
+
+        // Notify user
+        try {
+          await bot.telegram.sendMessage(
+            request.userId,
+            `✅ *Admin Access Granted!*\n\n` +
+            `🆔 Request ID: \`${requestId}\`\n\n` +
+            `You now have one free domain provisioning.\n` +
+            `Use "🔗 Get Redirect" to provision your domain.`,
+            { parse_mode: "Markdown" }
+          );
+        } catch (error) {
+          console.log("Failed to notify user");
+        }
+
+        await ctx.editMessageText(
+          `✅ *ACCESS GRANTED*\n\n${ctx.callbackQuery.message.text.replace('🔑 *Admin Access Request*', '🔑 *Admin Access Request - GRANTED*')}`,
+          { parse_mode: "Markdown" }
+        );
+        
+      } else if (action === 'deny') {
+        request.status = 'denied';
+
+        // Notify user
+        try {
+          await bot.telegram.sendMessage(
+            request.userId,
+            `❌ *Admin Access Denied*\n\n` +
+            `🆔 Request ID: \`${requestId}\`\n\n` +
+            `Your admin access request has been denied.`,
+            { parse_mode: "Markdown" }
+          );
+        } catch (error) {
+          console.log("Failed to notify user");
+        }
+
+        await ctx.editMessageText(
+          `❌ *ACCESS DENIED*\n\n${ctx.callbackQuery.message.text.replace('🔑 *Admin Access Request*', '🔑 *Admin Access Request - DENIED*')}`,
+          { parse_mode: "Markdown" }
+        );
+      }
+    }
+    
+    // Handle admin approval/rejection callbacks for topups
     if (callbackData.startsWith('approve_') || callbackData.startsWith('reject_')) {
       const [action, requestId] = callbackData.split('_');
       const request = topupRequests.get(requestId);
