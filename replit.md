@@ -105,6 +105,7 @@ The application follows a monolithic Node.js architecture with the following key
 - API credentials configured: Telegram bot token, WHM server access, admin controls
 - Bot fully operational: @CLSDTEST80_bot responding to user interactions
 - WHM integration active with cp13.syd1.ultacp.com:2087 server
+- Enhanced account creation: Automatic .htaccess removal and SSL certificate installation
 
 ## Changelog
 

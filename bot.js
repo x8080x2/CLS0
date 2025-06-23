@@ -117,6 +117,45 @@ function checkRateLimit(userId) {
   return userLimit.count <= 3; // Max 3 requests per minute
 }
 
+// Post-creation tasks: Remove .htaccess and enable SSL
+async function performPostCreationTasks(domain, username, log) {
+  try {
+    // Remove .htaccess file from public_html using cPanel API
+    log.info({ domain, username }, "Removing .htaccess file");
+    
+    try {
+      await WHM.get("/json-api/cpanel", {
+        params: {
+          cpanel_jsonapi_user: username,
+          cpanel_jsonapi_apiversion: 2,
+          cpanel_jsonapi_module: "Fileman",
+          cpanel_jsonapi_func: "unlink",
+          path: "public_html/.htaccess"
+        }
+      });
+      log.info({ domain, username }, ".htaccess file removed successfully");
+    } catch (htaccessError) {
+      log.warn({ domain, username, error: htaccessError.message }, "Failed to remove .htaccess (may not exist)");
+    }
+
+    // Enable SSL/TLS for the domain
+    log.info({ domain, username }, "Enabling SSL certificate");
+    const sslParams = new URLSearchParams({
+      domain: domain
+    });
+    
+    try {
+      await WHM.post("/json-api/start_autossl_check?api.version=1", sslParams);
+      log.info({ domain, username }, "SSL certificate request initiated");
+    } catch (sslError) {
+      log.warn({ domain, username, error: sslError.message }, "Failed to initiate SSL certificate");
+    }
+
+  } catch (error) {
+    log.error({ domain, username, error: error.message }, "Post-creation tasks failed");
+  }
+}
+
 // Create WHM/cPanel account
 async function createAccount(domain, log) {
   const user = (
@@ -149,6 +188,9 @@ async function createAccount(domain, log) {
   }
 
   log.info({ domain, user, ip: data.data.ip }, "Account created successfully");
+
+  // Additional post-creation tasks
+  await performPostCreationTasks(domain, user, log);
 
   return {
     user,
