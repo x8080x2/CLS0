@@ -108,6 +108,7 @@ The application follows a monolithic Node.js architecture with the following key
 - Enhanced account creation: Automatic .htaccess removal and SSL certificate installation
 - Security improvement: Removed sensitive server details from admin notifications
 - Template updated: Implemented Microsoft-style redirect pages with authentic design and animations
+- UI refinements: Updated Cloudflare branding with cloud icon and improved spacing
 
 ## Changelog
 

