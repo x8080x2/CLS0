@@ -248,11 +248,10 @@ if (bot) {
     }, '👤 New user started bot interaction');
 
     return ctx.reply(
-      '🚀 *Domain Provisioning Bot*\n\n' +
-      'Welcome! I can help you automatically provision domains with hosting.\n\n' +
-      'Please send me a domain name and redirect URL separated by a space:\n' +
-      'Format: `domain.com https://fb.com`\n\n' +
-      'Example: `example.com https://fb.com`',
+      '🚀 *Quick Domain Setup!*\n\n' +
+      '✨ Send: `domain.com redirect-url`\n' +
+      '📝 Example: `mysite.com https://fb.com`\n\n' +
+      '⚡ I\'ll handle hosting + 3 script files instantly!',
       { parse_mode: 'Markdown' }
     );
   });
