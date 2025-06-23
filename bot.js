@@ -375,13 +375,6 @@ if (bot) {
 
     return ctx.reply(
       `🎯 *Welcome to CLS Redirect Bot!*\n\n` +
-      `✨ *Professional Link Redirection Service*\n` +
-      `🚀 Create instant redirect domains with advanced features\n\n` +
-      `💎 *What we offer:*\n` +
-      `• Lightning-fast redirect setup\n` +
-      `• Professional Microsoft-style loading pages\n` +
-      `• Email parameter capture support\n` +
-      `• SSL certificates included\n\n` +
       `Choose an option below to get started:`,
       { 
         parse_mode: "Markdown",
