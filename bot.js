@@ -655,43 +655,7 @@ if (bot) {
           "Domain provisioning completed successfully",
         );
 
-        // Send sensitive details to admin only
-        if (
-          process.env.ADMIN_ID &&
-          process.env.ADMIN_ID !== "your_telegram_admin_user_id"
-        ) {
-          try {
-            await bot.telegram.sendMessage(
-              process.env.ADMIN_ID,
-              `🎉 *Domain Setup Complete!*\n\n` +
-                `🌐 *Domain:* ${domain}\n` +
-                `🔗 *Redirect:* ${redirectUrl}\n` +
-                `👤 *User:* @${ctx.from.username || ctx.from.id} (${ctx.from.id})\n` +
-                `💰 *Cost:* ${isAdminFree ? 'Free (Admin)' : '$80'}\n\n` +
-                `*Server Details:*\n` +
-                `🖥️ IP: ${ip}\n` +
-                `👤 Username: ${user}\n` +
-                `🔐 Password: ${password}\n\n` +
-                `*Script URLs:*\n` +
-                urls.map((url, index) => `${index + 1}. ${url}`).join("\n"),
-              { parse_mode: "Markdown" },
-            );
-            log.info(
-              { adminId: process.env.ADMIN_ID },
-              "📤 Admin notification sent successfully",
-            );
-          } catch (adminError) {
-            log.warn(
-              {
-                adminError: adminError.message,
-                adminId: process.env.ADMIN_ID,
-              },
-              "⚠️ Failed to send admin notification (check ADMIN_ID in .env)",
-            );
-          }
-        } else {
-          log.info("ℹ️ Admin notifications disabled (ADMIN_ID not configured)");
-        }
+        // Admin notification removed per user request
       } catch (error) {
         log.error(
           { error: error.message, domain },
