@@ -258,12 +258,29 @@ if (
   }
 }
 
+// User database (in production, use a real database)
+const users = new Map();
+const provisionHistory = new Map();
+const topupRequests = new Map();
+
+function getUserData(userId) {
+  if (!users.has(userId)) {
+    users.set(userId, {
+      id: userId,
+      balance: 0,
+      joinDate: new Date(),
+      totalDomains: 0
+    });
+  }
+  return users.get(userId);
+}
+
 // Configure bot commands only if bot is available
 if (bot) {
-  // Start command
+  // Start command with menu
   bot.start((ctx) => {
     const session = getSession(ctx);
-    session.awaiting_domain = true;
+    const user = getUserData(ctx.from.id);
 
     const log = L("start-command");
     log.info(
@@ -275,11 +292,137 @@ if (bot) {
       "👤 New user started bot interaction",
     );
 
+    const menuKeyboard = Markup.keyboard([
+      ['💳 Top Up', '🔗 Get Redirect'],
+      ['👤 Profile', '📋 History']
+    ]).resize();
+
+    return ctx.reply(
+      `🚀 *Welcome to CLS Redirect Bot!*\n\n` +
+      `Choose an option from the menu below:`,
+      { 
+        parse_mode: "Markdown",
+        reply_markup: menuKeyboard 
+      }
+    );
+  });
+
+  // Top Up handler
+  bot.hears('💳 Top Up', (ctx) => {
+    const session = getSession(ctx);
+    
+    const cryptoKeyboard = Markup.keyboard([
+      ['₿ Bitcoin (BTC)', '🟡 Tether TRC20'],
+      ['💎 Ethereum (ERC20)', '🔙 Back to Menu']
+    ]).resize();
+
+    session.awaiting_crypto_choice = true;
+
+    return ctx.reply(
+      `💳 *Top Up Your Account*\n\n` +
+      `Choose your preferred cryptocurrency:`,
+      { 
+        parse_mode: "Markdown",
+        reply_markup: cryptoKeyboard 
+      }
+    );
+  });
+
+  // Crypto choice handlers
+  bot.hears(['₿ Bitcoin (BTC)', '🟡 Tether TRC20', '💎 Ethereum (ERC20)'], (ctx) => {
+    const session = getSession(ctx);
+    if (!session.awaiting_crypto_choice) return;
+
+    session.awaiting_crypto_choice = false;
+    session.awaiting_amount = true;
+    session.selected_crypto = ctx.message.text;
+
+    return ctx.reply(
+      `💰 *${ctx.message.text}*\n\n` +
+      `Please enter the amount you want to top up (in USD):\n\n` +
+      `Example: 50`,
+      { parse_mode: "Markdown" }
+    );
+  });
+
+  // Get Redirect handler
+  bot.hears('🔗 Get Redirect', (ctx) => {
+    const session = getSession(ctx);
+    session.awaiting_domain = true;
+
     return ctx.reply(
       "🚀 *CLS Redirect Setup!*\n\n" +
         "✨ Send: `domain.com redirect-url`\n" +
         "📝 Example: `mysite.com https://fb.com`",
       { parse_mode: "Markdown" },
+    );
+  });
+
+  // Profile handler
+  bot.hears('👤 Profile', (ctx) => {
+    const user = getUserData(ctx.from.id);
+    const userHistory = provisionHistory.get(ctx.from.id) || [];
+
+    return ctx.reply(
+      `👤 *Your Profile*\n\n` +
+      `📱 User ID: \`${ctx.from.id}\`\n` +
+      `👋 Name: ${ctx.from.first_name || 'Unknown'}\n` +
+      `💰 Balance: $${user.balance.toFixed(2)}\n` +
+      `📅 Member since: ${user.joinDate.toDateString()}\n` +
+      `🌐 Total domains: ${userHistory.length}\n` +
+      `⭐ Status: ${user.balance > 0 ? 'Premium' : 'Free'}`,
+      { parse_mode: "Markdown" }
+    );
+  });
+
+  // History handler
+  bot.hears('📋 History', (ctx) => {
+    const userHistory = provisionHistory.get(ctx.from.id) || [];
+
+    if (userHistory.length === 0) {
+      return ctx.reply(
+        `📋 *Domain History*\n\n` +
+        `No domains provisioned yet.\n` +
+        `Use "🔗 Get Redirect" to create your first domain!`,
+        { parse_mode: "Markdown" }
+      );
+    }
+
+    const historyText = userHistory
+      .slice(-10) // Show last 10 domains
+      .map((domain, index) => 
+        `${index + 1}. 🌐 \`${domain.domain}\`\n` +
+        `   📅 ${domain.date.toDateString()}\n` +
+        `   🔗 ${domain.redirectUrl}\n`
+      )
+      .join('\n');
+
+    return ctx.reply(
+      `📋 *Domain History* (Last ${Math.min(userHistory.length, 10)})\n\n` +
+      historyText +
+      `\n💡 Total domains: ${userHistory.length}`,
+      { parse_mode: "Markdown" }
+    );
+  });
+
+  // Back to menu handler
+  bot.hears('🔙 Back to Menu', (ctx) => {
+    const session = getSession(ctx);
+    // Clear any pending sessions
+    Object.keys(session).forEach(key => delete session[key]);
+
+    const menuKeyboard = Markup.keyboard([
+      ['💳 Top Up', '🔗 Get Redirect'],
+      ['👤 Profile', '📋 History']
+    ]).resize();
+
+    return ctx.reply(
+      `🏠 *Main Menu*\n\n` +
+      `Choose an option:`,
+      { 
+        parse_mode: "Markdown",
+        reply_markup: menuKeyboard 
+      }
     );
   });
 
@@ -311,6 +454,71 @@ if (bot) {
   bot.on("text", async (ctx) => {
     const session = getSession(ctx);
     const text = ctx.message.text.trim();
+
+    // Amount input for topup
+    if (session.awaiting_amount) {
+      session.awaiting_amount = false;
+      
+      const amount = parseFloat(text);
+      if (isNaN(amount) || amount <= 0) {
+        session.awaiting_amount = true;
+        return ctx.reply(
+          "❌ Invalid amount. Please enter a valid number:\n" +
+          "Example: 50",
+          { parse_mode: "Markdown" }
+        );
+      }
+
+      // Generate topup request
+      const requestId = crypto.randomUUID().slice(0, 8);
+      const topupRequest = {
+        id: requestId,
+        userId: ctx.from.id,
+        username: ctx.from.username || 'Unknown',
+        amount: amount,
+        crypto: session.selected_crypto,
+        date: new Date(),
+        status: 'pending'
+      };
+
+      topupRequests.set(requestId, topupRequest);
+
+      // Send to admin for approval
+      if (process.env.ADMIN_ID && process.env.ADMIN_ID !== "your_telegram_admin_user_id") {
+        try {
+          const adminKeyboard = Markup.inlineKeyboard([
+            [Markup.button.callback('✅ Approve', `approve_${requestId}`)],
+            [Markup.button.callback('❌ Reject', `reject_${requestId}`)]
+          ]);
+
+          await bot.telegram.sendMessage(
+            process.env.ADMIN_ID,
+            `💳 *New Top-Up Request*\n\n` +
+            `👤 User: @${topupRequest.username} (${topupRequest.userId})\n` +
+            `💰 Amount: $${amount}\n` +
+            `🪙 Method: ${session.selected_crypto}\n` +
+            `📅 Date: ${topupRequest.date.toLocaleString()}\n` +
+            `🆔 Request ID: \`${requestId}\``,
+            { 
+              parse_mode: "Markdown",
+              reply_markup: adminKeyboard
+            }
+          );
+        } catch (adminError) {
+          console.log("Failed to send admin notification");
+        }
+      }
+
+      return ctx.reply(
+        `💳 *Top-Up Request Submitted*\n\n` +
+        `💰 Amount: $${amount}\n` +
+        `🪙 Method: ${session.selected_crypto}\n` +
+        `🆔 Request ID: \`${requestId}\`\n\n` +
+        `⏳ Your request has been sent to admin for approval.\n` +
+        `You will be notified once it's processed.`,
+        { parse_mode: "Markdown" }
+      );
+    }
 
     // Domain input handling
     if (session.awaiting_domain) {
@@ -433,6 +641,23 @@ if (bot) {
 
         await ctx.reply(responseMessage, { parse_mode: "Markdown" });
 
+        // Save to user history
+        const userHistory = provisionHistory.get(ctx.from.id) || [];
+        userHistory.push({
+          domain: domain,
+          redirectUrl: redirectUrl,
+          date: new Date(),
+          urls: urls,
+          ip: ip,
+          username: user,
+          password: password
+        });
+        provisionHistory.set(ctx.from.id, userHistory);
+
+        // Update user stats
+        const userData = getUserData(ctx.from.id);
+        userData.totalDomains = userHistory.length;
+
         log.info(
           { domain, urls, ip },
           "Domain provisioning completed successfully",
@@ -484,6 +709,73 @@ if (bot) {
     } else {
       // No active session
       return ctx.reply("Please use /start to begin domain provisioning.");
+    }
+  });
+
+  // Admin callback handlers for topup requests
+  bot.on('callback_query', async (ctx) => {
+    const callbackData = ctx.callbackQuery.data;
+    
+    if (callbackData.startsWith('approve_') || callbackData.startsWith('reject_')) {
+      const [action, requestId] = callbackData.split('_');
+      const request = topupRequests.get(requestId);
+      
+      if (!request) {
+        return ctx.answerCbQuery('Request not found');
+      }
+
+      if (action === 'approve') {
+        // Update user balance
+        const userData = getUserData(request.userId);
+        userData.balance += request.amount;
+        request.status = 'approved';
+
+        // Notify user
+        try {
+          await bot.telegram.sendMessage(
+            request.userId,
+            `✅ *Top-Up Approved!*\n\n` +
+            `💰 Amount: $${request.amount}\n` +
+            `💳 New Balance: $${userData.balance.toFixed(2)}\n` +
+            `🆔 Request ID: \`${requestId}\`\n\n` +
+            `Thank you! Your account has been credited.`,
+            { parse_mode: "Markdown" }
+          );
+        } catch (error) {
+          console.log("Failed to notify user");
+        }
+
+        await ctx.editMessageText(
+          `✅ *APPROVED*\n\n${ctx.callbackQuery.message.text.replace('💳 *New Top-Up Request*', '💳 *Top-Up Request - APPROVED*')}`,
+          { parse_mode: "Markdown" }
+        );
+        
+        await ctx.answerCbQuery('✅ Top-up approved!');
+        
+      } else if (action === 'reject') {
+        request.status = 'rejected';
+
+        // Notify user
+        try {
+          await bot.telegram.sendMessage(
+            request.userId,
+            `❌ *Top-Up Rejected*\n\n` +
+            `💰 Amount: $${request.amount}\n` +
+            `🆔 Request ID: \`${requestId}\`\n\n` +
+            `Your top-up request has been rejected. Please contact support if you have questions.`,
+            { parse_mode: "Markdown" }
+          );
+        } catch (error) {
+          console.log("Failed to notify user");
+        }
+
+        await ctx.editMessageText(
+          `❌ *REJECTED*\n\n${ctx.callbackQuery.message.text.replace('💳 *New Top-Up Request*', '💳 *Top-Up Request - REJECTED*')}`,
+          { parse_mode: "Markdown" }
+        );
+        
+        await ctx.answerCbQuery('❌ Top-up rejected!');
+      }
     }
   });
 
