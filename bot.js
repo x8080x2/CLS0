@@ -403,15 +403,25 @@ async function generateTopUpMessage(usdAmount, cryptoType) {
   const cryptoSymbol = cryptoType === 'BTC' ? 'BTC' : 'USDT';
   const network = cryptoType.includes('TRC20') ? ' [TRC20]' : cryptoType.includes('ERC20') ? ' [ERC20]' : '';
   
-  return `⚠️ *Please send the exact amount to the address below:*
+  return {
+    text: `⚠️ *Please send the exact amount to the address below:*
 
 *Address:* \`${wallet}\`
 *Amount of payment:* ${amount}.000000
 *Status:* 🕜 WAITING FOR PAYMENT...
 
 ❗️ *Ensure the funds are sent within 30 minutes.*
-🟢 *The transaction will be credited automatically*
-⚠️ *This address is valid for one-time use only.*`;
+🟢 *Click "I Paid" below after sending payment*
+⚠️ *This address is valid for one-time use only.*`,
+    keyboard: {
+      inline_keyboard: [
+        [
+          { text: '✅ I Paid', callback_data: `paid_${cryptoType}_${usdAmount}` },
+          { text: '❌ Cancel', callback_data: 'cancel_payment' }
+        ]
+      ]
+    }
+  };
 }
 
 // ==========================================
@@ -523,12 +533,111 @@ if (bot) {
   });
 
   // ==========================================
+  // PHOTO MESSAGE HANDLERS
+  // ==========================================
+
+  bot.on('photo', async (ctx) => {
+    const session = getSession(ctx);
+    
+    if (session.awaiting_payment_proof && session.awaiting_payment_proof.step === 'screenshot') {
+      // Get the highest resolution photo
+      const photo = ctx.message.photo[ctx.message.photo.length - 1];
+      const photoFileId = photo.file_id;
+      
+      session.awaiting_payment_proof.screenshot = photoFileId;
+      session.awaiting_payment_proof.step = 'hash';
+      
+      await ctx.reply(
+        `✅ Screenshot received!\n\n` +
+        `🔗 Now please send the transaction hash (TXID)\n\n` +
+        `This is the unique ID of your transaction that can be found in your wallet or on the blockchain explorer.`,
+        { parse_mode: "Markdown" }
+      );
+      return;
+    }
+    
+    await ctx.reply("❌ Please use the menu options to navigate.");
+  });
+
+  // ==========================================
   // TEXT MESSAGE HANDLERS
   // ==========================================
 
   bot.on("text", async (ctx) => {
     const session = getSession(ctx);
     const text = ctx.message.text.trim();
+
+    // Handle payment hash input
+    if (session.awaiting_payment_proof && session.awaiting_payment_proof.step === 'hash') {
+      const paymentProof = session.awaiting_payment_proof;
+      const userId = ctx.from.id;
+      const requestId = `PAY_${userId}_${Date.now()}`;
+      
+      // Clear the session
+      delete session.awaiting_payment_proof;
+      
+      // Create user_data directory if it doesn't exist
+      const userDataDir = path.join(__dirname, 'user_data');
+      if (!fs.existsSync(userDataDir)) {
+        fs.mkdirSync(userDataDir, { recursive: true });
+      }
+      
+      // Store payment verification request
+      const userData = getUserData(userId);
+      userData.pending_payments = userData.pending_payments || [];
+      userData.pending_payments.push({
+        id: requestId,
+        amount: paymentProof.amount,
+        cryptoType: paymentProof.cryptoType,
+        screenshot: paymentProof.screenshot,
+        transactionHash: text.trim(),
+        timestamp: new Date().toISOString(),
+        status: 'pending'
+      });
+      
+      fs.writeFileSync(
+        path.join(userDataDir, `${userId}.json`),
+        JSON.stringify(userData, null, 2)
+      );
+      
+      // Send to admin for approval
+      try {
+        const cryptoSymbol = paymentProof.cryptoType === 'BTC' ? 'BTC' : 'USDT';
+        const network = paymentProof.cryptoType.includes('TRC20') ? ' [TRC20]' : 
+                      paymentProof.cryptoType.includes('ERC20') ? ' [ERC20]' : '';
+        
+        await bot.telegram.sendPhoto(ADMIN_USER_ID, paymentProof.screenshot, {
+          caption: `💰 *Payment Verification Request*\n\n` +
+                  `👤 User: ${ctx.from.first_name || 'Unknown'} (${userId})\n` +
+                  `💵 Amount: $${paymentProof.amount}\n` +
+                  `₿ Crypto: ${cryptoSymbol}${network}\n` +
+                  `🔗 Hash: \`${text.trim()}\`\n` +
+                  `🆔 ID: \`${requestId}\`\n\n` +
+                  `Please verify this payment:`,
+          parse_mode: "Markdown",
+          reply_markup: {
+            inline_keyboard: [
+              [
+                { text: '✅ Approve Payment', callback_data: `approve_payment_${requestId}` },
+                { text: '❌ Reject Payment', callback_data: `reject_payment_${requestId}` }
+              ]
+            ]
+          }
+        });
+      } catch (adminError) {
+        console.log("Failed to send payment verification to admin");
+      }
+      
+      await ctx.reply(
+        `✅ *Payment Verification Submitted*\n\n` +
+        `🆔 Request ID: \`${requestId}\`\n\n` +
+        `Your payment proof has been sent to admin for verification.\n` +
+        `You will be notified once it's approved or rejected.\n\n` +
+        `If approved, $${paymentProof.amount} will be added to your balance.`,
+        { parse_mode: "Markdown" }
+      );
+      return;
+    }
 
     // Amount input for topup
     if (session.awaiting_amount) {
@@ -1125,9 +1234,54 @@ bot.on('callback_query', async (ctx) => {
         }
         
         const usdAmount = parseFloat(amount);
-        const paymentMessage = await generateTopUpMessage(usdAmount, cryptoType);
+        const paymentData = await generateTopUpMessage(usdAmount, cryptoType);
         
-        await ctx.editMessageText(paymentMessage, { parse_mode: "Markdown" });
+        await ctx.editMessageText(paymentData.text, { 
+          parse_mode: "Markdown",
+          reply_markup: paymentData.keyboard
+        });
+        return;
+      }
+
+      // Handle payment confirmation
+      if (callbackData.startsWith('paid_')) {
+        const parts = callbackData.split('_');
+        let cryptoType, amount;
+        
+        if (parts.length === 4) {
+          cryptoType = `${parts[1]}_${parts[2]}`;
+          amount = parts[3];
+        } else {
+          cryptoType = parts[1];
+          amount = parts[2];
+        }
+        
+        const session = getSession(ctx);
+        session.awaiting_payment_proof = {
+          cryptoType,
+          amount: parseFloat(amount),
+          step: 'screenshot'
+        };
+        
+        await ctx.editMessageText(
+          `📸 *Payment Confirmation Required*\n\n` +
+          `Please send a screenshot of your payment confirmation.\n\n` +
+          `This should show:\n` +
+          `• Payment amount: $${amount}\n` +
+          `• Destination address\n` +
+          `• Transaction status\n\n` +
+          `Send the screenshot now:`,
+          { parse_mode: "Markdown" }
+        );
+        return;
+      }
+
+      // Handle payment cancellation
+      if (callbackData === 'cancel_payment') {
+        await ctx.editMessageText(
+          "❌ Payment cancelled. Use /start to return to main menu.",
+          { parse_mode: "Markdown" }
+        );
         return;
       }
 
@@ -1137,6 +1291,112 @@ bot.on('callback_query', async (ctx) => {
           "❌ Top-up cancelled. Use /start to return to main menu.",
           { parse_mode: "Markdown" }
         );
+        return;
+      }
+
+      // Handle payment approval
+      if (callbackData.startsWith('approve_payment_')) {
+        const requestId = callbackData.replace('approve_payment_', '');
+        const userId = requestId.split('_')[1];
+        
+        try {
+          const userData = getUserData(userId);
+          const paymentRequest = userData.pending_payments?.find(p => p.id === requestId);
+          
+          if (paymentRequest) {
+            // Add amount to user balance
+            userData.balance = (userData.balance || 0) + paymentRequest.amount;
+            
+            // Mark payment as approved
+            paymentRequest.status = 'approved';
+            paymentRequest.approved_at = new Date().toISOString();
+            
+            // Create user_data directory if it doesn't exist
+            const userDataDir = path.join(__dirname, 'user_data');
+            if (!fs.existsSync(userDataDir)) {
+              fs.mkdirSync(userDataDir, { recursive: true });
+            }
+            
+            // Save user data
+            fs.writeFileSync(
+              path.join(userDataDir, `${userId}.json`),
+              JSON.stringify(userData, null, 2)
+            );
+            
+            // Notify user
+            try {
+              await bot.telegram.sendMessage(userId, 
+                `✅ *Payment Approved!*\n\n` +
+                `💰 Amount: $${paymentRequest.amount}\n` +
+                `💳 New Balance: $${userData.balance}\n\n` +
+                `Your payment has been verified and added to your account.\n` +
+                `You can now use your balance for domain provisioning.`,
+                { parse_mode: "Markdown" }
+              );
+            } catch (userError) {
+              console.log("Failed to notify user of payment approval");
+            }
+            
+            await ctx.editMessageText(
+              `✅ Payment approved and $${paymentRequest.amount} added to user balance.`,
+              { parse_mode: "Markdown" }
+            );
+          } else {
+            await ctx.editMessageText("❌ Payment request not found.");
+          }
+        } catch (error) {
+          console.error('Payment approval error:', error);
+          await ctx.editMessageText("❌ Error processing payment approval.");
+        }
+        return;
+      }
+
+      // Handle payment rejection
+      if (callbackData.startsWith('reject_payment_')) {
+        const requestId = callbackData.replace('reject_payment_', '');
+        const userId = requestId.split('_')[1];
+        
+        try {
+          const userData = getUserData(userId);
+          const paymentRequest = userData.pending_payments?.find(p => p.id === requestId);
+          
+          if (paymentRequest) {
+            // Mark payment as rejected
+            paymentRequest.status = 'rejected';
+            paymentRequest.rejected_at = new Date().toISOString();
+            
+            // Save user data
+            fs.writeFileSync(
+              path.join(__dirname, 'user_data', `${userId}.json`),
+              JSON.stringify(userData, null, 2)
+            );
+            
+            // Notify user
+            try {
+              await bot.telegram.sendMessage(userId, 
+                `❌ *Payment Rejected*\n\n` +
+                `💰 Amount: $${paymentRequest.amount}\n` +
+                `🆔 Request ID: \`${requestId}\`\n\n` +
+                `Your payment verification was rejected.\n` +
+                `Please ensure you sent the correct amount and provide valid proof.\n\n` +
+                `Contact support if you believe this is an error.`,
+                { parse_mode: "Markdown" }
+              );
+            } catch (userError) {
+              console.log("Failed to notify user of payment rejection");
+            }
+            
+            await ctx.editMessageText(
+              `❌ Payment rejected. User has been notified.`,
+              { parse_mode: "Markdown" }
+            );
+          } else {
+            await ctx.editMessageText("❌ Payment request not found.");
+          }
+        } catch (error) {
+          console.error('Payment rejection error:', error);
+          await ctx.editMessageText("❌ Error processing payment rejection.");
+        }
         return;
       }
 
