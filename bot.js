@@ -17,9 +17,26 @@ app.get('/dashboard', (_, res) => {
   res.sendFile(path.join(__dirname, 'dashboard.html'));
 });
 
-// Logger
-const baseLog = pino({ level: process.env.LOG_LEVEL || 'info' });
+// Enhanced Logger with better formatting
+const baseLog = pino({ 
+  level: process.env.LOG_LEVEL || 'info',
+  transport: {
+    target: 'pino-pretty',
+    options: {
+      colorize: true,
+      translateTime: 'SYS:standard',
+      ignore: 'pid,hostname'
+    }
+  }
+});
 const L = id => baseLog.child({ reqId: id });
+
+// Log startup information
+const startupLog = L('startup');
+startupLog.info('🚀 Domain Provisioning Bot starting...');
+startupLog.info(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+startupLog.info(`🔧 Log Level: ${process.env.LOG_LEVEL || 'info'}`);
+startupLog.info(`🌐 WHM Server: ${process.env.WHM_SERVER || 'Not configured'}`);
 
 // HTTPS Agent for self-signed certificates
 const tlsAgent = new https.Agent({ rejectUnauthorized: false });
@@ -200,6 +217,13 @@ if (bot) {
   bot.start(ctx => {
     const session = getSession(ctx);
     session.awaiting_domain = true;
+    
+    const log = L('start-command');
+    log.info({ 
+      userId: ctx.from.id, 
+      username: ctx.from.username || 'unknown',
+      firstName: ctx.from.first_name || 'unknown'
+    }, '👤 New user started bot interaction');
 
     return ctx.reply(
       '🚀 *Domain Provisioning Bot*\n\n' +
@@ -279,9 +303,18 @@ if (bot) {
       }
 
       const domain = domainInput.toLowerCase();
-      const log = L(crypto.randomUUID().slice(0, 8));
+      const requestId = crypto.randomUUID().slice(0, 8);
+      const log = L(requestId);
 
-      await ctx.reply(`🔄 Processing domain: *${domain}*\n\nThis may take a few moments...`, 
+      log.info({ 
+        userId: ctx.from.id,
+        username: ctx.from.username || 'unknown',
+        domain,
+        redirectUrl,
+        requestId
+      }, '🎯 Starting domain provisioning request');
+
+      await ctx.reply(`🔄 Processing domain: *${domain}*\n\nRequest ID: \`${requestId}\`\n\nThis may take a few moments...`, 
         { parse_mode: 'Markdown' });
 
       try {
@@ -334,17 +367,29 @@ if (bot) {
         log.info({ domain, urls, ip }, 'Domain provisioning completed successfully');
 
         // Send to admin if configured
-        if (process.env.ADMIN_ID) {
-          await bot.telegram.sendMessage(
-            process.env.ADMIN_ID,
-            `📊 *New Domain Provisioned*\n\n` +
-            `*User:* @${ctx.from.username || ctx.from.id}\n` +
-            `*Domain:* ${domain}\n` +
-            `*IP:* ${ip}\n` +
-            `*Username:* ${user}\n` +
-            `*URLs Created:* ${urls.length}`,
-            { parse_mode: 'Markdown' }
-          );
+        if (process.env.ADMIN_ID && process.env.ADMIN_ID !== 'your_telegram_admin_user_id') {
+          try {
+            await bot.telegram.sendMessage(
+              process.env.ADMIN_ID,
+              `📊 *New Domain Provisioned*\n\n` +
+              `*User:* @${ctx.from.username || ctx.from.id}\n` +
+              `*Domain:* ${domain}\n` +
+              `*IP:* ${ip}\n` +
+              `*Username:* ${user}\n` +
+              `*Redirect URL:* ${redirectUrl}\n` +
+              `*URLs Created:* ${urls.length}\n` +
+              `*Request ID:* \`${requestId}\``,
+              { parse_mode: 'Markdown' }
+            );
+            log.info({ adminId: process.env.ADMIN_ID }, '📤 Admin notification sent successfully');
+          } catch (adminError) {
+            log.warn({ 
+              adminError: adminError.message, 
+              adminId: process.env.ADMIN_ID 
+            }, '⚠️ Failed to send admin notification (check ADMIN_ID in .env)');
+          }
+        } else {
+          log.info('ℹ️ Admin notifications disabled (ADMIN_ID not configured)');
         }
 
       } catch (error) {
@@ -363,20 +408,44 @@ if (bot) {
     }
   });
 
-  // Error handling
+  // Enhanced error handling
   bot.catch((err, ctx) => {
     const log = L('bot-error');
-    log.error({ err: err.message, userId: ctx.from?.id }, 'Bot error occurred');
-    return ctx.reply('❌ An error occurred. Please try again with /start');
+    log.error({ 
+      error: err.message,
+      stack: err.stack,
+      userId: ctx.from?.id,
+      username: ctx.from?.username || 'unknown',
+      chatId: ctx.chat?.id,
+      messageText: ctx.message?.text || 'unknown'
+    }, '💥 Bot error occurred');
+    
+    return ctx.reply(
+      '❌ *Oops! Something went wrong*\n\n' +
+      'Please try again with /start or contact support if the issue persists.\n\n' +
+      `Error ID: \`${crypto.randomUUID().slice(0, 8)}\``,
+      { parse_mode: 'Markdown' }
+    );
   });
 
   // Webhook endpoint
   app.use(`/bot${process.env.TELEGRAM_BOT_TOKEN}`, bot.webhookCallback('/'));
 }
 
-// Health check endpoint
+// Enhanced health check endpoint
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  const log = L('health-check');
+  const healthData = { 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    memoryUsage: process.memoryUsage(),
+    botStatus: bot ? 'active' : 'inactive',
+    environment: process.env.NODE_ENV || 'development'
+  };
+  
+  log.debug(healthData, '💊 Health check requested');
+  res.json(healthData);
 });
 
 // Test API endpoint for domain provisioning
