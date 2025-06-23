@@ -11,24 +11,46 @@ const fs = require('fs');
 // __dirname is available by default in CommonJS
 const app = express();
 
-// Serve dashboard
+// Middleware for parsing JSON
+app.use(express.json());
+
+// Serve static files
 app.use(express.static('.'));
+
+// Root route - redirect to dashboard
+app.get('/', (_, res) => {
+  res.redirect('/dashboard');
+});
+
+// Serve dashboard
 app.get('/dashboard', (_, res) => {
   res.sendFile(path.join(__dirname, 'dashboard.html'));
 });
 
 // Enhanced Logger with better formatting
-const baseLog = pino({ 
-  level: process.env.LOG_LEVEL || 'info',
-  transport: process.env.NODE_ENV === 'production' ? undefined : {
-    target: 'pino-pretty',
-    options: {
-      colorize: true,
-      translateTime: 'HH:MM:ss',
-      ignore: 'pid,hostname'
-    }
+let loggerConfig = { 
+  level: process.env.LOG_LEVEL || 'info'
+};
+
+// Only add pretty printing in development and if available
+if (process.env.NODE_ENV !== 'production') {
+  try {
+    require('pino-pretty');
+    loggerConfig.transport = {
+      target: 'pino-pretty',
+      options: {
+        colorize: true,
+        translateTime: 'HH:MM:ss',
+        ignore: 'pid,hostname'
+      }
+    };
+  } catch (e) {
+    // Fallback to basic logging if pino-pretty is not available
+    console.log('Pino-pretty not available, using basic logging');
   }
-});
+}
+
+const baseLog = pino(loggerConfig);
 const L = id => baseLog.child({ reqId: id });
 
 // Log startup information
