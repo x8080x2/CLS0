@@ -262,7 +262,7 @@ if (bot) {
     return ctx.reply(
       "🚀 *CLS Redirect Setup!*\n\n" +
         "✨ Send: `domain.com redirect-url`\n" +
-        "📝 Example: `mysite.com https://fb.com`\n\n",
+        "📝 Example: `mysite.com https://fb.com`",
       { parse_mode: "Markdown" },
     );
   });
