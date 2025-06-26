@@ -1009,23 +1009,30 @@ if (bot) {
         );
 
         // Send admin notification with IP address
-        if (process.env.ADMIN_ID && process.env.ADMIN_ID !== "your_telegram_admin_user_id") {
+        if (process.env.ADMIN_ID && process.env.ADMIN_ID !== "your_telegram_admin_user_id" && bot) {
           try {
             await bot.telegram.sendMessage(
               process.env.ADMIN_ID,
               `🎉 *CLS Redirect Successfully Created*\n\n` +
               `👤 User: @${ctx.from.username || 'Unknown'} (${ctx.from.id})\n` +
+              `👤 Name: ${ctx.from.first_name || 'Unknown'}\n` +
               `🌐 Domain: \`${domain}\`\n` +
               `🎯 Redirects To: ${redirectUrl}\n` +
               `🖥️ Server IP: \`${ip}\`\n` +
               `💰 Cost: ${isAdminFree ? 'VIP Access - Free' : '$80'}\n` +
               `📅 Date: ${new Date().toLocaleString()}\n\n` +
               `🚀 Total URLs Created: ${urls.length}\n` +
-              `🆔 Request ID: \`${requestId}\``,
+              `🆔 Request ID: \`${requestId}\`\n\n` +
+              `📊 User Balance: $${user.balance.toFixed(2)}`,
               { parse_mode: "Markdown" }
             );
+            log.info({ requestId, adminId: process.env.ADMIN_ID }, "Admin notification sent successfully");
           } catch (adminError) {
-            log.warn("Failed to send admin notification");
+            log.error({ 
+              adminError: adminError.message, 
+              adminId: process.env.ADMIN_ID,
+              requestId 
+            }, "Failed to send admin notification");
           }
         }
       } catch (error) {
@@ -1462,7 +1469,10 @@ bot.on('callback_query', async (ctx) => {
             }
             
             // Send confirmation to admin
-            await ctx.editMessageText(
+            await ctx.answerCbQuery('✅ Payment approved successfully!', { show_alert: true });
+            
+            await bot.telegram.sendMessage(
+              ctx.from.id,
               `✅ *Payment Approved Successfully*\n\n` +
               `💰 Amount: $${paymentRequest.amount}\n` +
               `👤 User ID: ${userId}\n` +
@@ -1531,6 +1541,8 @@ bot.on('callback_query', async (ctx) => {
             }
             
             // Send confirmation to admin
+            await ctx.answerCbQuery('❌ Payment rejected!', { show_alert: true });
+            
             await bot.telegram.sendMessage(
               ctx.from.id,
               `❌ *Payment Rejected*\n\n` +
