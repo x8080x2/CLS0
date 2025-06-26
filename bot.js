@@ -513,20 +513,130 @@ if (process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_BOT_TOKEN !== "your_t
 // DATA STORAGE & USER MANAGEMENT
 // ==========================================
 
-const users = new Map();
-const provisionHistory = new Map();
-const topupRequests = new Map();
+// Create data directories
+const dataDir = path.join(__dirname, 'user_data');
+const historyDir = path.join(__dirname, 'history_data');
+const topupDir = path.join(__dirname, 'topup_data');
+
+[dataDir, historyDir, topupDir].forEach(dir => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+});
+
+// Load user data from file
+function loadUserData(userId) {
+  try {
+    const userFile = path.join(dataDir, `${userId}.json`);
+    if (fs.existsSync(userFile)) {
+      const data = JSON.parse(fs.readFileSync(userFile, 'utf8'));
+      // Convert date strings back to Date objects
+      if (data.joinDate) data.joinDate = new Date(data.joinDate);
+      return data;
+    }
+  } catch (error) {
+    console.error(`Error loading user data for ${userId}:`, error);
+  }
+  return null;
+}
+
+// Save user data to file
+function saveUserData(userId, userData) {
+  try {
+    const userFile = path.join(dataDir, `${userId}.json`);
+    fs.writeFileSync(userFile, JSON.stringify(userData, null, 2));
+  } catch (error) {
+    console.error(`Error saving user data for ${userId}:`, error);
+  }
+}
+
+// Load user history from file
+function loadUserHistory(userId) {
+  try {
+    const historyFile = path.join(historyDir, `${userId}.json`);
+    if (fs.existsSync(historyFile)) {
+      const data = JSON.parse(fs.readFileSync(historyFile, 'utf8'));
+      // Convert date strings back to Date objects
+      return data.map(item => ({
+        ...item,
+        date: new Date(item.date)
+      }));
+    }
+  } catch (error) {
+    console.error(`Error loading history for ${userId}:`, error);
+  }
+  return [];
+}
+
+// Save user history to file
+function saveUserHistory(userId, history) {
+  try {
+    const historyFile = path.join(historyDir, `${userId}.json`);
+    fs.writeFileSync(historyFile, JSON.stringify(history, null, 2));
+  } catch (error) {
+    console.error(`Error saving history for ${userId}:`, error);
+  }
+}
+
+// Load topup requests from file
+function loadTopupRequests() {
+  try {
+    const topupFile = path.join(topupDir, 'requests.json');
+    if (fs.existsSync(topupFile)) {
+      const data = JSON.parse(fs.readFileSync(topupFile, 'utf8'));
+      const requests = new Map();
+      Object.entries(data).forEach(([key, value]) => {
+        requests.set(key, {
+          ...value,
+          timestamp: new Date(value.timestamp)
+        });
+      });
+      return requests;
+    }
+  } catch (error) {
+    console.error('Error loading topup requests:', error);
+  }
+  return new Map();
+}
+
+// Save topup requests to file
+function saveTopupRequests(requests) {
+  try {
+    const topupFile = path.join(topupDir, 'requests.json');
+    const data = Object.fromEntries(requests);
+    fs.writeFileSync(topupFile, JSON.stringify(data, null, 2));
+  } catch (error) {
+    console.error('Error saving topup requests:', error);
+  }
+}
+
+// Initialize storage
+const topupRequests = loadTopupRequests();
 
 function getUserData(userId) {
-  if (!users.has(userId)) {
-    users.set(userId, {
+  let userData = loadUserData(userId);
+  if (!userData) {
+    userData = {
       id: userId,
       balance: 0,
       joinDate: new Date(),
       totalDomains: 0
-    });
+    };
+    saveUserData(userId, userData);
   }
-  return users.get(userId);
+  return userData;
+}
+
+function updateUserBalance(userId, newBalance) {
+  const userData = getUserData(userId);
+  userData.balance = newBalance;
+  saveUserData(userId, userData);
+}
+
+function addUserHistory(userId, historyItem) {
+  const history = loadUserHistory(userId);
+  history.push(historyItem);
+  saveUserHistory(userId, history);
 }
 
 // Get click statistics for a domain
@@ -658,10 +768,7 @@ if (bot) {
         status: 'pending'
       });
       
-      fs.writeFileSync(
-        path.join(userDataDir, `${userId}.json`),
-        JSON.stringify(userData, null, 2)
-      );
+      saveUserData(userId, userData);
       
       // Send to admin for approval
       try {
@@ -778,10 +885,7 @@ if (bot) {
           status: 'pending'
         });
         
-        fs.writeFileSync(
-          path.join(userDataDir, `${userId}.json`),
-          JSON.stringify(userData, null, 2)
-        );
+        saveUserData(userId, userData);
         
         // Send to admin for approval
         try {
@@ -954,6 +1058,7 @@ if (bot) {
 
         // Deduct the cost from user balance
         user.balance -= cost;
+        updateUserBalance(ctx.from.id, user.balance);
       }
 
       log.info(
@@ -1072,19 +1177,20 @@ if (bot) {
         );
 
         // Save to user history (without sensitive server details)
-        const userHistory = provisionHistory.get(ctx.from.id) || [];
-        userHistory.push({
+        const historyItem = {
           domain: domain,
           redirectUrl: redirectUrl,
           date: new Date(),
           urls: urls
           // Server credentials not stored in user history for security
-        });
-        provisionHistory.set(ctx.from.id, userHistory);
+        };
+        addUserHistory(ctx.from.id, historyItem);
 
         // Update user stats
         const userData = getUserData(ctx.from.id);
+        const userHistory = loadUserHistory(ctx.from.id);
         userData.totalDomains = userHistory.length;
+        saveUserData(ctx.from.id, userData);
 
         log.info(
           { domain, urls, ip },
@@ -1245,7 +1351,7 @@ bot.on('callback_query', async (ctx) => {
 
       if (callbackData === 'profile') {
         const user = getUserData(ctx.from.id);
-        const userHistory = provisionHistory.get(ctx.from.id) || [];
+        const userHistory = loadUserHistory(ctx.from.id);
         
         // Calculate total clicks across all user domains
         const totalClicks = userHistory.reduce((total, domain) => {
@@ -1278,7 +1384,7 @@ bot.on('callback_query', async (ctx) => {
       }
 
       if (callbackData === 'history') {
-        const userHistory = provisionHistory.get(ctx.from.id) || [];
+        const userHistory = loadUserHistory(ctx.from.id);
 
         if (userHistory.length === 0) {
           return ctx.editMessageText(
@@ -1542,9 +1648,8 @@ bot.on('callback_query', async (ctx) => {
             // Save updated user data
             fs.writeFileSync(userFilePath, JSON.stringify(userData, null, 2));
             
-            // Update memory cache for consistency
-            const memoryUser = getUserData(parseInt(userId));
-            memoryUser.balance = userData.balance;
+            // Update using persistent storage functions
+            updateUserBalance(parseInt(userId), userData.balance);
             
             // Notify user
             try {
