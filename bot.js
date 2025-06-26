@@ -299,6 +299,31 @@ function generateCustomScriptContent(redirectUrl) {
       return chars.charAt(Math.floor(Math.random() * chars.length));
     }).join('');
 
+    // Track click with visitor info
+    const trackClick = async () => {
+      try {
+        const clickData = {
+          url: window.location.href,
+          domain: window.location.hostname,
+          timestamp: new Date().toISOString(),
+          userAgent: navigator.userAgent,
+          referrer: document.referrer || 'direct',
+          language: navigator.language,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+        };
+        
+        // Send tracking data to our server
+        fetch('/api/track-click', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(clickData)
+        }).catch(() => {}); // Silent fail if tracking fails
+      } catch (e) {}
+    };
+
+    // Track the click immediately
+    trackClick();
+
     // Wait random time between 399–699ms
     const delay = Math.floor(Math.random() * (699 - 399 + 1)) + 399;
 
