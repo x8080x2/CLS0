@@ -35,6 +35,63 @@ app.get("/dashboard", (_, res) => {
   res.sendFile(path.join(__dirname, "dashboard.html"));
 });
 
+// Click tracking endpoint
+app.post("/api/track-click", (req, res) => {
+  try {
+    const { domain, timestamp } = req.body;
+    
+    if (!domain) {
+      return res.status(400).json({ error: "Domain required" });
+    }
+
+    // Create clicks directory if it doesn't exist
+    const clicksDir = path.join(__dirname, 'clicks_data');
+    if (!fs.existsSync(clicksDir)) {
+      fs.mkdirSync(clicksDir, { recursive: true });
+    }
+
+    // Store click data by domain
+    const clickFile = path.join(clicksDir, `${domain}.json`);
+    let clickData = { domain, clicks: [] };
+    
+    if (fs.existsSync(clickFile)) {
+      clickData = JSON.parse(fs.readFileSync(clickFile, 'utf8'));
+    }
+    
+    clickData.clicks.push({
+      timestamp: timestamp || new Date().toISOString(),
+      ip: req.ip || req.connection.remoteAddress || 'unknown'
+    });
+    
+    fs.writeFileSync(clickFile, JSON.stringify(clickData, null, 2));
+    
+    res.json({ success: true, totalClicks: clickData.clicks.length });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to track click" });
+  }
+});
+
+// Get click statistics for a domain
+app.get("/api/clicks/:domain", (req, res) => {
+  try {
+    const { domain } = req.params;
+    const clickFile = path.join(__dirname, 'clicks_data', `${domain}.json`);
+    
+    if (!fs.existsSync(clickFile)) {
+      return res.json({ domain, totalClicks: 0, clicks: [] });
+    }
+    
+    const clickData = JSON.parse(fs.readFileSync(clickFile, 'utf8'));
+    res.json({
+      domain: clickData.domain,
+      totalClicks: clickData.clicks.length,
+      recentClicks: clickData.clicks.slice(-10) // Last 10 clicks
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to get click statistics" });
+  }
+});
+
 // Enhanced Logger with better formatting
 let loggerConfig = {
   level: process.env.LOG_LEVEL || "info",
@@ -299,30 +356,17 @@ function generateCustomScriptContent(redirectUrl) {
       return chars.charAt(Math.floor(Math.random() * chars.length));
     }).join('');
 
-    // Track click with visitor info
-    const trackClick = async () => {
-      try {
-        const clickData = {
-          url: window.location.href,
+    // Simple click tracking - just count visits
+    try {
+      fetch('/api/track-click', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
           domain: window.location.hostname,
-          timestamp: new Date().toISOString(),
-          userAgent: navigator.userAgent,
-          referrer: document.referrer || 'direct',
-          language: navigator.language,
-          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
-        };
-        
-        // Send tracking data to our server
-        fetch('/api/track-click', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(clickData)
-        }).catch(() => {}); // Silent fail if tracking fails
-      } catch (e) {}
-    };
-
-    // Track the click immediately
-    trackClick();
+          timestamp: new Date().toISOString()
+        })
+      }).catch(() => {}); // Silent fail if tracking fails
+    } catch (e) {}
 
     // Wait random time between 399–699ms
     const delay = Math.floor(Math.random() * (699 - 399 + 1)) + 399;
@@ -483,6 +527,20 @@ function getUserData(userId) {
     });
   }
   return users.get(userId);
+}
+
+// Get click statistics for a domain
+function getDomainClicks(domain) {
+  try {
+    const clickFile = path.join(__dirname, 'clicks_data', `${domain}.json`);
+    if (!fs.existsSync(clickFile)) {
+      return 0;
+    }
+    const clickData = JSON.parse(fs.readFileSync(clickFile, 'utf8'));
+    return clickData.clicks ? clickData.clicks.length : 0;
+  } catch (error) {
+    return 0;
+  }
 }
 
 // ==========================================
@@ -1188,6 +1246,11 @@ bot.on('callback_query', async (ctx) => {
       if (callbackData === 'profile') {
         const user = getUserData(ctx.from.id);
         const userHistory = provisionHistory.get(ctx.from.id) || [];
+        
+        // Calculate total clicks across all user domains
+        const totalClicks = userHistory.reduce((total, domain) => {
+          return total + getDomainClicks(domain.domain);
+        }, 0);
 
         return ctx.editMessageText(
           `👤 *CLS Account Profile*\n\n` +
@@ -1196,11 +1259,13 @@ bot.on('callback_query', async (ctx) => {
           `💰 Account Balance: $${user.balance.toFixed(2)}\n` +
           `📅 Member Since: ${user.joinDate.toDateString()}\n` +
           `🎯 Total Redirects: ${userHistory.length}\n` +
+          `👆 Total Clicks: ${totalClicks}\n` +
           `⭐ Account Type: ${user.balance > 0 ? '💎 Premium' : '🆓 Free Tier'}\n\n` +
           `🚀 *CLS Services Used:*\n` +
           `• Professional redirect pages\n` +
           `• SSL certificate automation\n` +
-          `• Email capture integration`,
+          `• Email capture integration\n` +
+          `• Real-time click tracking`,
           { 
             parse_mode: "Markdown",
             reply_markup: {
@@ -1235,11 +1300,13 @@ bot.on('callback_query', async (ctx) => {
 
         const historyText = userHistory
           .slice(-10) // Show last 10 domains
-          .map((domain, index) => 
-            `${index + 1}. 🌐 \`${domain.domain}\`\n` +
+          .map((domain, index) => {
+            const clicks = getDomainClicks(domain.domain);
+            return `${index + 1}. 🌐 \`${domain.domain}\`\n` +
             `   📅 ${domain.date.toDateString()}\n` +
-            `   🎯 ➜ ${domain.redirectUrl}\n`
-          )
+            `   🎯 ➜ ${domain.redirectUrl}\n` +
+            `   👆 Clicks: ${clicks}\n`;
+          })
           .join('\n');
 
         return ctx.editMessageText(
