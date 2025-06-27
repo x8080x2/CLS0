@@ -139,6 +139,7 @@ const WHM = axios.create({
   baseURL: process.env.WHM_SERVER,
   httpsAgent: tlsAgent,
   timeout: 30000,
+  maxRetries: 2,
   headers: {
     Authorization:
       "Basic " +
@@ -149,14 +150,43 @@ const WHM = axios.create({
   },
 });
 
+// Add request interceptor for retry logic
+WHM.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const config = error.config;
+    if (!config || !config.retry) {
+      config.retry = 0;
+    }
+    
+    if (config.retry < 2 && error.code === 'ECONNRESET') {
+      config.retry++;
+      console.log(`Retrying WHM request (attempt ${config.retry})`);
+      return WHM(config);
+    }
+    
+    return Promise.reject(error);
+  }
+);
+
 // User sessions with rate limiting
 const sessions = new Map();
 const rateLimits = new Map();
 
 function getSession(ctx) {
-  const id = ctx.from.id;
-  if (!sessions.has(id)) sessions.set(id, {});
-  return sessions.get(id);
+  try {
+    if (!ctx || !ctx.from || !ctx.from.id) {
+      console.error('Invalid context provided to getSession');
+      return {};
+    }
+    
+    const id = ctx.from.id;
+    if (!sessions.has(id)) sessions.set(id, {});
+    return sessions.get(id);
+  } catch (error) {
+    console.error('Error getting session:', error);
+    return {};
+  }
 }
 
 function checkRateLimit(userId) {
@@ -427,30 +457,45 @@ async function fetchCryptoPrice(cryptoId) {
 
 // Calculate crypto amount needed for USD amount
 async function calculateCryptoAmount(usdAmount, cryptoType) {
-  const priceMap = {
-    BTC: 'bitcoin',
-    USDT_TRC20: 'tether',
-    USDT_ERC20: 'tether'
-  };
+  try {
+    if (!usdAmount || isNaN(usdAmount) || usdAmount <= 0) {
+      console.error(`Invalid USD amount: ${usdAmount}`);
+      return null;
+    }
+    
+    const priceMap = {
+      BTC: 'bitcoin',
+      USDT_TRC20: 'tether',
+      USDT_ERC20: 'tether'
+    };
 
-  const cryptoId = priceMap[cryptoType];
-  
-  if (!cryptoId) {
-    console.error(`Unknown crypto type: ${cryptoType}`);
+    const cryptoId = priceMap[cryptoType];
+    
+    if (!cryptoId) {
+      console.error(`Unknown crypto type: ${cryptoType}`);
+      return null;
+    }
+    
+    const price = await fetchCryptoPrice(cryptoId);
+    
+    if (!price || isNaN(price) || price <= 0) {
+      console.error(`Invalid price for ${cryptoId}: ${price}`);
+      return null;
+    }
+    
+    if (cryptoType.includes('USDT')) {
+      return usdAmount.toFixed(2); // USDT is 1:1 with USD, 2 decimals
+    } else {
+      const amount = usdAmount / price;
+      if (isNaN(amount) || !isFinite(amount)) {
+        console.error(`Invalid calculation result for ${cryptoType}`);
+        return null;
+      }
+      return amount.toFixed(8); // BTC with 8 decimals
+    }
+  } catch (error) {
+    console.error(`Error calculating crypto amount:`, error);
     return null;
-  }
-  
-  const price = await fetchCryptoPrice(cryptoId);
-  
-  if (!price) {
-    console.error(`Could not get price for ${cryptoId}`);
-    return null;
-  }
-  
-  if (cryptoType.includes('USDT')) {
-    return usdAmount.toFixed(2); // USDT is 1:1 with USD, 2 decimals
-  } else {
-    return (usdAmount / price).toFixed(8); // BTC with 8 decimals
   }
 }
 
@@ -518,6 +563,11 @@ const topupDir = path.join(__dirname, 'topup_data');
 // Load user data from file
 function loadUserData(userId) {
   try {
+    if (!userId || typeof userId !== 'number' && typeof userId !== 'string') {
+      console.error('Invalid userId provided to loadUserData:', userId);
+      return null;
+    }
+    
     const userFile = path.join(dataDir, `${userId}.json`);
     if (fs.existsSync(userFile)) {
       const data = JSON.parse(fs.readFileSync(userFile, 'utf8'));
@@ -534,6 +584,16 @@ function loadUserData(userId) {
 // Save user data to file
 function saveUserData(userId, userData) {
   try {
+    if (!userId || typeof userId !== 'number' && typeof userId !== 'string') {
+      console.error('Invalid userId provided to saveUserData:', userId);
+      return;
+    }
+    
+    if (!userData || typeof userData !== 'object') {
+      console.error('Invalid userData provided to saveUserData:', userData);
+      return;
+    }
+    
     const userFile = path.join(dataDir, `${userId}.json`);
     fs.writeFileSync(userFile, JSON.stringify(userData, null, 2));
   } catch (error) {
@@ -1612,7 +1672,14 @@ bot.on('callback_query', async (ctx) => {
       // Handle payment approval
       if (callbackData.startsWith('approve_payment_')) {
         const requestId = callbackData.replace('approve_payment_', '');
-        const userId = requestId.split('_')[1];
+        const userIdParts = requestId.split('_');
+        
+        if (userIdParts.length < 2 || !userIdParts[1]) {
+          await ctx.answerCbQuery('Invalid payment request format', { show_alert: true });
+          return;
+        }
+        
+        const userId = userIdParts[1];
         
         await ctx.answerCbQuery('Processing payment approval...');
         
@@ -1689,7 +1756,14 @@ bot.on('callback_query', async (ctx) => {
       // Handle payment rejection
       if (callbackData.startsWith('reject_payment_')) {
         const requestId = callbackData.replace('reject_payment_', '');
-        const userId = requestId.split('_')[1];
+        const userIdParts = requestId.split('_');
+        
+        if (userIdParts.length < 2 || !userIdParts[1]) {
+          await ctx.answerCbQuery('Invalid payment request format', { show_alert: true });
+          return;
+        }
+        
+        const userId = userIdParts[1];
         
         await ctx.answerCbQuery('Processing payment rejection...');
         
