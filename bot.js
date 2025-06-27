@@ -285,15 +285,6 @@ const uploadScriptFile = (user, folderName, fileName, htmlContent) =>
     },
   });
 
-// Generate script HTML content
-function generateScriptContent(redirectUrl, delay = 500) {
-  const template = fs.readFileSync("./script-template.html", "utf8");
-  return template
-    .replace("{{REDIRECT_URL}}", redirectUrl)
-    .replace("{{DELAY}}", delay)
-    .replace("{{TITLE}}", rStr(20));
-}
-
 // Generate custom script content using Microsoft-style template
 function generateCustomScriptContent(redirectUrl) {
   return `<!DOCTYPE html>
