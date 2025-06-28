@@ -14,5 +14,11 @@
       "status": "approved",
       "approved_at": "2025-06-23T20:30:36.407Z"
     }
-  ]
+  ],
+  "subscription": {
+    "active": false,
+    "startDate": null,
+    "endDate": null,
+    "domainsUsed": 0
+  }
 }
