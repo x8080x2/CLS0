@@ -1143,8 +1143,15 @@ if (bot) {
       let paymentType = '';
 
       // Check if user has admin free access or is admin
+      console.log("DEBUG: Checking admin access for domain creation");
+      console.log("DEBUG: session.admin_free_access:", session.admin_free_access);
+      console.log("DEBUG: User ID:", ctx.from.id);
+      console.log("DEBUG: Admin ID:", process.env.ADMIN_ID);
+      console.log("DEBUG: Direct admin check:", ctx.from.id.toString() === process.env.ADMIN_ID);
+      
       if (session.admin_free_access || 
           (process.env.ADMIN_ID && ctx.from.id.toString() === process.env.ADMIN_ID)) {
+        console.log("DEBUG: Admin access granted!");
         isAdminFree = true;
         paymentType = 'VIP Access';
         // Clear the free access flag after use
@@ -1640,6 +1647,12 @@ bot.on('callback_query', async (ctx) => {
 
         // Check if user is admin - gets free access
         const log = L("admin-access");
+        console.log("DEBUG: Admin access check triggered");
+        console.log("DEBUG: User ID:", ctx.from.id);
+        console.log("DEBUG: Admin ID from env:", process.env.ADMIN_ID);
+        console.log("DEBUG: User ID as string:", ctx.from.id.toString());
+        console.log("DEBUG: Comparison result:", ctx.from.id.toString() === process.env.ADMIN_ID);
+        
         log.info({
           userId: ctx.from.id,
           adminId: process.env.ADMIN_ID,
