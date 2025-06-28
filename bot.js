@@ -1341,8 +1341,7 @@ bot.on('callback_query', async (ctx) => {
       if (callbackData === 'topup') {
         session.awaiting_amount = true;
         return ctx.editMessageText(
-          `💎 *CLS Account Balance*\n\n` +
-          `💰 Current Balance: $${user.balance.toFixed(2)}\n\n` +
+          `💎 *CLS Account Balance*: $${user.balance.toFixed(2)}\n\n` +
           `Enter the amount you want to add (USD):\n` +
           `Example: 50`,
           { parse_mode: "Markdown" }
@@ -1385,7 +1384,6 @@ bot.on('callback_query', async (ctx) => {
             "🎯 *CLS Redirect Creator*\n\n" +
               "✨ *Format:* `domain.com target-url`\n" +
               "📝 *Example:* `mysite.com https://facebook.com`\n\n" +
-              "🎁 *VIP Access Active* - Complimentary service\n" +
               "🚀 Your redirect will be live in seconds!",
             { parse_mode: "Markdown" }
           );
@@ -1420,10 +1418,7 @@ bot.on('callback_query', async (ctx) => {
           `👆 Total Clicks: ${totalClicks}\n` +
           `⭐ Account Type: ${user.balance > 0 ? '💎 Premium' : '🆓 Free Tier'}\n\n` +
           `🚀 *CLS Services Used:*\n` +
-          `• Professional redirect pages\n` +
-          `• SSL certificate automation\n` +
-          `• Email capture integration\n` +
-          `• Real-time click tracking`,
+          `• Professional redirect, SSL certificate, Autograb email, Real-time click tracking`,
           { 
             parse_mode: "Markdown",
             reply_markup: {
