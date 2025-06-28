@@ -169,9 +169,30 @@ WHM.interceptors.response.use(
   }
 );
 
-// User sessions with rate limiting
+// User sessions with rate limiting and cleanup
 const sessions = new Map();
 const rateLimits = new Map();
+
+// Cleanup old sessions and rate limits every 10 minutes
+setInterval(() => {
+  const now = Date.now();
+  
+  // Clean up rate limits older than 1 hour
+  for (const [userId, limit] of rateLimits.entries()) {
+    if (now > limit.resetTime + 3600000) { // 1 hour
+      rateLimits.delete(userId);
+    }
+  }
+  
+  // Clean up inactive sessions older than 30 minutes
+  for (const [userId, session] of sessions.entries()) {
+    if (!session.lastActivity || now - session.lastActivity > 1800000) { // 30 minutes
+      sessions.delete(userId);
+    }
+  }
+  
+  console.log(`Cleaned up sessions. Active: ${sessions.size}, Rate limits: ${rateLimits.size}`);
+}, 600000); // 10 minutes
 
 function getSession(ctx) {
   try {
@@ -181,7 +202,11 @@ function getSession(ctx) {
     }
     
     const id = ctx.from.id;
-    if (!sessions.has(id)) sessions.set(id, {});
+    if (!sessions.has(id)) {
+      sessions.set(id, { lastActivity: Date.now() });
+    } else {
+      sessions.get(id).lastActivity = Date.now();
+    }
     return sessions.get(id);
   } catch (error) {
     console.error('Error getting session:', error);
@@ -581,23 +606,30 @@ function loadUserData(userId) {
   return null;
 }
 
-// Save user data to file
+// Save user data to file with better error handling
 function saveUserData(userId, userData) {
   try {
     if (!userId || typeof userId !== 'number' && typeof userId !== 'string') {
       console.error('Invalid userId provided to saveUserData:', userId);
-      return;
+      return false;
     }
     
     if (!userData || typeof userData !== 'object') {
       console.error('Invalid userData provided to saveUserData:', userData);
-      return;
+      return false;
     }
     
     const userFile = path.join(dataDir, `${userId}.json`);
-    fs.writeFileSync(userFile, JSON.stringify(userData, null, 2));
+    const tempFile = userFile + '.tmp';
+    
+    // Write to temp file first, then rename for atomic operation
+    fs.writeFileSync(tempFile, JSON.stringify(userData, null, 2));
+    fs.renameSync(tempFile, userFile);
+    
+    return true;
   } catch (error) {
     console.error(`Error saving user data for ${userId}:`, error);
+    return false;
   }
 }
 
