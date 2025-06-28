@@ -1441,10 +1441,11 @@ bot.on('callback_query', async (ctx) => {
         if (user.subscription.active) {
           const endDate = new Date(user.subscription.endDate);
           const daysLeft = Math.ceil((endDate - new Date()) / (1000 * 60 * 60 * 24));
+          const currentPrice = user.subscription.isFirstTime ? '$200' : '$200';
           
           return ctx.editMessageText(
             `⭐ *Monthly Subscription - Active*\n\n` +
-            `🎯 *Benefits:* 60 domains per month for $200\n` +
+            `🎯 *Benefits:* 60 domains per month for ${currentPrice}\n` +
             `📅 *Expires:* ${endDate.toDateString()} (${daysLeft} days)\n` +
             `🎯 *Domains Used:* ${user.subscription.domainsUsed}/60\n` +
             `💰 *Savings:* $${((60 * 80) - 200).toFixed(2)} vs pay-per-domain\n\n` +
@@ -1460,25 +1461,31 @@ bot.on('callback_query', async (ctx) => {
             }
           );
         } else {
-          return ctx.editMessageText(
-            `⭐ *Monthly Subscription - $200*\n\n` +
-            `🎯 *Get 60 domains per month for just $200!*\n` +
+          // Check if this is user's first subscription
+        const isFirstTime = !user.subscription.hasEverSubscribed;
+        const subscriptionPrice = isFirstTime ? 250 : 200;
+        const savings = (60 * 80) - subscriptionPrice;
+        
+        return ctx.editMessageText(
+            `⭐ *Monthly Subscription - $${subscriptionPrice}*\n\n` +
+            `🎯 *Get 60 domains per month for ${isFirstTime ? 'just $250 (first time)' : 'just $200 (renewal)'}!*\n` +
             `💰 *Regular Price:* 60 × $80 = $4,800\n` +
-            `💰 *Subscription Price:* $200\n` +
-            `💎 *You Save:* $4,600 (96% off!)\n\n` +
+            `💰 *Subscription Price:* $${subscriptionPrice}\n` +
+            `💎 *You Save:* $${savings.toFixed(2)} (${Math.round((savings/4800)*100)}% off!)\n\n` +
             `✨ *Benefits:*\n` +
             `• 60 professional redirects monthly\n` +
             `• All premium features included\n` +
             `• Same quality Microsoft-style pages\n` +
             `• SSL certificates & email capture\n` +
             `• Real-time click tracking\n\n` +
+            (isFirstTime ? `🎊 *First-time subscriber bonus included!*\n\n` : '') +
             `Current Balance: $${user.balance.toFixed(2)}`,
             { 
               parse_mode: "Markdown",
               reply_markup: {
                 inline_keyboard: [
-                  user.balance >= 200 ? 
-                    [{ text: '⭐ Subscribe Now ($200)', callback_data: 'subscribe_monthly' }] :
+                  user.balance >= subscriptionPrice ? 
+                    [{ text: `⭐ Subscribe Now ($${subscriptionPrice})`, callback_data: 'subscribe_monthly' }] :
                     [{ text: '💳 Add Funds First', callback_data: 'topup' }],
                   [{ text: '🔙 Back to Menu', callback_data: 'back_menu' }]
                 ]
@@ -2007,12 +2014,16 @@ bot.on('callback_query', async (ctx) => {
       if (callbackData === 'subscribe_monthly') {
         const user = getUserData(ctx.from.id);
         
-        if (user.balance < 200) {
+        // Determine pricing based on first-time status
+        const isFirstTime = !user.subscription.hasEverSubscribed;
+        const subscriptionPrice = isFirstTime ? 250 : 200;
+        
+        if (user.balance < subscriptionPrice) {
           return ctx.editMessageText(
             `❌ *Insufficient Balance*\n\n` +
-            `Required: $200\n` +
+            `Required: $${subscriptionPrice} ${isFirstTime ? '(first-time)' : '(renewal)'}\n` +
             `Current Balance: $${user.balance.toFixed(2)}\n` +
-            `Needed: $${(200 - user.balance).toFixed(2)}`,
+            `Needed: $${(subscriptionPrice - user.balance).toFixed(2)}`,
             { 
               parse_mode: "Markdown",
               reply_markup: {
@@ -2042,11 +2053,13 @@ bot.on('callback_query', async (ctx) => {
         }
 
         // Activate subscription
-        user.balance -= 200;
+        user.balance -= subscriptionPrice;
         user.subscription.active = true;
         user.subscription.startDate = new Date();
         user.subscription.endDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
         user.subscription.domainsUsed = 0;
+        user.subscription.isFirstTime = isFirstTime;
+        user.subscription.hasEverSubscribed = true;
         
         updateUserBalance(ctx.from.id, user.balance);
         saveUserData(ctx.from.id, user);
@@ -2059,7 +2072,7 @@ bot.on('callback_query', async (ctx) => {
               `⭐ *New Monthly Subscription*\n\n` +
               `👤 User: @${ctx.from.username || 'Unknown'} (${ctx.from.id})\n` +
               `👤 Name: ${ctx.from.first_name || 'Unknown'}\n` +
-              `💰 Amount: $200\n` +
+              `💰 Amount: $${subscriptionPrice} ${isFirstTime ? '(First-time)' : '(Renewal)'}\n` +
               `📅 Start: ${user.subscription.startDate.toDateString()}\n` +
               `📅 End: ${user.subscription.endDate.toDateString()}\n` +
               `💳 New Balance: $${user.balance.toFixed(2)}`,
@@ -2070,14 +2083,16 @@ bot.on('callback_query', async (ctx) => {
           }
         }
 
+        const savings = (60 * 80) - subscriptionPrice;
+        
         return ctx.editMessageText(
           `🎉 *Subscription Activated!*\n\n` +
-          `⭐ *Monthly Plan Active*\n` +
+          `⭐ *Monthly Plan Active* ${isFirstTime ? '(First-time subscriber!)' : '(Renewal)'}\n` +
           `🎯 *Domains Available:* 60\n` +
           `📅 *Valid Until:* ${user.subscription.endDate.toDateString()}\n` +
           `💳 *Remaining Balance:* $${user.balance.toFixed(2)}\n\n` +
           `✅ You can now create up to 60 domains this month!\n` +
-          `💰 You saved $4,600 compared to pay-per-domain!`,
+          `💰 You saved $${savings.toFixed(2)} compared to pay-per-domain!`,
           { 
             parse_mode: "Markdown",
             reply_markup: {
