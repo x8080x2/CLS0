@@ -703,10 +703,39 @@ function getUserData(userId) {
       id: userId,
       balance: 0,
       joinDate: new Date(),
-      totalDomains: 0
+      totalDomains: 0,
+      subscription: {
+        active: false,
+        startDate: null,
+        endDate: null,
+        domainsUsed: 0
+      }
     };
     saveUserData(userId, userData);
   }
+  
+  // Ensure subscription object exists for existing users
+  if (!userData.subscription) {
+    userData.subscription = {
+      active: false,
+      startDate: null,
+      endDate: null,
+      domainsUsed: 0
+    };
+    saveUserData(userId, userData);
+  }
+  
+  // Check if subscription has expired
+  if (userData.subscription.active && userData.subscription.endDate) {
+    const now = new Date();
+    const endDate = new Date(userData.subscription.endDate);
+    if (now > endDate) {
+      userData.subscription.active = false;
+      userData.subscription.domainsUsed = 0;
+      saveUserData(userId, userData);
+    }
+  }
+  
   return userData;
 }
 
@@ -767,10 +796,11 @@ if (bot) {
               { text: '🎯 Create Redirect', callback_data: 'redirect' }
             ],
             [
-              { text: '👤 My Profile', callback_data: 'profile' },
-              { text: '📊 My Redirects', callback_data: 'history' }
+              { text: '⭐ Monthly Subscription', callback_data: 'subscription' },
+              { text: '👤 My Profile', callback_data: 'profile' }
             ],
             [
+              { text: '📊 My Redirects', callback_data: 'history' },
               { text: '🔑 VIP Access Request', callback_data: 'admin_access' }
             ]
           ]
@@ -1116,17 +1146,27 @@ if (bot) {
       const user = getUserData(ctx.from.id);
       const cost = 80;
       let isAdminFree = false;
+      let isSubscriptionUse = false;
+      let paymentType = '';
 
       // Check if user has admin free access or is admin
       if (session.admin_free_access || 
           (process.env.ADMIN_ID && ctx.from.id.toString() === process.env.ADMIN_ID)) {
         isAdminFree = true;
+        paymentType = 'VIP Access';
         // Clear the free access flag after use
         if (session.admin_free_access) {
           delete session.admin_free_access;
         }
+      } else if (user.subscription.active && user.subscription.domainsUsed < 60 && !session.force_payment) {
+        // Use subscription
+        isSubscriptionUse = true;
+        paymentType = 'Monthly Subscription';
+        user.subscription.domainsUsed++;
+        saveUserData(ctx.from.id, user);
       } else {
-        // Regular user - check balance and deduct
+        // Regular payment
+        paymentType = 'Pay-per-domain';
         if (user.balance < cost) {
           session.awaiting_domain = true;
           return ctx.reply(
@@ -1142,6 +1182,11 @@ if (bot) {
         // Deduct the cost from user balance
         user.balance -= cost;
         updateUserBalance(ctx.from.id, user.balance);
+      }
+
+      // Clear force payment flag
+      if (session.force_payment) {
+        delete session.force_payment;
       }
 
       log.info(
@@ -1164,7 +1209,17 @@ if (bot) {
         statusMessage = await ctx.reply(
           `🎯 *CLS Redirect Creator*\n\n` +
           `🚀 Creating redirect for: *${domain}*\n` +
-          `🎁 *VIP Access* - Complimentary service\n\n` +
+          `🎁 *${paymentType}* - Complimentary service\n\n` +
+          `⚡ *Status:* Setting up your redirect...\n` +
+          `🆔 Request ID: \`${requestId}\`\n\n` +
+          `⏳ Please wait while we work our magic...`,
+          { parse_mode: "Markdown" },
+        );
+      } else if (isSubscriptionUse) {
+        statusMessage = await ctx.reply(
+          `🎯 *CLS Redirect Creator*\n\n` +
+          `🚀 Creating redirect for: *${domain}*\n` +
+          `⭐ *${paymentType}* - Domain ${user.subscription.domainsUsed}/60\n\n` +
           `⚡ *Status:* Setting up your redirect...\n` +
           `🆔 Request ID: \`${requestId}\`\n\n` +
           `⏳ Please wait while we work our magic...`,
@@ -1174,7 +1229,7 @@ if (bot) {
         statusMessage = await ctx.reply(
           `🎯 *CLS Redirect Creator*\n\n` +
           `🚀 Creating redirect for: *${domain}*\n` +
-          `💰 Service fee: $${cost} ✅\n` +
+          `💰 *${paymentType}*: $${cost} ✅\n` +
           `💳 Remaining balance: $${user.balance.toFixed(2)}\n\n` +
           `⚡ *Status:* Setting up your redirect...\n` +
           `🆔 Request ID: \`${requestId}\`\n\n` +
@@ -1292,7 +1347,7 @@ if (bot) {
               `🌐 Domain: \`${domain}\`\n` +
               `🎯 Redirects To: ${redirectUrl}\n` +
               `🖥️ Server IP: \`${ip}\`\n` +
-              `💰 Cost: ${isAdminFree ? 'VIP Access - Free' : '$80'}\n` +
+              `💰 Payment: ${paymentType}${isSubscriptionUse ? ` (${user.subscription.domainsUsed}/60)` : isAdminFree ? ' - Free' : ' - $80'}\n` +
               `📅 Date: ${new Date().toLocaleString()}\n\n` +
               `🚀 Total URLs Created: ${urls.length}\n` +
               `🆔 Request ID: \`${requestId}\`\n\n` +
@@ -1380,6 +1435,59 @@ bot.on('callback_query', async (ctx) => {
         );
       }
 
+      if (callbackData === 'subscription') {
+        const user = getUserData(ctx.from.id);
+        
+        if (user.subscription.active) {
+          const endDate = new Date(user.subscription.endDate);
+          const daysLeft = Math.ceil((endDate - new Date()) / (1000 * 60 * 60 * 24));
+          
+          return ctx.editMessageText(
+            `⭐ *Monthly Subscription - Active*\n\n` +
+            `🎯 *Benefits:* 60 domains per month for $200\n` +
+            `📅 *Expires:* ${endDate.toDateString()} (${daysLeft} days)\n` +
+            `🎯 *Domains Used:* ${user.subscription.domainsUsed}/60\n` +
+            `💰 *Savings:* $${((60 * 80) - 200).toFixed(2)} vs pay-per-domain\n\n` +
+            `✅ Your subscription is active and ready to use!`,
+            { 
+              parse_mode: "Markdown",
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: '🎯 Create Domain', callback_data: 'redirect' }],
+                  [{ text: '🔙 Back to Menu', callback_data: 'back_menu' }]
+                ]
+              }
+            }
+          );
+        } else {
+          return ctx.editMessageText(
+            `⭐ *Monthly Subscription - $200*\n\n` +
+            `🎯 *Get 60 domains per month for just $200!*\n` +
+            `💰 *Regular Price:* 60 × $80 = $4,800\n` +
+            `💰 *Subscription Price:* $200\n` +
+            `💎 *You Save:* $4,600 (96% off!)\n\n` +
+            `✨ *Benefits:*\n` +
+            `• 60 professional redirects monthly\n` +
+            `• All premium features included\n` +
+            `• Same quality Microsoft-style pages\n` +
+            `• SSL certificates & email capture\n` +
+            `• Real-time click tracking\n\n` +
+            `Current Balance: $${user.balance.toFixed(2)}`,
+            { 
+              parse_mode: "Markdown",
+              reply_markup: {
+                inline_keyboard: [
+                  user.balance >= 200 ? 
+                    [{ text: '⭐ Subscribe Now ($200)', callback_data: 'subscribe_monthly' }] :
+                    [{ text: '💳 Add Funds First', callback_data: 'topup' }],
+                  [{ text: '🔙 Back to Menu', callback_data: 'back_menu' }]
+                ]
+              }
+            }
+          );
+        }
+      }
+
       if (callbackData === 'redirect') {
         const user = getUserData(ctx.from.id);
         const requiredAmount = 80;
@@ -1388,20 +1496,44 @@ bot.on('callback_query', async (ctx) => {
         const hasAdminAccess = session.admin_free_access || 
                               (process.env.ADMIN_ID && ctx.from.id.toString() === process.env.ADMIN_ID);
 
-        if (!hasAdminAccess && user.balance < requiredAmount) {
+        // Check if user has active subscription
+        const hasSubscription = user.subscription.active && user.subscription.domainsUsed < 60;
+
+        if (!hasAdminAccess && !hasSubscription && user.balance < requiredAmount) {
           return ctx.editMessageText(
             `💎 *CLS Redirect Service*\n\n` +
             `💰 *Insufficient Balance*\n` +
             `Current Balance: $${user.balance.toFixed(2)}\n` +
             `Service Cost: $${requiredAmount.toFixed(2)}\n` +
             `Additional Needed: $${(requiredAmount - user.balance).toFixed(2)}\n\n` +
-            `💳 Please add funds to your account or request VIP access.`,
+            `💡 *Better Option:* Get 60 domains for $200 with our monthly subscription!`,
             { 
               parse_mode: "Markdown",
               reply_markup: {
                 inline_keyboard: [
+                  [{ text: '⭐ View Subscription', callback_data: 'subscription' }],
                   [{ text: '💳 Add Funds', callback_data: 'topup' }],
                   [{ text: '🔑 Request VIP Access', callback_data: 'admin_access' }],
+                  [{ text: '🔙 Back to Menu', callback_data: 'back_menu' }]
+                ]
+              }
+            }
+          );
+        }
+
+        if (!hasAdminAccess && hasSubscription && user.subscription.domainsUsed >= 60) {
+          return ctx.editMessageText(
+            `⭐ *Subscription Limit Reached*\n\n` +
+            `🎯 You've used all 60 domains for this month.\n` +
+            `📅 Your subscription renews on ${new Date(user.subscription.endDate).toDateString()}\n\n` +
+            `💡 You can still create domains with pay-per-use ($80 each) or wait for renewal.`,
+            { 
+              parse_mode: "Markdown",
+              reply_markup: {
+                inline_keyboard: [
+                  user.balance >= 80 ? 
+                    [{ text: '💳 Pay Per Domain ($80)', callback_data: 'redirect_payperuse' }] :
+                    [{ text: '💳 Add Funds', callback_data: 'topup' }],
                   [{ text: '🔙 Back to Menu', callback_data: 'back_menu' }]
                 ]
               }
@@ -1440,6 +1572,18 @@ bot.on('callback_query', async (ctx) => {
           return total + getDomainClicks(domain.domain);
         }, 0);
 
+        let subscriptionStatus = '';
+        if (user.subscription.active) {
+          const endDate = new Date(user.subscription.endDate);
+          const daysLeft = Math.ceil((endDate - new Date()) / (1000 * 60 * 60 * 24));
+          subscriptionStatus = `⭐ *Subscription:* Active (${daysLeft} days left)\n` +
+                             `🎯 *Domains Used:* ${user.subscription.domainsUsed}/60\n`;
+        } else {
+          subscriptionStatus = `⭐ *Subscription:* Inactive\n`;
+        }
+
+        const accountType = user.subscription.active ? '⭐ Subscriber' : (user.balance > 0 ? '💎 Premium' : '🆓 Free Tier');
+
         return ctx.editMessageText(
           `👤 *CLS Account Profile*\n\n` +
           `🆔 Account ID: \`${ctx.from.id}\`\n` +
@@ -1448,7 +1592,8 @@ bot.on('callback_query', async (ctx) => {
           `📅 Member Since: ${user.joinDate.toDateString()}\n` +
           `🎯 Total Redirects: ${userHistory.length}\n` +
           `👆 Total Clicks: ${totalClicks}\n` +
-          `⭐ Account Type: ${user.balance > 0 ? '💎 Premium' : '🆓 Free Tier'}\n\n` +
+          subscriptionStatus +
+          `⭐ Account Type: ${accountType}\n\n` +
           `🚀 *CLS Services Used:*\n` +
           `• Professional redirect, SSL certificate, Autograb email, Real-time click tracking`,
           { 
@@ -1858,6 +2003,125 @@ bot.on('callback_query', async (ctx) => {
         return;
       }
 
+      // Handle subscription purchase
+      if (callbackData === 'subscribe_monthly') {
+        const user = getUserData(ctx.from.id);
+        
+        if (user.balance < 200) {
+          return ctx.editMessageText(
+            `❌ *Insufficient Balance*\n\n` +
+            `Required: $200\n` +
+            `Current Balance: $${user.balance.toFixed(2)}\n` +
+            `Needed: $${(200 - user.balance).toFixed(2)}`,
+            { 
+              parse_mode: "Markdown",
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: '💳 Add Funds', callback_data: 'topup' }],
+                  [{ text: '🔙 Back to Menu', callback_data: 'back_menu' }]
+                ]
+              }
+            }
+          );
+        }
+
+        if (user.subscription.active) {
+          return ctx.editMessageText(
+            `⭐ *Already Subscribed*\n\n` +
+            `You already have an active subscription.\n` +
+            `Wait for it to expire before renewing.`,
+            { 
+              parse_mode: "Markdown",
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: '🔙 Back to Menu', callback_data: 'back_menu' }]
+                ]
+              }
+            }
+          );
+        }
+
+        // Activate subscription
+        user.balance -= 200;
+        user.subscription.active = true;
+        user.subscription.startDate = new Date();
+        user.subscription.endDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+        user.subscription.domainsUsed = 0;
+        
+        updateUserBalance(ctx.from.id, user.balance);
+        saveUserData(ctx.from.id, user);
+
+        // Notify admin
+        if (process.env.ADMIN_ID && bot) {
+          try {
+            await bot.telegram.sendMessage(
+              process.env.ADMIN_ID,
+              `⭐ *New Monthly Subscription*\n\n` +
+              `👤 User: @${ctx.from.username || 'Unknown'} (${ctx.from.id})\n` +
+              `👤 Name: ${ctx.from.first_name || 'Unknown'}\n` +
+              `💰 Amount: $200\n` +
+              `📅 Start: ${user.subscription.startDate.toDateString()}\n` +
+              `📅 End: ${user.subscription.endDate.toDateString()}\n` +
+              `💳 New Balance: $${user.balance.toFixed(2)}`,
+              { parse_mode: "Markdown" }
+            );
+          } catch (error) {
+            console.log("Failed to notify admin of subscription");
+          }
+        }
+
+        return ctx.editMessageText(
+          `🎉 *Subscription Activated!*\n\n` +
+          `⭐ *Monthly Plan Active*\n` +
+          `🎯 *Domains Available:* 60\n` +
+          `📅 *Valid Until:* ${user.subscription.endDate.toDateString()}\n` +
+          `💳 *Remaining Balance:* $${user.balance.toFixed(2)}\n\n` +
+          `✅ You can now create up to 60 domains this month!\n` +
+          `💰 You saved $4,600 compared to pay-per-domain!`,
+          { 
+            parse_mode: "Markdown",
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: '🎯 Create First Domain', callback_data: 'redirect' }],
+                [{ text: '🔙 Back to Menu', callback_data: 'back_menu' }]
+              ]
+            }
+          }
+        );
+      }
+
+      // Handle pay-per-use redirect when subscription is exhausted
+      if (callbackData === 'redirect_payperuse') {
+        const user = getUserData(ctx.from.id);
+        if (user.balance < 80) {
+          return ctx.editMessageText(
+            `💰 *Insufficient Balance*\n\n` +
+            `Required: $80\n` +
+            `Current Balance: $${user.balance.toFixed(2)}`,
+            { 
+              parse_mode: "Markdown",
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: '💳 Add Funds', callback_data: 'topup' }],
+                  [{ text: '🔙 Back to Menu', callback_data: 'back_menu' }]
+                ]
+              }
+            }
+          );
+        }
+
+        session.awaiting_domain = true;
+        session.force_payment = true; // Force payment even if subscription exists
+
+        return ctx.editMessageText(
+          "🎯 *CLS Redirect Creator - Pay Per Use*\n\n" +
+            "✨ *Format:* `domain.com target-url`\n" +
+            "📝 *Example:* `mysite.com https://facebook.com`\n\n" +
+            `💰 *Service Cost:* $80`,
+          { parse_mode: "Markdown" }
+        );
+      }
+
       // Handle back to menu
       if (callbackData === 'back_menu') {
         // Clear any pending sessions
@@ -1874,11 +2138,12 @@ bot.on('callback_query', async (ctx) => {
                   { text: '🎯 Create Redirect', callback_data: 'redirect' }
                 ],
                 [
-                  { text: '👤 Profile', callback_data: 'profile' },
-                  { text: '📋 History', callback_data: 'history' }
+                  { text: '⭐ Monthly Subscription', callback_data: 'subscription' },
+                  { text: '👤 Profile', callback_data: 'profile' }
                 ],
                 [
-                  { text: '🔑 Admin Access', callback_data: 'admin_access' }
+                  { text: '📊 My Redirects', callback_data: 'history' },
+                  { text: '🔑 VIP Access Request', callback_data: 'admin_access' }
                 ]
               ]
             }
