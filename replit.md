@@ -128,6 +128,7 @@ The application follows a monolithic Node.js architecture with the following key
 - Message optimization: Made all bot responses much shorter and more direct (June 28, 2025)
 - Admin fix: Fixed admin redirect creation by properly loading environment variables (June 28, 2025)
 - UI update: Changed subscription display to "⭐ ⭐ Monthly Plan - $250, Renewal - $200" (June 28, 2025)
+- Domain Tester integration: Added "Domain Tester 🚥" button connecting to @clstes_bot for domain testing functionality (July 2, 2025)
 
 ## Changelog
 

@@ -799,6 +799,9 @@ if (bot) {
             ],
             [
               { text: '📊 My Redirects', callback_data: 'history' },
+              { text: 'Domain Tester 🚥', callback_data: 'domain_tester' }
+            ],
+            [
               { text: '🔑 VIP Access Request', callback_data: 'admin_access' }
             ]
           ]
@@ -1627,6 +1630,24 @@ bot.on('callback_query', async (ctx) => {
             parse_mode: "Markdown",
             reply_markup: {
               inline_keyboard: [
+                [{ text: '🔙 Back to Menu', callback_data: 'back_menu' }]
+              ]
+            }
+          }
+        );
+      }
+
+      // Handle domain tester
+      if (callbackData === 'domain_tester') {
+        return ctx.editMessageText(
+          `🚥 *Domain Tester*\n\n` +
+          `Test your domains with @clstes_bot\n\n` +
+          `Click the button below to open the tester bot:`,
+          { 
+            parse_mode: "Markdown",
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: '🚥 Open Domain Tester', url: 'https://t.me/clstes_bot' }],
                 [{ text: '🔙 Back to Menu', callback_data: 'back_menu' }]
               ]
             }
