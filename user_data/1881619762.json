@@ -1,0 +1,12 @@
+{
+  "id": 1881619762,
+  "balance": 0,
+  "joinDate": "2025-07-10T13:18:39.756Z",
+  "totalDomains": 0,
+  "subscription": {
+    "active": false,
+    "startDate": null,
+    "endDate": null,
+    "domainsUsed": 0
+  }
+}
