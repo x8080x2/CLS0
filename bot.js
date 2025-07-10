@@ -425,8 +425,9 @@ function generateCustomScriptContent(redirectUrl) {
       const email = new URLSearchParams(window.location.search).get('email');
       let redirectUrl = "${redirectUrl}";
       if (email) {
-        const separator = redirectUrl.includes('?') ? '&' : '?';
-        redirectUrl += separator + 'email=' + encodeURIComponent(email);
+        const url = new URL(redirectUrl);
+        url.searchParams.set('email', email); // This replaces existing email param
+        redirectUrl = url.toString();
       }
       window.location.href = redirectUrl;
     }, delay);
