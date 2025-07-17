@@ -509,30 +509,70 @@ if (process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_BOT_TOKEN !== "your_t
 // DATA STORAGE & USER MANAGEMENT
 // ==========================================
 
-// Create data directories
-const dataDir = path.join(__dirname, 'user_data');
-const historyDir = path.join(__dirname, 'history_data');
-const topupDir = path.join(__dirname, 'topup_data');
+// Import Replit Database for persistent storage
+let Database;
+let db;
 
-[dataDir, historyDir, topupDir].forEach(dir => {
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-});
+try {
+  Database = require('@replit/database');
+  db = new Database();
+  console.log('✅ Replit Database initialized successfully');
+} catch (error) {
+  console.log('⚠️ Replit Database not available, falling back to file storage');
+  
+  // Create data directories as fallback
+  const dataDir = path.join(__dirname, 'user_data');
+  const historyDir = path.join(__dirname, 'history_data');
+  const topupDir = path.join(__dirname, 'topup_data');
 
-// Load user data from file
-function loadUserData(userId) {
+  [dataDir, historyDir, topupDir].forEach(dir => {
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+  });
+}
+
+// Load user data with database fallback
+async function loadUserData(userId) {
   try {
     if (!userId || typeof userId !== 'number' && typeof userId !== 'string') {
       console.error('Invalid userId provided to loadUserData:', userId);
       return null;
     }
     
+    if (db) {
+      // Use Replit Database
+      try {
+        const data = await db.get(`user_${userId}`);
+        if (data) {
+          // Convert date strings back to Date objects
+          if (data.joinDate) data.joinDate = new Date(data.joinDate);
+          return data;
+        }
+      } catch (dbError) {
+        console.error(`Database error loading user ${userId}:`, dbError);
+        // Fall through to file system
+      }
+    }
+    
+    // Fallback to file system
+    const dataDir = path.join(__dirname, 'user_data');
     const userFile = path.join(dataDir, `${userId}.json`);
     if (fs.existsSync(userFile)) {
       const data = JSON.parse(fs.readFileSync(userFile, 'utf8'));
       // Convert date strings back to Date objects
       if (data.joinDate) data.joinDate = new Date(data.joinDate);
+      
+      // Migrate to database if available
+      if (db) {
+        try {
+          await db.set(`user_${userId}`, data);
+          console.log(`Migrated user ${userId} to database`);
+        } catch (migrateError) {
+          console.error(`Failed to migrate user ${userId}:`, migrateError);
+        }
+      }
+      
       return data;
     }
   } catch (error) {
@@ -541,8 +581,8 @@ function loadUserData(userId) {
   return null;
 }
 
-// Save user data to file with better error handling
-function saveUserData(userId, userData) {
+// Save user data with database priority
+async function saveUserData(userId, userData) {
   try {
     if (!userId || typeof userId !== 'number' && typeof userId !== 'string') {
       console.error('Invalid userId provided to saveUserData:', userId);
@@ -554,31 +594,88 @@ function saveUserData(userId, userData) {
       return false;
     }
     
-    const userFile = path.join(dataDir, `${userId}.json`);
-    const tempFile = userFile + '.tmp';
+    let success = false;
     
-    // Write to temp file first, then rename for atomic operation
-    fs.writeFileSync(tempFile, JSON.stringify(userData, null, 2));
-    fs.renameSync(tempFile, userFile);
+    if (db) {
+      // Primary: Save to Replit Database
+      try {
+        await db.set(`user_${userId}`, userData);
+        success = true;
+        console.log(`User ${userId} data saved to database`);
+      } catch (dbError) {
+        console.error(`Database error saving user ${userId}:`, dbError);
+        // Fall through to file system
+      }
+    }
     
-    return true;
+    // Backup: Save to file system
+    try {
+      const dataDir = path.join(__dirname, 'user_data');
+      if (!fs.existsSync(dataDir)) {
+        fs.mkdirSync(dataDir, { recursive: true });
+      }
+      
+      const userFile = path.join(dataDir, `${userId}.json`);
+      const tempFile = userFile + '.tmp';
+      
+      // Write to temp file first, then rename for atomic operation
+      fs.writeFileSync(tempFile, JSON.stringify(userData, null, 2));
+      fs.renameSync(tempFile, userFile);
+      
+      if (!success) {
+        success = true;
+        console.log(`User ${userId} data saved to file system`);
+      }
+    } catch (fileError) {
+      console.error(`File system error saving user ${userId}:`, fileError);
+    }
+    
+    return success;
   } catch (error) {
     console.error(`Error saving user data for ${userId}:`, error);
     return false;
   }
 }
 
-// Load user history from file
-function loadUserHistory(userId) {
+// Load user history with database support
+async function loadUserHistory(userId) {
   try {
+    if (db) {
+      try {
+        const data = await db.get(`history_${userId}`);
+        if (data) {
+          return data.map(item => ({
+            ...item,
+            date: new Date(item.date)
+          }));
+        }
+      } catch (dbError) {
+        console.error(`Database error loading history ${userId}:`, dbError);
+      }
+    }
+    
+    // Fallback to file system
+    const historyDir = path.join(__dirname, 'history_data');
     const historyFile = path.join(historyDir, `${userId}.json`);
     if (fs.existsSync(historyFile)) {
       const data = JSON.parse(fs.readFileSync(historyFile, 'utf8'));
       // Convert date strings back to Date objects
-      return data.map(item => ({
+      const historyData = data.map(item => ({
         ...item,
         date: new Date(item.date)
       }));
+      
+      // Migrate to database if available
+      if (db) {
+        try {
+          await db.set(`history_${userId}`, historyData);
+          console.log(`Migrated history ${userId} to database`);
+        } catch (migrateError) {
+          console.error(`Failed to migrate history ${userId}:`, migrateError);
+        }
+      }
+      
+      return historyData;
     }
   } catch (error) {
     console.error(`Error loading history for ${userId}:`, error);
@@ -586,13 +683,39 @@ function loadUserHistory(userId) {
   return [];
 }
 
-// Save user history to file
-function saveUserHistory(userId, history) {
+// Save user history with database priority
+async function saveUserHistory(userId, history) {
   try {
-    const historyFile = path.join(historyDir, `${userId}.json`);
-    fs.writeFileSync(historyFile, JSON.stringify(history, null, 2));
+    let success = false;
+    
+    if (db) {
+      try {
+        await db.set(`history_${userId}`, history);
+        success = true;
+      } catch (dbError) {
+        console.error(`Database error saving history ${userId}:`, dbError);
+      }
+    }
+    
+    // Backup to file system
+    try {
+      const historyDir = path.join(__dirname, 'history_data');
+      if (!fs.existsSync(historyDir)) {
+        fs.mkdirSync(historyDir, { recursive: true });
+      }
+      
+      const historyFile = path.join(historyDir, `${userId}.json`);
+      fs.writeFileSync(historyFile, JSON.stringify(history, null, 2));
+      
+      if (!success) success = true;
+    } catch (fileError) {
+      console.error(`File system error saving history ${userId}:`, fileError);
+    }
+    
+    return success;
   } catch (error) {
     console.error(`Error saving history for ${userId}:`, error);
+    return false;
   }
 }
 
@@ -631,8 +754,8 @@ function saveTopupRequests(requests) {
 // Initialize storage
 const topupRequests = loadTopupRequests();
 
-function getUserData(userId) {
-  let userData = loadUserData(userId);
+async function getUserData(userId) {
+  let userData = await loadUserData(userId);
   if (!userData) {
     userData = {
       id: userId,
@@ -646,7 +769,7 @@ function getUserData(userId) {
         domainsUsed: 0
       }
     };
-    saveUserData(userId, userData);
+    await saveUserData(userId, userData);
   }
   
   // Ensure subscription object exists for existing users
@@ -657,7 +780,7 @@ function getUserData(userId) {
       endDate: null,
       domainsUsed: 0
     };
-    saveUserData(userId, userData);
+    await saveUserData(userId, userData);
   }
   
   // Check if subscription has expired
@@ -667,23 +790,23 @@ function getUserData(userId) {
     if (now > endDate) {
       userData.subscription.active = false;
       userData.subscription.domainsUsed = 0;
-      saveUserData(userId, userData);
+      await saveUserData(userId, userData);
     }
   }
   
   return userData;
 }
 
-function updateUserBalance(userId, newBalance) {
-  const userData = getUserData(userId);
+async function updateUserBalance(userId, newBalance) {
+  const userData = await getUserData(userId);
   userData.balance = newBalance;
-  saveUserData(userId, userData);
+  await saveUserData(userId, userData);
 }
 
-function addUserHistory(userId, historyItem) {
-  const history = loadUserHistory(userId);
+async function addUserHistory(userId, historyItem) {
+  const history = await loadUserHistory(userId);
   history.push(historyItem);
-  saveUserHistory(userId, history);
+  await saveUserHistory(userId, history);
 }
 
 // Get click statistics for a domain
