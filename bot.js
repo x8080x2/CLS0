@@ -523,9 +523,8 @@ try {
   // Create data directories as fallback
   const dataDir = path.join(__dirname, 'user_data');
   const historyDir = path.join(__dirname, 'history_data');
-  const topupDir = path.join(__dirname, 'topup_data');
 
-  [dataDir, historyDir, topupDir].forEach(dir => {
+  [dataDir, historyDir].forEach(dir => {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
@@ -722,6 +721,7 @@ async function saveUserHistory(userId, history) {
 // Load topup requests from file
 function loadTopupRequests() {
   try {
+    const topupDir = path.join(__dirname, 'topup_data');
     const topupFile = path.join(topupDir, 'requests.json');
     if (fs.existsSync(topupFile)) {
       const data = JSON.parse(fs.readFileSync(topupFile, 'utf8'));
@@ -743,6 +743,7 @@ function loadTopupRequests() {
 // Save topup requests to file
 function saveTopupRequests(requests) {
   try {
+    const topupDir = path.join(__dirname, 'topup_data');
     const topupFile = path.join(topupDir, 'requests.json');
     const data = Object.fromEntries(requests);
     fs.writeFileSync(topupFile, JSON.stringify(data, null, 2));
