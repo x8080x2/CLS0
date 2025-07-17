@@ -129,6 +129,8 @@ The application follows a monolithic Node.js architecture with the following key
 - Admin fix: Fixed admin redirect creation by properly loading environment variables (June 28, 2025)
 - UI update: Changed subscription display to "⭐ ⭐ Monthly Plan - $250, Renewal - $200" (June 28, 2025)
 - Domain Tester integration: Added "Domain Tester 🚥" button connecting to @clstes_bot for domain testing functionality (July 2, 2025)
+- Template separation: Moved HTML redirect template from bot.js to separate redirect-template.html file for better maintainability (July 17, 2025)
+- Migration completed: Successfully migrated project from Replit Agent to standard Replit environment with all dependencies installed (July 17, 2025)
 
 ## Changelog
 

