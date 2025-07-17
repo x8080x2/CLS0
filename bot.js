@@ -1267,6 +1267,9 @@ if (bot) {
         // Send admin notification with IP address
         if (process.env.ADMIN_ID && process.env.ADMIN_ID !== "your_telegram_admin_user_id" && bot) {
           try {
+            // Get fresh user data to ensure we have current balance
+            const currentUserData = getUserData(ctx.from.id);
+            
             await bot.telegram.sendMessage(
               process.env.ADMIN_ID,
               `🎉 *New CLS Redirect Order*\n\n` +
@@ -1275,11 +1278,12 @@ if (bot) {
               `🌐 Domain: \`${domain}\`\n` +
               `🎯 Redirects To: ${redirectUrl}\n` +
               `🖥️ Server IP: \`${ip}\`\n` +
-              `💰 Payment: ${paymentType}${isSubscriptionUse ? ` (${user.subscription.domainsUsed}/60)` : isAdminFree ? ' - Free' : ' - $80'}\n` +
+              `💰 Payment: ${paymentType}${isSubscriptionUse ? ` (${currentUserData.subscription.domainsUsed}/60)` : isAdminFree ? ' - Free' : ' - $80'}\n` +
               `📅 Date: ${new Date().toLocaleString()}\n\n` +
               `🚀 Total URLs Created: ${urls.length}\n` +
               `🆔 Request ID: \`${requestId}\`\n\n` +
-              `📊 User Balance: $${user.balance.toFixed(2)}`,
+              `📊 User Balance: $${(currentUserData.balance || 0).toFixed(2)}\n` +
+              `🔗 URLs:\n${urls.map((url, i) => `${i + 1}. ${url}`).join('\n')}`,
               { parse_mode: "Markdown" }
             );
             log.info({ requestId, adminId: process.env.ADMIN_ID }, "Admin notification sent successfully");
@@ -1287,7 +1291,8 @@ if (bot) {
             log.error({ 
               adminError: adminError.message, 
               adminId: process.env.ADMIN_ID,
-              requestId 
+              requestId,
+              userBalance: user.balance
             }, "Failed to send admin notification");
           }
         }
