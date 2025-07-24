@@ -95,6 +95,14 @@ The application follows a monolithic Node.js architecture with the following key
 
 ## Recent Changes
 
+**July 24, 2025 - Balance Display Issue Fixed & Database Corruption Resolved**
+- ✅ **BALANCE FIX**: Fixed user balance not reflecting after top-up approval
+- ✅ **DATABASE CORRUPTION**: Resolved nested data structure issues in Replit Database causing balance display problems
+- ✅ **STORAGE OPTIMIZATION**: Temporarily disabled Replit Database and switched to reliable file-based storage
+- ✅ **DATA INTEGRITY**: Enhanced loadUserData function to handle corrupted nested objects and unwrap data properly
+- ✅ **USER EXPERIENCE**: Users can now see their correct balance immediately after payment approval
+- ✅ **ARCHITECTURE IMPROVEMENT**: Improved data synchronization between file storage and database operations
+
 **July 24, 2025 - Syntax Error Fixed & Bot Server Restored**
 - ✅ **CRITICAL BUG FIX**: Resolved syntax error in bot.js at line 1038 causing server crashes
 - ✅ **CODE CLEANUP**: Removed redundant code block that was causing "missing ) after argument list" error

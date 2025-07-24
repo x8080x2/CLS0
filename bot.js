@@ -587,23 +587,27 @@ if (process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_BOT_TOKEN !== "your_t
 let Database;
 let db;
 
+// Temporarily disable Replit Database due to data corruption issues
+// Force use of file-based storage for better reliability
 try {
-  Database = require('@replit/database');
-  db = new Database();
-  console.log('✅ Replit Database initialized successfully');
+  // Database = require('@replit/database');
+  // db = new Database();
+  console.log('⚠️ Replit Database temporarily disabled - using file storage for stability');
+  db = null; // Force file-based storage
 } catch (error) {
-  console.log('⚠️ Replit Database not available, falling back to file storage');
-
-  // Create data directories as fallback
-  const dataDir = path.join(__dirname, 'user_data');
-  const historyDir = path.join(__dirname, 'history_data');
-
-  [dataDir, historyDir].forEach(dir => {
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-  });
+  console.log('⚠️ Replit Database not available, using file storage');
+  db = null;
 }
+
+// Create data directories
+const dataDir = path.join(__dirname, 'user_data');
+const historyDir = path.join(__dirname, 'history_data');
+
+[dataDir, historyDir].forEach(dir => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+});
 
 // Load user data with database fallback
 async function loadUserData(userId) {
@@ -616,11 +620,33 @@ async function loadUserData(userId) {
     if (db) {
       // Use Replit Database
       try {
-        const data = await db.get(`user_${userId}`);
-        if (data) {
-          // Convert date strings back to Date objects
-          if (data.joinDate) data.joinDate = new Date(data.joinDate);
-          return data;
+        const rawData = await db.get(`user_${userId}`);
+        if (rawData) {
+          // Handle nested database objects from Replit DB corruption
+          let data = rawData;
+          
+          // If data is wrapped in nested 'value' or 'ok' objects, unwrap it
+          while (data && typeof data === 'object' && (data.value || data.ok)) {
+            if (data.value && typeof data.value === 'object') {
+              data = data.value;
+            } else if (data.ok && typeof data.ok === 'object') {
+              data = data.ok;
+            } else {
+              break;
+            }
+          }
+          
+          // Ensure we have a valid user data object
+          if (data && data.id && typeof data.balance === 'number') {
+            // Convert date strings back to Date objects
+            if (data.joinDate) data.joinDate = new Date(data.joinDate);
+            
+            // Clean the database by saving the unwrapped data
+            await db.set(`user_${userId}`, data);
+            console.log(`Cleaned and fixed database entry for user ${userId}`);
+            
+            return data;
+          }
         }
       } catch (dbError) {
         console.error(`Database error loading user ${userId}:`, dbError);
