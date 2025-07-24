@@ -1,8 +1,9 @@
 {
-  "id": 1645281955,
-  "balance": 0,
-  "joinDate": "2025-06-28T07:33:52.742Z",
-  "totalDomains": 5,
+  "ok": false,
+  "error": {
+    "message": "",
+    "statusCode": 404
+  },
   "subscription": {
     "active": false,
     "startDate": null,

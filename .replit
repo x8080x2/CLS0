@@ -1,7 +1,8 @@
 modules = ["nodejs-20", "web"]
+run = "node index.js"
 
 [nix]
-channel = "stable-24_05"
+channel = "stable-25_05"
 
 [workflows]
 runButton = "Project"
@@ -25,8 +26,11 @@ args = "node bot.js"
 waitForPort = 5000
 
 [deployment]
-run = ["sh", "-c", "node bot.js"]
+run = ["sh", "-c", "node index.js"]
 
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[agent]
+expertMode = true
