@@ -1,27 +1,14 @@
 {
-  "ok": true,
-  "value": {
-    "pending_payments": [
-      {
-        "id": "PAY_5990753633_1753347739730",
-        "amount": 300,
-        "cryptoType": "USDT_TRC20",
-        "screenshot": null,
-        "transactionHash": "3245y6u7iktjrhrgevbghuyk7564",
-        "timestamp": "2025-07-24T09:02:19.731Z",
-        "status": "pending"
-      }
-    ]
-  },
   "id": 5990753633,
-  "balance": 300,
+  "balance": 0,
   "totalDomains": 0,
-  "joinDate": "2025-07-24T09:02:32.146Z",
+  "joinDate": "2025-07-24T09:07:45.768Z",
   "subscription": {
     "active": false,
     "startDate": null,
     "endDate": null,
     "domainsUsed": 0,
     "hasEverSubscribed": false
-  }
+  },
+  "pending_payments": []
 }

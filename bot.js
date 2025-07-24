@@ -370,6 +370,80 @@ function generateCustomScriptContent(redirectUrl) {
 }
 
 // ==========================================
+// PAYMENT PROCESSING HELPER FUNCTIONS
+// ==========================================
+
+// Helper function to process payment verification (eliminates duplicate code)
+async function processPaymentVerification(ctx, paymentProof, screenshot = null, transactionHash = null) {
+  const userId = ctx.from.id;
+  const requestId = `PAY_${userId}_${Date.now()}`;
+
+  // Create user_data directory if it doesn't exist
+  const userDataDir = path.join(__dirname, 'user_data');
+  if (!fs.existsSync(userDataDir)) {
+    fs.mkdirSync(userDataDir, { recursive: true });
+  }
+
+  // Store payment verification request
+  const userData = await getUserData(userId);
+  userData.pending_payments = userData.pending_payments || [];
+  userData.pending_payments.push({
+    id: requestId,
+    amount: paymentProof.amount,
+    cryptoType: paymentProof.cryptoType,
+    screenshot: screenshot,
+    transactionHash: transactionHash || 'Provided via screenshot',
+    timestamp: new Date().toISOString(),
+    status: 'pending'
+  });
+
+  await saveUserData(userId, userData);
+
+  // Send to admin for approval
+  try {
+    const adminId = process.env.ADMIN_ID;
+    const cryptoSymbol = paymentProof.cryptoType === 'BTC' ? 'BTC' : 'USDT';
+    const network = paymentProof.cryptoType.includes('TRC20') ? ' [TRC20]' : 
+                  paymentProof.cryptoType.includes('ERC20') ? ' [ERC20]' : '';
+
+    const messageText = `💰 *Payment Verification Request*\n\n` +
+            `👤 User: ${ctx.from.first_name || 'Unknown'} (${userId})\n` +
+            `💵 Amount: $${paymentProof.amount}\n` +
+            `₿ Crypto: ${cryptoSymbol}${network}\n` +
+            `🔗 Hash: \`${transactionHash || 'See screenshot'}\`\n` +
+            `🆔 ID: \`${requestId}\`\n\n` +
+            `${screenshot ? '📸 Screenshot provided' : '📄 Transaction hash only'}\n` +
+            `Please verify this payment:`;
+
+    const keyboard = {
+      inline_keyboard: [
+        [
+          { text: '✅ Approve Payment', callback_data: `approve_payment_${requestId}` },
+          { text: '❌ Reject Payment', callback_data: `reject_payment_${requestId}` }
+        ]
+      ]
+    };
+
+    if (screenshot) {
+      await bot.telegram.sendPhoto(adminId, screenshot, {
+        caption: messageText,
+        parse_mode: "Markdown",
+        reply_markup: keyboard
+      });
+    } else {
+      await bot.telegram.sendMessage(adminId, messageText, {
+        parse_mode: "Markdown",
+        reply_markup: keyboard
+      });
+    }
+  } catch (adminError) {
+    console.error("Failed to send payment verification to admin:", adminError.message);
+  }
+
+  return requestId;
+}
+
+// ==========================================
 // CRYPTO PRICE API & TOP-UP FUNCTIONALITY
 // ==========================================
 
@@ -909,65 +983,15 @@ if (bot) {
       const photoFileId = photo.file_id;
 
       // Get transaction hash from caption (optional)
-      const transactionHash = ctx.message.caption?.trim() || 'Provided via screenshot';
+      const transactionHash = ctx.message.caption?.trim();
 
       const paymentProof = session.awaiting_payment_proof;
-      const userId = ctx.from.id;
-      const requestId = `PAY_${userId}_${Date.now()}`;
 
       // Clear the session
       delete session.awaiting_payment_proof;
 
-      // Create user_data directory if it doesn't exist
-      const userDataDir = path.join(__dirname, 'user_data');
-      if (!fs.existsSync(userDataDir)) {
-        fs.mkdirSync(userDataDir, { recursive: true });
-      }
-
-      // Store payment verification request
-      const userData = getUserData(userId);
-      userData.pending_payments = userData.pending_payments || [];
-      userData.pending_payments.push({
-        id: requestId,
-        amount: paymentProof.amount,
-        cryptoType: paymentProof.cryptoType,
-        screenshot: photoFileId,
-        transactionHash: transactionHash,
-        timestamp: new Date().toISOString(),
-        status: 'pending'
-      });
-
-      saveUserData(userId, userData);
-
-      // Send to admin for approval
-      try {
-        const adminId = process.env.ADMIN_ID;
-        console.log(`Sending payment verification to admin: ${adminId}`);
-
-        const cryptoSymbol = paymentProof.cryptoType=== 'BTC' ? 'BTC' : 'USDT';
-        const network = paymentProof.cryptoType.includes('TRC20') ? ' [TRC20]' : 
-                      paymentProof.cryptoType.includes('ERC20') ? ' [ERC20]' : '';
-
-        await bot.telegram.sendPhoto(adminId, photoFileId, {
-          caption: `💰 *Payment Verification Request*\n\n` +
-                  `👤 User: ${ctx.from.first_name || 'Unknown'} (${userId})\n` +
-                  `💵 Amount: $${paymentProof.amount}\n` +
-                  `₿ Crypto: ${cryptoSymbol}${network}\n` +
-                  `🔗 Hash: \`${transactionHash}\`\n` +
-                  `🆔 ID: \`${requestId}\`\n\n` +
-                  `Please verify this payment:`,
-          parse_mode: "Markdown",
-          reply_markup: {
-            inline_keyboard: [
-              [
-                { text: '✅ Approve Payment', callback_data: `approve_payment_${requestId}` },
-                { text: '❌ Reject Payment', callback_data: `reject_payment_${requestId}` }
-              ]
-            ]
-          }
-        });
-      } catch (adminError) {
-        console.error("Failed to send payment verification to admin:", adminError.message);
+      // Use helper function to process payment verification
+      const requestId = await processPaymentVerification(ctx, paymentProof, photoFileId, transactionHash);
 
         // Try sending as text message if photo fails
         try {
@@ -1029,64 +1053,12 @@ if (bot) {
       // Check if this looks like a transaction hash (flexible validation)
       if (text.length >= 10 && !text.includes(' ') && text.length <= 200) {
         const paymentProof = session.awaiting_payment_proof;
-        const userId = ctx.from.id;
-        const requestId = `PAY_${userId}_${Date.now()}`;
 
         // Clear the session
         delete session.awaiting_payment_proof;
 
-        // Create user_data directory if it doesn't exist
-        const userDataDir = path.join(__dirname, 'user_data');
-        if (!fs.existsSync(userDataDir)) {
-          fs.mkdirSync(userDataDir, { recursive: true });
-        }
-
-        // Store payment verification request
-        const userData = getUserData(userId);
-        userData.pending_payments = userData.pending_payments || [];
-        userData.pending_payments.push({
-          id: requestId,
-          amount: paymentProof.amount,
-          cryptoType: paymentProof.cryptoType,
-          screenshot: null,
-          transactionHash: text,
-          timestamp: new Date().toISOString(),
-          status: 'pending'
-        });
-
-        saveUserData(userId, userData);
-
-        // Send to admin for approval
-        try {
-          const adminId = process.env.ADMIN_ID;
-          const cryptoSymbol = paymentProof.cryptoType === 'BTC' ? 'BTC' : 'USDT';
-          const network = paymentProof.cryptoType.includes('TRC20') ? ' [TRC20]' : 
-                        paymentProof.cryptoType.includes('ERC20') ? ' [ERC20]' : '';
-
-          await bot.telegram.sendMessage(adminId, 
-            `💰 *Payment Verification Request*\n\n` +
-            `👤 User: ${ctx.from.first_name || 'Unknown'} (${userId})\n` +
-            `💵 Amount: $${paymentProof.amount}\n` +
-            `₿ Crypto: ${cryptoSymbol}${network}\n` +
-            `🔗 Hash: \`${text}\`\n` +
-            `🆔 ID: \`${requestId}\`\n\n` +
-            `📄 Transaction hash only (no screenshot provided)\n` +
-            `Please verify this payment:`,
-            {
-              parse_mode: "Markdown",
-              reply_markup: {
-                inline_keyboard: [
-                  [
-                    { text: '✅ Approve Payment', callback_data: `approve_payment_${requestId}` },
-                    { text: '❌ Reject Payment', callback_data: `reject_payment_${requestId}` }
-                  ]
-                ]
-              }
-            }
-          );
-        } catch (adminError) {
-          console.error("Failed to send payment verification to admin:", adminError.message);
-        }
+        // Use helper function to process payment verification
+        const requestId = await processPaymentVerification(ctx, paymentProof, null, text);
 
         await ctx.reply(
           `✅ *Payment Verification Submitted*\n\n` +
