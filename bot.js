@@ -740,29 +740,42 @@ async function getUserData(userId) {
         active: false,
         startDate: null,
         endDate: null,
-        domainsUsed: 0
+        domainsUsed: 0,
+        hasEverSubscribed: false
       }
     };
     await saveUserData(userId, userData);
   }
 
-  // Ensure all required properties exist with defaults
-  userData.balance = typeof userData.balance === 'number' ? userData.balance : 0;
-  userData.totalDomains = typeof userData.totalDomains === 'number' ? userData.totalDomains : 0;
+  // Ensure all required properties exist with proper defaults
+  userData.id = userData.id || userId;
+  userData.balance = (typeof userData.balance === 'number' && !isNaN(userData.balance)) ? userData.balance : 0;
+  userData.totalDomains = (typeof userData.totalDomains === 'number' && !isNaN(userData.totalDomains)) ? userData.totalDomains : 0;
+  userData.joinDate = userData.joinDate ? new Date(userData.joinDate) : new Date();
   
+  // Ensure subscription object exists and has all required properties
   if (!userData.subscription || typeof userData.subscription !== 'object') {
     userData.subscription = {
       active: false,
       startDate: null,
       endDate: null,
-      domainsUsed: 0
+      domainsUsed: 0,
+      hasEverSubscribed: false
     };
-    await saveUserData(userId, userData);
+  } else {
+    // Validate and fix subscription properties
+    userData.subscription.active = typeof userData.subscription.active === 'boolean' ? userData.subscription.active : false;
+    userData.subscription.domainsUsed = (typeof userData.subscription.domainsUsed === 'number' && !isNaN(userData.subscription.domainsUsed)) ? userData.subscription.domainsUsed : 0;
+    userData.subscription.hasEverSubscribed = typeof userData.subscription.hasEverSubscribed === 'boolean' ? userData.subscription.hasEverSubscribed : false;
+    
+    // Validate dates
+    if (userData.subscription.startDate && typeof userData.subscription.startDate === 'string') {
+      userData.subscription.startDate = new Date(userData.subscription.startDate);
+    }
+    if (userData.subscription.endDate && typeof userData.subscription.endDate === 'string') {
+      userData.subscription.endDate = new Date(userData.subscription.endDate);
+    }
   }
-
-  // Ensure subscription properties exist
-  userData.subscription.active = typeof userData.subscription.active === 'boolean' ? userData.subscription.active : false;
-  userData.subscription.domainsUsed = typeof userData.subscription.domainsUsed === 'number' ? userData.subscription.domainsUsed : 0;
 
   // Check if subscription has expired
   if (userData.subscription.active && userData.subscription.endDate) {
@@ -810,9 +823,9 @@ function getDomainClicks(domain) {
 
 if (bot) {
   // Start command with main menu
-  bot.start((ctx) => {
+  bot.start(async (ctx) => {
     const session = getSession(ctx);
-    const user = getUserData(ctx.from.id);
+    const user = await getUserData(ctx.from.id);
 
     const log = L("start-command");
     log.info(
@@ -1180,7 +1193,7 @@ if (bot) {
       const log = L(requestId);
 
       // Check for admin free access or balance requirement
-      const user = getUserData(ctx.from.id);
+      const user = await getUserData(ctx.from.id);
       const cost = 80;
       let isAdminFree = false;
       let isSubscriptionUse = false;
@@ -1463,6 +1476,7 @@ bot.on('callback_query', async (ctx) => {
     try {
       // Handle main menu actions
       if (callbackData === 'topup') {
+        const user = await getUserData(ctx.from.id);
         session.awaiting_amount = true;
         return ctx.editMessageText(
           `💎 *Balance*: $${user.balance.toFixed(2)}\n\nEnter USD amount:`,
@@ -1471,7 +1485,7 @@ bot.on('callback_query', async (ctx) => {
       }
 
       if (callbackData === 'subscription') {
-        const user = getUserData(ctx.from.id);
+        const user = await getUserData(ctx.from.id);
 
         if (user.subscription.active) {
           const endDate = new Date(user.subscription.endDate);
@@ -1516,7 +1530,7 @@ bot.on('callback_query', async (ctx) => {
       }
 
       if (callbackData === 'redirect') {
-        const user = getUserData(ctx.from.id);
+        const user = await getUserData(ctx.from.id);
         const requiredAmount = 80;
 
         // Check if user has admin free access or is admin
@@ -1591,13 +1605,16 @@ bot.on('callback_query', async (ctx) => {
       }
 
       if (callbackData === 'profile') {
-        const user = getUserData(ctx.from.id);
-        const userHistory = loadUserHistory(ctx.from.id);
+        const user = await getUserData(ctx.from.id);
+        const userHistory = await loadUserHistory(ctx.from.id);
 
         // Calculate total clicks across all user domains
-        const totalClicks = userHistory.reduce((total, domain) => {
-          return total + getDomainClicks(domain.domain);
-        }, 0);
+        let totalClicks = 0;
+        if (Array.isArray(userHistory)) {
+          totalClicks = userHistory.reduce((total, domain) => {
+            return total + getDomainClicks(domain.domain);
+          }, 0);
+        }
 
         let subscriptionStatus = '';
         if (user.subscription.active) {
@@ -1635,9 +1652,9 @@ bot.on('callback_query', async (ctx) => {
       }
 
       if (callbackData === 'history') {
-        const userHistory = loadUserHistory(ctx.from.id);
+        const userHistory = await loadUserHistory(ctx.from.id);
 
-        if (userHistory.length === 0) {
+        if (!Array.isArray(userHistory) || userHistory.length === 0) {
           return ctx.editMessageText(
             `📊 *CLS Redirect History*\n\n` +
             `🎯 No redirects created yet.\n` +
@@ -2035,7 +2052,7 @@ bot.on('callback_query', async (ctx) => {
 
       // Handle subscription purchase
       if (callbackData === 'subscribe_monthly') {
-        const user = getUserData(ctx.from.id);
+        const user = await getUserData(ctx.from.id);
 
         // Determine pricing based on first-time status
         const isFirstTime = !user.subscription.hasEverSubscribed;
@@ -2125,7 +2142,7 @@ bot.on('callback_query', async (ctx) => {
 
       // Handle pay-per-use redirect when subscription is exhausted
       if (callbackData === 'redirect_payperuse') {
-        const user = getUserData(ctx.from.id);
+        const user = await getUserData(ctx.from.id);
         if (user.balance < 80) {
           return ctx.editMessageText(
             `💰 *Insufficient Balance*\n\n` +
