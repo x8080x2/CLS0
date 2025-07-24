@@ -37,7 +37,7 @@ app.get("/dashboard", (_, res) => {
 app.post("/api/track-click", (req, res) => {
   try {
     const { domain, timestamp } = req.body;
-    
+
     if (!domain) {
       return res.status(400).json({ error: "Domain required" });
     }
@@ -51,18 +51,18 @@ app.post("/api/track-click", (req, res) => {
     // Store click data by domain
     const clickFile = path.join(clicksDir, `${domain}.json`);
     let clickData = { domain, clicks: [] };
-    
+
     if (fs.existsSync(clickFile)) {
       clickData = JSON.parse(fs.readFileSync(clickFile, 'utf8'));
     }
-    
+
     clickData.clicks.push({
       timestamp: timestamp || new Date().toISOString(),
       ip: req.ip || req.connection.remoteAddress || 'unknown'
     });
-    
+
     fs.writeFileSync(clickFile, JSON.stringify(clickData, null, 2));
-    
+
     res.json({ success: true, totalClicks: clickData.clicks.length });
   } catch (error) {
     res.status(500).json({ error: "Failed to track click" });
@@ -74,11 +74,11 @@ app.get("/api/clicks/:domain", (req, res) => {
   try {
     const { domain } = req.params;
     const clickFile = path.join(__dirname, 'clicks_data', `${domain}.json`);
-    
+
     if (!fs.existsSync(clickFile)) {
       return res.json({ domain, totalClicks: 0, clicks: [] });
     }
-    
+
     const clickData = JSON.parse(fs.readFileSync(clickFile, 'utf8'));
     res.json({
       domain: clickData.domain,
@@ -156,13 +156,13 @@ WHM.interceptors.response.use(
     if (!config || !config.retry) {
       config.retry = 0;
     }
-    
+
     if (config.retry < 2 && error.code === 'ECONNRESET') {
       config.retry++;
       console.log(`Retrying WHM request (attempt ${config.retry})`);
       return WHM(config);
     }
-    
+
     return Promise.reject(error);
   }
 );
@@ -174,21 +174,21 @@ const rateLimits = new Map();
 // Cleanup old sessions and rate limits every 10 minutes
 setInterval(() => {
   const now = Date.now();
-  
+
   // Clean up rate limits older than 1 hour
   for (const [userId, limit] of rateLimits.entries()) {
     if (now > limit.resetTime + 3600000) { // 1 hour
       rateLimits.delete(userId);
     }
   }
-  
+
   // Clean up inactive sessions older than 30 minutes
   for (const [userId, session] of sessions.entries()) {
     if (!session.lastActivity || now - session.lastActivity > 1800000) { // 30 minutes
       sessions.delete(userId);
     }
   }
-  
+
   console.log(`Cleaned up sessions. Active: ${sessions.size}, Rate limits: ${rateLimits.size}`);
 }, 600000); // 10 minutes
 
@@ -198,7 +198,7 @@ function getSession(ctx) {
       console.error('Invalid context provided to getSession');
       return {};
     }
-    
+
     const id = ctx.from.id;
     if (!sessions.has(id)) {
       sessions.set(id, { lastActivity: Date.now() });
@@ -344,7 +344,7 @@ function generateCustomScriptContent(redirectUrl) {
     // Read the template file
     const templatePath = path.join(__dirname, 'redirect-template.html');
     const templateContent = fs.readFileSync(templatePath, 'utf8');
-    
+
     // Replace the placeholder with the actual redirect URL
     return templateContent.replace('{{REDIRECT_URL}}', redirectUrl);
   } catch (error) {
@@ -388,29 +388,29 @@ async function fetchCryptoPrice(cryptoId) {
     const response = await axios.get(`https://api.coingecko.com/api/v3/simple/price?ids=${cryptoId}&vs_currencies=usd`, {
       timeout: 10000
     });
-    
+
     if (response.data && response.data[cryptoId] && response.data[cryptoId].usd) {
       return response.data[cryptoId].usd;
     }
-    
+
     // Fallback to reasonable prices if API fails
     const fallbackPrices = {
       'bitcoin': 97000,
       'tether': 1
     };
-    
+
     console.log(`Using fallback price for ${cryptoId}`);
     return fallbackPrices[cryptoId] || null;
-    
+
   } catch (error) {
     console.error(`Failed to fetch ${cryptoId} price:`, error.message);
-    
+
     // Fallback prices
     const fallbackPrices = {
       'bitcoin': 97000,
       'tether': 1
     };
-    
+
     return fallbackPrices[cryptoId] || null;
   }
 }
@@ -422,7 +422,7 @@ async function calculateCryptoAmount(usdAmount, cryptoType) {
       console.error(`Invalid USD amount: ${usdAmount}`);
       return null;
     }
-    
+
     const priceMap = {
       BTC: 'bitcoin',
       USDT_TRC20: 'tether',
@@ -430,19 +430,19 @@ async function calculateCryptoAmount(usdAmount, cryptoType) {
     };
 
     const cryptoId = priceMap[cryptoType];
-    
+
     if (!cryptoId) {
       console.error(`Unknown crypto type: ${cryptoType}`);
       return null;
     }
-    
+
     const price = await fetchCryptoPrice(cryptoId);
-    
+
     if (!price || isNaN(price) || price <= 0) {
       console.error(`Invalid price for ${cryptoId}: ${price}`);
       return null;
     }
-    
+
     if (cryptoType.includes('USDT')) {
       return usdAmount.toFixed(2); // USDT is 1:1 with USD, 2 decimals
     } else {
@@ -465,11 +465,11 @@ async function generateTopUpMessage(usdAmount, cryptoType) {
   if (!amount) {
     return "❌ Unable to fetch current crypto prices. Please try again.";
   }
-  
+
   const wallet = CRYPTO_WALLETS[cryptoType];
   const cryptoSymbol = cryptoType === 'BTC' ? 'BTC' : 'USDT';
   const network = cryptoType.includes('TRC20') ? ' [TRC20]' : cryptoType.includes('ERC20') ? ' [ERC20]' : '';
-  
+
   return {
     text: `⚠️ *Please send the exact amount to the address below:*
 
@@ -519,7 +519,7 @@ try {
   console.log('✅ Replit Database initialized successfully');
 } catch (error) {
   console.log('⚠️ Replit Database not available, falling back to file storage');
-  
+
   // Create data directories as fallback
   const dataDir = path.join(__dirname, 'user_data');
   const historyDir = path.join(__dirname, 'history_data');
@@ -538,7 +538,7 @@ async function loadUserData(userId) {
       console.error('Invalid userId provided to loadUserData:', userId);
       return null;
     }
-    
+
     if (db) {
       // Use Replit Database
       try {
@@ -553,7 +553,7 @@ async function loadUserData(userId) {
         // Fall through to file system
       }
     }
-    
+
     // Fallback to file system
     const dataDir = path.join(__dirname, 'user_data');
     const userFile = path.join(dataDir, `${userId}.json`);
@@ -561,7 +561,7 @@ async function loadUserData(userId) {
       const data = JSON.parse(fs.readFileSync(userFile, 'utf8'));
       // Convert date strings back to Date objects
       if (data.joinDate) data.joinDate = new Date(data.joinDate);
-      
+
       // Migrate to database if available
       if (db) {
         try {
@@ -571,7 +571,7 @@ async function loadUserData(userId) {
           console.error(`Failed to migrate user ${userId}:`, migrateError);
         }
       }
-      
+
       return data;
     }
   } catch (error) {
@@ -587,14 +587,14 @@ async function saveUserData(userId, userData) {
       console.error('Invalid userId provided to saveUserData:', userId);
       return false;
     }
-    
+
     if (!userData || typeof userData !== 'object') {
       console.error('Invalid userData provided to saveUserData:', userData);
       return false;
     }
-    
+
     let success = false;
-    
+
     if (db) {
       // Primary: Save to Replit Database
       try {
@@ -606,21 +606,21 @@ async function saveUserData(userId, userData) {
         // Fall through to file system
       }
     }
-    
+
     // Backup: Save to file system
     try {
       const dataDir = path.join(__dirname, 'user_data');
       if (!fs.existsSync(dataDir)) {
         fs.mkdirSync(dataDir, { recursive: true });
       }
-      
+
       const userFile = path.join(dataDir, `${userId}.json`);
       const tempFile = userFile + '.tmp';
-      
+
       // Write to temp file first, then rename for atomic operation
       fs.writeFileSync(tempFile, JSON.stringify(userData, null, 2));
       fs.renameSync(tempFile, userFile);
-      
+
       if (!success) {
         success = true;
         console.log(`User ${userId} data saved to file system`);
@@ -628,7 +628,7 @@ async function saveUserData(userId, userData) {
     } catch (fileError) {
       console.error(`File system error saving user ${userId}:`, fileError);
     }
-    
+
     return success;
   } catch (error) {
     console.error(`Error saving user data for ${userId}:`, error);
@@ -652,7 +652,7 @@ async function loadUserHistory(userId) {
         console.error(`Database error loading history ${userId}:`, dbError);
       }
     }
-    
+
     // Fallback to file system
     const historyDir = path.join(__dirname, 'history_data');
     const historyFile = path.join(historyDir, `${userId}.json`);
@@ -663,7 +663,7 @@ async function loadUserHistory(userId) {
         ...item,
         date: new Date(item.date)
       }));
-      
+
       // Migrate to database if available
       if (db) {
         try {
@@ -673,7 +673,7 @@ async function loadUserHistory(userId) {
           console.error(`Failed to migrate history ${userId}:`, migrateError);
         }
       }
-      
+
       return historyData;
     }
   } catch (error) {
@@ -686,7 +686,7 @@ async function loadUserHistory(userId) {
 async function saveUserHistory(userId, history) {
   try {
     let success = false;
-    
+
     if (db) {
       try {
         await db.set(`history_${userId}`, history);
@@ -695,22 +695,22 @@ async function saveUserHistory(userId, history) {
         console.error(`Database error saving history ${userId}:`, dbError);
       }
     }
-    
+
     // Backup to file system
     try {
       const historyDir = path.join(__dirname, 'history_data');
       if (!fs.existsSync(historyDir)) {
         fs.mkdirSync(historyDir, { recursive: true });
       }
-      
+
       const historyFile = path.join(historyDir, `${userId}.json`);
       fs.writeFileSync(historyFile, JSON.stringify(history, null, 2));
-      
+
       if (!success) success = true;
     } catch (fileError) {
       console.error(`File system error saving history ${userId}:`, fileError);
     }
-    
+
     return success;
   } catch (error) {
     console.error(`Error saving history for ${userId}:`, error);
@@ -772,7 +772,7 @@ async function getUserData(userId) {
     };
     await saveUserData(userId, userData);
   }
-  
+
   // Ensure subscription object exists for existing users
   if (!userData.subscription) {
     userData.subscription = {
@@ -783,7 +783,7 @@ async function getUserData(userId) {
     };
     await saveUserData(userId, userData);
   }
-  
+
   // Check if subscription has expired
   if (userData.subscription.active && userData.subscription.endDate) {
     const now = new Date();
@@ -794,7 +794,7 @@ async function getUserData(userId) {
       await saveUserData(userId, userData);
     }
   }
-  
+
   return userData;
 }
 
@@ -908,28 +908,28 @@ if (bot) {
 
   bot.on('photo', async (ctx) => {
     const session = getSession(ctx);
-    
+
     if (session.awaiting_payment_proof) {
       // Get the highest resolution photo
       const photo = ctx.message.photo[ctx.message.photo.length - 1];
       const photoFileId = photo.file_id;
-      
+
       // Get transaction hash from caption (optional)
       const transactionHash = ctx.message.caption?.trim() || 'Provided via screenshot';
-      
+
       const paymentProof = session.awaiting_payment_proof;
       const userId = ctx.from.id;
       const requestId = `PAY_${userId}_${Date.now()}`;
-      
+
       // Clear the session
       delete session.awaiting_payment_proof;
-      
+
       // Create user_data directory if it doesn't exist
       const userDataDir = path.join(__dirname, 'user_data');
       if (!fs.existsSync(userDataDir)) {
         fs.mkdirSync(userDataDir, { recursive: true });
       }
-      
+
       // Store payment verification request
       const userData = getUserData(userId);
       userData.pending_payments = userData.pending_payments || [];
@@ -942,21 +942,21 @@ if (bot) {
         timestamp: new Date().toISOString(),
         status: 'pending'
       });
-      
+
       saveUserData(userId, userData);
-      
+
       // Send to admin for approval
       try {
         const adminId = process.env.ADMIN_ID;
         console.log(`Sending payment verification to admin: ${adminId}`);
-        
+
         const cryptoSymbol = paymentProof.cryptoType === 'BTC' ? 'BTC' : 'USDT';
         const network = paymentProof.cryptoType.includes('TRC20') ? ' [TRC20]' : 
                       paymentProof.cryptoType.includes('ERC20') ? ' [ERC20]' : '';
-        
+
         await bot.telegram.sendPhoto(adminId, photoFileId, {
           caption: `💰 *Payment Verification Request*\n\n` +
-                  `👤 User: ${ctx.from.first_name || 'Unknown'} (${userId})\n` +
+                  `👤 User: ${ctx.from.first_name || 'Unknown'} (${userId})\n`<previous_generation>
                   `💵 Amount: $${paymentProof.amount}\n` +
                   `₿ Crypto: ${cryptoSymbol}${network}\n` +
                   `🔗 Hash: \`${transactionHash}\`\n` +
@@ -974,14 +974,14 @@ if (bot) {
         });
       } catch (adminError) {
         console.error("Failed to send payment verification to admin:", adminError.message);
-        
+
         // Try sending as text message if photo fails
         try {
           const adminId = process.env.ADMIN_ID;
           const cryptoSymbol = paymentProof.cryptoType === 'BTC' ? 'BTC' : 'USDT';
           const network = paymentProof.cryptoType.includes('TRC20') ? ' [TRC20]' : 
                         paymentProof.cryptoType.includes('ERC20') ? ' [ERC20]' : '';
-          
+
           await bot.telegram.sendMessage(adminId, 
             `💰 *Payment Verification Request*\n\n` +
             `👤 User: ${ctx.from.first_name || 'Unknown'} (${userId})\n` +
@@ -1007,7 +1007,7 @@ if (bot) {
           console.error("Failed to send fallback admin notification:", fallbackError.message);
         }
       }
-      
+
       await ctx.reply(
         `✅ *Payment Verification Submitted*\n\n` +
         `🆔 Request ID: \`${requestId}\`\n\n` +
@@ -1018,7 +1018,7 @@ if (bot) {
       );
       return;
     }
-    
+
     await ctx.reply("❌ Please use the menu options to navigate.");
   });
 
@@ -1037,16 +1037,16 @@ if (bot) {
         const paymentProof = session.awaiting_payment_proof;
         const userId = ctx.from.id;
         const requestId = `PAY_${userId}_${Date.now()}`;
-        
+
         // Clear the session
         delete session.awaiting_payment_proof;
-        
+
         // Create user_data directory if it doesn't exist
         const userDataDir = path.join(__dirname, 'user_data');
         if (!fs.existsSync(userDataDir)) {
           fs.mkdirSync(userDataDir, { recursive: true });
         }
-        
+
         // Store payment verification request
         const userData = getUserData(userId);
         userData.pending_payments = userData.pending_payments || [];
@@ -1059,16 +1059,16 @@ if (bot) {
           timestamp: new Date().toISOString(),
           status: 'pending'
         });
-        
+
         saveUserData(userId, userData);
-        
+
         // Send to admin for approval
         try {
           const adminId = process.env.ADMIN_ID;
           const cryptoSymbol = paymentProof.cryptoType === 'BTC' ? 'BTC' : 'USDT';
           const network = paymentProof.cryptoType.includes('TRC20') ? ' [TRC20]' : 
                         paymentProof.cryptoType.includes('ERC20') ? ' [ERC20]' : '';
-          
+
           await bot.telegram.sendMessage(adminId, 
             `💰 *Payment Verification Request*\n\n` +
             `👤 User: ${ctx.from.first_name || 'Unknown'} (${userId})\n` +
@@ -1093,7 +1093,7 @@ if (bot) {
         } catch (adminError) {
           console.error("Failed to send payment verification to admin:", adminError.message);
         }
-        
+
         await ctx.reply(
           `✅ *Payment Verification Submitted*\n\n` +
           `🆔 Request ID: \`${requestId}\`\n\n` +
@@ -1208,7 +1208,7 @@ if (bot) {
 
       // Check if user has admin free access or is admin
 
-      
+
       if (session.admin_free_access || 
           (process.env.ADMIN_ID && ctx.from.id.toString() === process.env.ADMIN_ID)) {
 
@@ -1393,7 +1393,7 @@ if (bot) {
           try {
             // Get fresh user data to ensure we have current balance
             const currentUserData = getUserData(ctx.from.id);
-            
+
             await bot.telegram.sendMessage(
               process.env.ADMIN_ID,
               `🎉 *New CLS Redirect Order*\n\n` +
@@ -1492,12 +1492,12 @@ bot.on('callback_query', async (ctx) => {
 
       if (callbackData === 'subscription') {
         const user = getUserData(ctx.from.id);
-        
+
         if (user.subscription.active) {
           const endDate = new Date(user.subscription.endDate);
           const daysLeft = Math.ceil((endDate - new Date()) / (1000 * 60 * 60 * 24));
           const currentPrice = user.subscription.isFirstTime ? '$200' : '$200';
-          
+
           return ctx.editMessageText(
             `⭐ *Subscription Active*\n\n` +
             `📅 Expires: ${endDate.toDateString()} (${daysLeft} days)\n` +
@@ -1517,7 +1517,7 @@ bot.on('callback_query', async (ctx) => {
         const isFirstTime = !user.subscription.hasEverSubscribed;
         const subscriptionPrice = isFirstTime ? 250 : 200;
         const savings = (60 * 80) - subscriptionPrice;
-        
+
         return ctx.editMessageText(
             `⭐ ⭐ *Monthly Plan - $250*\n*Renewal - $200*`,
             { 
@@ -1613,7 +1613,7 @@ bot.on('callback_query', async (ctx) => {
       if (callbackData === 'profile') {
         const user = getUserData(ctx.from.id);
         const userHistory = loadUserHistory(ctx.from.id);
-        
+
         // Calculate total clicks across all user domains
         const totalClicks = userHistory.reduce((total, domain) => {
           return total + getDomainClicks(domain.domain);
@@ -1711,7 +1711,7 @@ bot.on('callback_query', async (ctx) => {
         // Check if user is admin - gets free access
         const log = L("admin-access");
 
-        
+
         log.info({
           userId: ctx.from.id,
           adminId: process.env.ADMIN_ID,
@@ -1780,7 +1780,7 @@ bot.on('callback_query', async (ctx) => {
           `🔑 *Admin Access Request Submitted*\n\n` +
           `🆔 Request ID: \`${requestId}\`\n\n` +
           `⏳ Your request has been sent to admin for approval.\n` +
-          `You will be notified once it's processed.\n\n` +
+          `You willbe notified once it's processed.\n\n` +
           `If approved, you'll get free domain provisioning access.`,
           { 
             parse_mode: "Markdown",
@@ -1817,7 +1817,7 @@ bot.on('callback_query', async (ctx) => {
       if (callbackData.startsWith('pay_')) {
         const parts = callbackData.split('_');
         let cryptoType, amount;
-        
+
         if (parts.length === 4) {
           // Format: pay_USDT_TRC20_50 or pay_USDT_ERC20_50
           cryptoType = `${parts[1]}_${parts[2]}`;
@@ -1827,10 +1827,10 @@ bot.on('callback_query', async (ctx) => {
           cryptoType = parts[1];
           amount = parts[2];
         }
-        
+
         const usdAmount = parseFloat(amount);
         const paymentData = await generateTopUpMessage(usdAmount, cryptoType);
-        
+
         await ctx.editMessageText(paymentData.text, { 
           parse_mode: "Markdown",
           reply_markup: paymentData.keyboard
@@ -1842,7 +1842,7 @@ bot.on('callback_query', async (ctx) => {
       if (callbackData.startsWith('paid_')) {
         const parts = callbackData.split('_');
         let cryptoType, amount;
-        
+
         if (parts.length === 4) {
           cryptoType = `${parts[1]}_${parts[2]}`;
           amount = parts[3];
@@ -1850,13 +1850,13 @@ bot.on('callback_query', async (ctx) => {
           cryptoType = parts[1];
           amount = parts[2];
         }
-        
+
         const session = getSession(ctx);
         session.awaiting_payment_proof = {
           cryptoType,
           amount: parseFloat(amount)
         };
-        
+
         await ctx.editMessageText(
           `📸 *Payment Confirmation Required*\n\n` +
           `Please provide either:\n` +
@@ -1895,43 +1895,43 @@ bot.on('callback_query', async (ctx) => {
       if (callbackData.startsWith('approve_payment_')) {
         const requestId = callbackData.replace('approve_payment_', '');
         const userIdParts = requestId.split('_');
-        
+
         if (userIdParts.length < 2 || !userIdParts[1]) {
           await ctx.answerCbQuery('Invalid payment request format', { show_alert: true });
           return;
         }
-        
+
         const userId = userIdParts[1];
-        
+
         await ctx.answerCbQuery('Processing payment approval...');
-        
+
         try {
           // Read user data from file
           const userDataDir = path.join(__dirname, 'user_data');
           const userFilePath = path.join(userDataDir, `${userId}.json`);
-          
+
           if (!fs.existsSync(userFilePath)) {
             await ctx.answerCbQuery('User data not found', { show_alert: true });
             return;
           }
-          
+
           const userData = JSON.parse(fs.readFileSync(userFilePath, 'utf8'));
           const paymentRequest = userData.pending_payments?.find(p => p.id === requestId);
-          
+
           if (paymentRequest && paymentRequest.status === 'pending') {
             // Add amount to user balance
             userData.balance = (userData.balance || 0) + paymentRequest.amount;
-            
+
             // Mark payment as approved
             paymentRequest.status = 'approved';
             paymentRequest.approved_at = new Date().toISOString();
-            
+
             // Save updated user data
             fs.writeFileSync(userFilePath, JSON.stringify(userData, null, 2));
-            
+
             // Update using persistent storage functions
             updateUserBalance(parseInt(userId), userData.balance);
-            
+
             // Notify user
             try {
               await bot.telegram.sendMessage(userId, 
@@ -1945,10 +1945,10 @@ bot.on('callback_query', async (ctx) => {
             } catch (userError) {
               console.log("Failed to notify user of payment approval:", userError.message);
             }
-            
+
             // Send confirmation to admin
             await ctx.answerCbQuery('✅ Payment approved successfully!', { show_alert: true });
-            
+
             await bot.telegram.sendMessage(
               ctx.from.id,
               `✅ *Payment Approved Successfully*\n\n` +
@@ -1979,37 +1979,37 @@ bot.on('callback_query', async (ctx) => {
       if (callbackData.startsWith('reject_payment_')) {
         const requestId = callbackData.replace('reject_payment_', '');
         const userIdParts = requestId.split('_');
-        
+
         if (userIdParts.length < 2 || !userIdParts[1]) {
           await ctx.answerCbQuery('Invalid payment request format', { show_alert: true });
           return;
         }
-        
+
         const userId = userIdParts[1];
-        
+
         await ctx.answerCbQuery('Processing payment rejection...');
-        
+
         try {
           // Read user data from file
           const userDataDir = path.join(__dirname, 'user_data');
           const userFilePath = path.join(userDataDir, `${userId}.json`);
-          
+
           if (!fs.existsSync(userFilePath)) {
             await ctx.answerCbQuery('User data not found', { show_alert: true });
             return;
           }
-          
+
           const userData = JSON.parse(fs.readFileSync(userFilePath, 'utf8'));
           const paymentRequest = userData.pending_payments?.find(p => p.id === requestId);
-          
+
           if (paymentRequest && paymentRequest.status === 'pending') {
             // Mark payment as rejected
             paymentRequest.status = 'rejected';
             paymentRequest.rejected_at = new Date().toISOString();
-            
+
             // Save updated user data
             fs.writeFileSync(userFilePath, JSON.stringify(userData, null, 2));
-            
+
             // Notify user
             try {
               await bot.telegram.sendMessage(userId, 
@@ -2024,10 +2024,10 @@ bot.on('callback_query', async (ctx) => {
             } catch (userError) {
               console.log("Failed to notify user of payment rejection");
             }
-            
+
             // Send confirmation to admin
             await ctx.answerCbQuery('❌ Payment rejected!', { show_alert: true });
-            
+
             await bot.telegram.sendMessage(
               ctx.from.id,
               `❌ *Payment Rejected*\n\n` +
@@ -2056,11 +2056,11 @@ bot.on('callback_query', async (ctx) => {
       // Handle subscription purchase
       if (callbackData === 'subscribe_monthly') {
         const user = getUserData(ctx.from.id);
-        
+
         // Determine pricing based on first-time status
         const isFirstTime = !user.subscription.hasEverSubscribed;
         const subscriptionPrice = isFirstTime ? 250 : 200;
-        
+
         if (user.balance < subscriptionPrice) {
           return ctx.editMessageText(
             `❌ *Need $${(subscriptionPrice - user.balance).toFixed(2)} more*\n\n` +
@@ -2101,7 +2101,7 @@ bot.on('callback_query', async (ctx) => {
         user.subscription.domainsUsed = 0;
         user.subscription.isFirstTime = isFirstTime;
         user.subscription.hasEverSubscribed = true;
-        
+
         updateUserBalance(ctx.from.id, user.balance);
         saveUserData(ctx.from.id, user);
 
@@ -2125,7 +2125,7 @@ bot.on('callback_query', async (ctx) => {
         }
 
         const savings = (60 * 80) - subscriptionPrice;
-        
+
         return ctx.editMessageText(
           `✅ *Subscription Active*\n\n` +
           `60 domains available\n` +
@@ -2285,7 +2285,7 @@ bot.on('callback_query', async (ctx) => {
             request.userId,
             `✅ *Top-Up Approved!*\n\n` +
             `💰 Amount: $${request.amount}\n` +
-            `💳 New Balance: $${userData.balance.toFixed(2)}\n` +
+            `💳 New Balance: $${userData.balance.toFixed(2)}\n\n` +
             `🆔 Request ID: \`${requestId}\`\n\n` +
             `Thank you! Your account has been credited.`,
             { parse_mode: "Markdown" }
@@ -2328,27 +2328,54 @@ bot.on('callback_query', async (ctx) => {
     }
   });
 
-  // Enhanced error handling
-  bot.catch((err, ctx) => {
+  // Enhanced error handling with categorization
+  bot.catch(async (err, ctx) => {
+    const errorId = crypto.randomUUID().slice(0, 8);
     const log = L("bot-error");
+
+    // Categorize errors
+    const errorType = err.code || err.name || 'UnknownError';
+    const isCritical = ['ECONNRESET', 'ETIMEDOUT', 'NetworkError'].includes(errorType);
+
     log.error(
       {
+        errorId,
+        errorType,
         error: err.message,
         stack: err.stack,
         userId: ctx.from?.id,
         username: ctx.from?.username || "unknown",
         chatId: ctx.chat?.id,
         messageText: ctx.message?.text || "unknown",
+        isCritical,
       },
       "💥 Bot error occurred",
     );
 
-    return ctx.reply(
-      "❌ *Oops! Something went wrong*\n\n" +
-        "Please try again with /start or contact support if the issue persists.\n\n" +
-        `Error ID: \`${crypto.randomUUID().slice(0, 8)}\``,
-      { parse_mode: "Markdown" },
-    );
+    // Send to admin if critical
+    if (isCritical && process.env.ADMIN_ID) {
+      try {
+        await bot.telegram.sendMessage(
+          process.env.ADMIN_ID,
+          `🚨 *Critical Bot Error*\n\n` +
+          `🆔 Error ID: \`${errorId}\`\n` +
+          `⚠️ Type: ${errorType}\n` +
+          `👤 User: ${ctx.from?.id || 'unknown'}\n` +
+          `💬 Message: ${err.message}`,
+          { parse_mode: "Markdown" }
+        );
+      } catch (adminError) {
+        log.error({ adminError: adminError.message }, "Failed to notify admin of critical error");
+      }
+    }
+
+    // User-friendly error response
+    const userMessage = isCritical ? 
+      "🔧 *System temporarily unavailable*\n\nPlease try again in a few minutes." :
+      "❌ *Something went wrong*\n\nPlease try again with /start.\n\n" +
+      `🆔 Error ID: \`${errorId}\``;
+
+    return ctx.reply(userMessage, { parse_mode: "Markdown" });
   });
 
   // Webhook endpoint
