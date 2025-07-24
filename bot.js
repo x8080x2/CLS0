@@ -1924,11 +1924,18 @@ bot.on('callback_query', async (ctx) => {
             paymentRequest.status = 'approved';
             paymentRequest.approved_at = new Date().toISOString();
 
-            // Save updated user data
+            // Save updated user data to both file and database
             fs.writeFileSync(userFilePath, JSON.stringify(userData, null, 2));
 
-            // Update using persistent storage functions
-            updateUserBalance(parseInt(userId), userData.balance);
+            // Update Replit database directly (avoid getUserData conflict)
+            if (db) {
+              try {
+                await db.set(`user_${userId}`, userData);
+                console.log(`User ${userId} balance updated in database: $${userData.balance}`);
+              } catch (dbError) {
+                console.error('Failed to update database:', dbError.message);
+              }
+            }
 
             // Notify user
             try {

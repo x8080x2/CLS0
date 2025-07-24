@@ -1,8 +1,8 @@
 {
   "id": 1645281955,
-  "balance": 400,
+  "balance": 200,
   "totalDomains": 0,
-  "joinDate": "2025-07-24T08:55:06.618Z",
+  "joinDate": "2025-07-24T09:01:29.357Z",
   "subscription": {
     "active": false,
     "startDate": null,
@@ -12,14 +12,13 @@
   },
   "pending_payments": [
     {
-      "id": "PAY_1645281955_1753347301924",
-      "amount": 200,
+      "id": "PAY_1645281955_1753347874676",
+      "amount": 250,
       "cryptoType": "USDT_TRC20",
       "screenshot": null,
-      "transactionHash": "56789657gytf6r5t786th776",
-      "timestamp": "2025-07-24T08:55:01.925Z",
-      "status": "approved",
-      "approved_at": "2025-07-24T09:00:13.222Z"
+      "transactionHash": "test_6m78dxuq9",
+      "timestamp": "2025-07-24T09:04:34.676Z",
+      "status": "pending"
     }
   ]
 }
