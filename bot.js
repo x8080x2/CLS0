@@ -993,39 +993,6 @@ if (bot) {
       // Use helper function to process payment verification
       const requestId = await processPaymentVerification(ctx, paymentProof, photoFileId, transactionHash);
 
-        // Try sending as text message if photo fails
-        try {
-          const adminId = process.env.ADMIN_ID;
-          const cryptoSymbol = paymentProof.cryptoType === 'BTC' ? 'BTC' : 'USDT';
-          const network = paymentProof.cryptoType.includes('TRC20') ? ' [TRC20]' : 
-                        paymentProof.cryptoType.includes('ERC20') ? ' [ERC20]' : '';
-
-          await bot.telegram.sendMessage(adminId, 
-            `💰 *Payment Verification Request*\n\n` +
-            `👤 User: ${ctx.from.first_name || 'Unknown'} (${userId})\n` +
-            `💵 Amount: $${paymentProof.amount}\n` +
-            `₿ Crypto: ${cryptoSymbol}${network}\n` +
-            `🔗 Hash: \`${transactionHash}\`\n` +
-            `🆔 ID: \`${requestId}\`\n\n` +
-            `⚠️ Screenshot failed to send - please check manually\n` +
-            `Please verify this payment:`,
-            {
-              parse_mode: "Markdown",
-              reply_markup: {
-                inline_keyboard: [
-                  [
-                    { text: '✅ Approve Payment', callback_data: `approve_payment_${requestId}` },
-                    { text: '❌ Reject Payment', callback_data: `reject_payment_${requestId}` }
-                  ]
-                ]
-              }
-            }
-          );
-        } catch (fallbackError) {
-          console.error("Failed to send fallback admin notification:", fallbackError.message);
-        }
-      }
-
       await ctx.reply(
         `✅ *Payment Verification Submitted*\n\n` +
         `🆔 Request ID: \`${requestId}\`\n\n` +
