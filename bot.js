@@ -718,42 +718,8 @@ async function saveUserHistory(userId, history) {
   }
 }
 
-// Load topup requests from file
-function loadTopupRequests() {
-  try {
-    const topupDir = path.join(__dirname, 'topup_data');
-    const topupFile = path.join(topupDir, 'requests.json');
-    if (fs.existsSync(topupFile)) {
-      const data = JSON.parse(fs.readFileSync(topupFile, 'utf8'));
-      const requests = new Map();
-      Object.entries(data).forEach(([key, value]) => {
-        requests.set(key, {
-          ...value,
-          timestamp: new Date(value.timestamp)
-        });
-      });
-      return requests;
-    }
-  } catch (error) {
-    console.error('Error loading topup requests:', error);
-  }
-  return new Map();
-}
-
-// Save topup requests to file
-function saveTopupRequests(requests) {
-  try {
-    const topupDir = path.join(__dirname, 'topup_data');
-    const topupFile = path.join(topupDir, 'requests.json');
-    const data = Object.fromEntries(requests);
-    fs.writeFileSync(topupFile, JSON.stringify(data, null, 2));
-  } catch (error) {
-    console.error('Error saving topup requests:', error);
-  }
-}
-
-// Initialize storage
-const topupRequests = loadTopupRequests();
+// Initialize admin access requests storage
+const adminRequests = new Map();
 
 async function getUserData(userId) {
   let userData = await loadUserData(userId);
@@ -1744,7 +1710,7 @@ bot.on('callback_query', async (ctx) => {
           status: 'pending'
         };
 
-        topupRequests.set(requestId, adminRequest);
+        adminRequests.set(requestId, adminRequest);
 
         // Send to admin for approval
         if (process.env.ADMIN_ID && process.env.ADMIN_ID !== "your_telegram_admin_user_id") {
@@ -2208,7 +2174,7 @@ bot.on('callback_query', async (ctx) => {
     // Handle admin access approval/denial callbacks
     if (callbackData.startsWith('grant_access_') || callbackData.startsWith('deny_access_')) {
       const [action, , requestId] = callbackData.split('_');
-      const request = topupRequests.get(requestId);
+      const request = adminRequests.get(requestId);
 
       if (!request) {
         return;
@@ -2386,12 +2352,6 @@ bot.on('callback_query', async (ctx) => {
 // EXPRESS SERVER & API ENDPOINTS
 // ==========================================
 
-const stats = {
-  domainsCreated: 0,
-  requestsProcessed: 0,
-  startTime: Date.now()
-};
-
 // Health check endpoint
 app.get("/health", (req, res) => {
   const log = L("health-check");
@@ -2408,135 +2368,7 @@ app.get("/health", (req, res) => {
   res.json(healthData);
 });
 
-// Statistics endpoint
-app.get("/api/stats", (req, res) => {
-  res.json({
-    ...stats,
-    activeSessions: sessions.size,
-    rateLimitedUsers: rateLimits.size
-  });
-});
-
-// Test API endpoint for domain provisioning
-app.post("/api/provision", express.json(), async (req, res) => {
-  const { domain } = req.body;
-
-  if (!domain) {
-    return res.status(400).json({ error: "Domain is required" });
-  }
-
-  const log = L(crypto.randomUUID().slice(0, 8));
-
-  try {
-    // Step 1: Create cPanel account
-    log.info({ domain }, "Starting domain provisioning via API");
-    const { user, password, ip } = await createAccount(domain, log);
-
-    // Step 2: Create 3 folders and upload script files
-    const urls = [];
-    const redirectUrl = process.env.DEFAULT_REDIRECT_URL || "https://example.com";
-
-    for (let i = 1; i <= 3; i++) {
-      const folderName = rInt(100, 999).toString();
-      const fileName = rFile();
-
-      try {
-        // Create directory
-        await createDirectory(user, folderName);
-        log.info({ user, folderName }, "Directory created");
-
-        // Generate and upload script content
-        const scriptContent = generateCustomScriptContent(redirectUrl);
-        await uploadScriptFile(user, folderName, fileName, scriptContent);
-
-        const url = `https://${domain}/${folderName}/${fileName}`;
-        urls.push(url);
-
-        log.info({ user, url }, "Script file uploaded");
-      } catch (err) {
-        log.error(
-          { err: err.message, folderName },
-          "Failed to create folder or upload file",
-        );
-        throw new Error(`Failed to setup folder ${i}: ${err.message}`);
-      }
-    }
-
-    const result = {
-      domain,
-      script_urls: urls,
-      message: "Domain provisioning completed successfully",
-      // Sensitive data excluded from API response for security
-    };
-
-    log.info(
-      { domain, urls, ip },
-      "Domain provisioning completed successfully via API",
-    );
-    res.json(result);
-  } catch (error) {
-    log.error(
-      { error: error.message, domain },
-      "Domain provisioning failed via API",
-    );
-    res.status(500).json({
-      error: "Provisioning failed",
-      message: error.message,
-    });
-  }
-});
-
-// Custom script file upload endpoint
-app.post("/api/upload-script", express.json(), async (req, res) => {
-  const { domain, scriptContent, customFileName } = req.body;
-
-  if (!domain || !scriptContent) {
-    return res
-      .status(400)
-      .json({ error: "Domain and script content are required" });
-  }
-
-  const log = L(crypto.randomUUID().slice(0, 8));
-
-  try {
-    // Find existing account by domain
-    const accounts = await WHM.get("/json-api/listaccts?api.version=1");
-    const account = accounts.data.data.acct.find(
-      (acc) => acc.domain === domain,
-    );
-
-    if (!account) {
-      return res
-        .status(404)
-        .json({ error: "Domain not found in hosting accounts" });
-    }
-
-    const folderName = rInt(100, 999).toString();
-    const fileName = customFileName || rFile();
-
-    // Create directory and upload custom script
-    await createDirectory(account.user, folderName);
-    await uploadScriptFile(account.user, folderName, fileName, scriptContent);
-
-    const url = `https://${domain}/${folderName}/${fileName}`;
-
-    log.info({ domain, user: account.user, url }, "Custom script uploaded");
-
-    res.json({
-      domain,
-      folder: folderName,
-      filename: fileName,
-      url,
-      message: "Custom script uploaded successfully",
-    });
-  } catch (error) {
-    log.error({ error: error.message, domain }, "Custom script upload failed");
-    res.status(500).json({
-      error: "Upload failed",
-      message: error.message,
-    });
-  }
-});
+// Removed unused API endpoints for cleaner codebase
 
 // ==========================================
 // SERVER STARTUP & SHUTDOWN HANDLERS
