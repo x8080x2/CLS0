@@ -642,7 +642,7 @@ async function loadUserHistory(userId) {
     if (db) {
       try {
         const data = await db.get(`history_${userId}`);
-        if (data) {
+        if (data && Array.isArray(data)) {
           return data.map(item => ({
             ...item,
             date: new Date(item.date)
@@ -658,6 +658,13 @@ async function loadUserHistory(userId) {
     const historyFile = path.join(historyDir, `${userId}.json`);
     if (fs.existsSync(historyFile)) {
       const data = JSON.parse(fs.readFileSync(historyFile, 'utf8'));
+      
+      // Ensure data is an array
+      if (!Array.isArray(data)) {
+        console.error(`History data for ${userId} is not an array, resetting to empty array`);
+        return [];
+      }
+      
       // Convert date strings back to Date objects
       const historyData = data.map(item => ({
         ...item,
@@ -739,8 +746,11 @@ async function getUserData(userId) {
     await saveUserData(userId, userData);
   }
 
-  // Ensure subscription object exists for existing users
-  if (!userData.subscription) {
+  // Ensure all required properties exist with defaults
+  userData.balance = typeof userData.balance === 'number' ? userData.balance : 0;
+  userData.totalDomains = typeof userData.totalDomains === 'number' ? userData.totalDomains : 0;
+  
+  if (!userData.subscription || typeof userData.subscription !== 'object') {
     userData.subscription = {
       active: false,
       startDate: null,
@@ -749,6 +759,10 @@ async function getUserData(userId) {
     };
     await saveUserData(userId, userData);
   }
+
+  // Ensure subscription properties exist
+  userData.subscription.active = typeof userData.subscription.active === 'boolean' ? userData.subscription.active : false;
+  userData.subscription.domainsUsed = typeof userData.subscription.domainsUsed === 'number' ? userData.subscription.domainsUsed : 0;
 
   // Check if subscription has expired
   if (userData.subscription.active && userData.subscription.endDate) {
