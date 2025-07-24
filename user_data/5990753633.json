@@ -1,25 +1,15 @@
 {
   "id": 5990753633,
-  "balance": 50,
+  "balance": 300,
   "totalDomains": 0,
-  "joinDate": "2025-07-24T09:15:13.347Z",
+  "joinDate": "2025-07-24T09:21:11.476Z",
   "subscription": {
-    "active": false,
-    "startDate": null,
-    "endDate": null,
+    "active": true,
+    "startDate": "2025-07-24T09:21:11.477Z",
+    "endDate": "2025-08-23T09:21:11.477Z",
     "domainsUsed": 0,
-    "hasEverSubscribed": false
+    "hasEverSubscribed": true,
+    "isFirstTime": false
   },
-  "pending_payments": [
-    {
-      "id": "PAY_5990753633_1753348513291",
-      "amount": 300,
-      "cryptoType": "BTC",
-      "screenshot": null,
-      "transactionHash": "34567b5v4c32c46i7n8bj6v5ce4wx3c45uv67",
-      "timestamp": "2025-07-24T09:15:13.347Z",
-      "status": "approved",
-      "approved_at": "2025-07-24T09:15:21.649Z"
-    }
-  ]
+  "pending_payments": []
 }

@@ -95,13 +95,16 @@ The application follows a monolithic Node.js architecture with the following key
 
 ## Recent Changes
 
-**July 24, 2025 - Balance Display Issue Fixed & Database Corruption Resolved**
-- ✅ **BALANCE FIX**: Fixed user balance not reflecting after top-up approval
+**July 24, 2025 - Subscription Auto-Activation & Payment Flow Fixed**
+- ✅ **CRITICAL SUBSCRIPTION FIX**: Fixed major issue where users paid for subscriptions but they weren't automatically activated
+- ✅ **AUTO-ACTIVATION**: Payment approval now automatically activates monthly subscriptions for $250/$200 payments
+- ✅ **USER EXPERIENCE**: Users no longer need to manually click "Subscribe Monthly" after payment approval
+- ✅ **PAYMENT INTELLIGENCE**: System detects subscription payments and activates 30-day subscriptions immediately
+- ✅ **NOTIFICATION ENHANCEMENT**: Users receive clear confirmation when subscription is auto-activated
+- ✅ **ADMIN VISIBILITY**: Admins see subscription activation details in payment approval notifications
+- ✅ **BALANCE FIX**: Fixed user balance not reflecting after top-up approval  
 - ✅ **DATABASE CORRUPTION**: Resolved nested data structure issues in Replit Database causing balance display problems
 - ✅ **STORAGE OPTIMIZATION**: Temporarily disabled Replit Database and switched to reliable file-based storage
-- ✅ **DATA INTEGRITY**: Enhanced loadUserData function to handle corrupted nested objects and unwrap data properly
-- ✅ **USER EXPERIENCE**: Users can now see their correct balance immediately after payment approval
-- ✅ **ARCHITECTURE IMPROVEMENT**: Improved data synchronization between file storage and database operations
 
 **July 24, 2025 - Syntax Error Fixed & Bot Server Restored**
 - ✅ **CRITICAL BUG FIX**: Resolved syntax error in bot.js at line 1038 causing server crashes

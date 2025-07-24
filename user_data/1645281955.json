@@ -4,11 +4,12 @@
   "totalDomains": 0,
   "joinDate": "2025-07-24T09:01:29.357Z",
   "subscription": {
-    "active": false,
-    "startDate": null,
-    "endDate": null,
+    "active": true,
+    "startDate": "2025-07-24T09:22:57.353Z",
+    "endDate": "2025-08-23T09:22:57.353Z",
     "domainsUsed": 0,
-    "hasEverSubscribed": false
+    "hasEverSubscribed": true,
+    "isFirstTime": false
   },
   "pending_payments": [
     {
@@ -18,7 +19,8 @@
       "screenshot": null,
       "transactionHash": "test_hash_uixml2ww7",
       "timestamp": "2025-07-24T09:07:55.141Z",
-      "status": "pending"
+      "status": "approved",
+      "approved_at": "2025-07-24T09:22:57.352Z"
     }
   ]
 }

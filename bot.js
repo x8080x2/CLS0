@@ -1888,6 +1888,25 @@ bot.on('callback_query', async (ctx) => {
             paymentRequest.status = 'approved';
             paymentRequest.approved_at = new Date().toISOString();
 
+            // Auto-activate subscription if payment matches subscription pricing
+            const isSubscriptionPayment = paymentRequest.amount === 250 || paymentRequest.amount === 200;
+            if (isSubscriptionPayment && !userData.subscription.active) {
+              const isFirstTime = paymentRequest.amount === 250;
+              
+              // Activate subscription
+              userData.subscription.active = true;
+              userData.subscription.startDate = new Date().toISOString();
+              userData.subscription.endDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+              userData.subscription.domainsUsed = 0;
+              userData.subscription.hasEverSubscribed = true;
+              userData.subscription.isFirstTime = !isFirstTime;
+              
+              // Deduct subscription cost from balance
+              userData.balance -= paymentRequest.amount;
+              
+              console.log(`Auto-activated subscription for user ${userId}: ${isFirstTime ? 'First-time' : 'Renewal'} - $${paymentRequest.amount}`);
+            }
+
             // Save updated user data to both file and database
             fs.writeFileSync(userFilePath, JSON.stringify(userData, null, 2));
 
@@ -1903,14 +1922,24 @@ bot.on('callback_query', async (ctx) => {
 
             // Notify user
             try {
-              await bot.telegram.sendMessage(userId, 
-                `✅ *Payment Approved!*\n\n` +
+              const subscriptionActivated = isSubscriptionPayment && userData.subscription.active;
+              let userMessage = `✅ *Payment Approved!*\n\n` +
                 `💰 Amount: $${paymentRequest.amount}\n` +
-                `💳 New Balance: $${userData.balance.toFixed(2)}\n\n` +
-                `Your payment has been verified and added to your account.\n` +
-                `You can now use your balance for domain provisioning.`,
-                { parse_mode: "Markdown" }
-              );
+                `💳 Balance: $${userData.balance.toFixed(2)}\n\n`;
+              
+              if (subscriptionActivated) {
+                const endDate = new Date(userData.subscription.endDate);
+                userMessage += `⭐ *Monthly Subscription Activated!*\n\n` +
+                  `📅 Valid until: ${endDate.toDateString()}\n` +
+                  `🎯 Domains included: 60\n` +
+                  `✨ Ready to create unlimited domains!\n\n` +
+                  `Use /start to create your first domain.`;
+              } else {
+                userMessage += `Your payment has been verified and added to your account.\n` +
+                  `You can now use your balance for domain provisioning.`;
+              }
+              
+              await bot.telegram.sendMessage(userId, userMessage, { parse_mode: "Markdown" });
             } catch (userError) {
               console.log("Failed to notify user of payment approval:", userError.message);
             }
@@ -1918,16 +1947,24 @@ bot.on('callback_query', async (ctx) => {
             // Send confirmation to admin
             await ctx.answerCbQuery('✅ Payment approved successfully!', { show_alert: true });
 
-            await bot.telegram.sendMessage(
-              ctx.from.id,
-              `✅ *Payment Approved Successfully*\n\n` +
+            let adminMessage = `✅ *Payment Approved Successfully*\n\n` +
               `💰 Amount: $${paymentRequest.amount}\n` +
               `👤 User ID: ${userId}\n` +
               `💳 User's New Balance: $${userData.balance.toFixed(2)}\n` +
-              `🆔 Request ID: \`${requestId}\`\n\n` +
-              `User has been notified and balance updated.`,
-              { parse_mode: "Markdown" }
-            );
+              `🆔 Request ID: \`${requestId}\`\n\n`;
+            
+            if (isSubscriptionPayment && userData.subscription.active) {
+              const endDate = new Date(userData.subscription.endDate);
+              const subscriptionType = paymentRequest.amount === 250 ? 'First-time' : 'Renewal';
+              adminMessage += `⭐ *Subscription Auto-Activated*\n` +
+                `📋 Type: ${subscriptionType} ($${paymentRequest.amount})\n` +
+                `📅 Valid until: ${endDate.toDateString()}\n` +
+                `🎯 Domains available: 60\n\n`;
+            }
+            
+            adminMessage += `User has been notified and ${isSubscriptionPayment && userData.subscription.active ? 'subscription activated' : 'balance updated'}.`;
+
+            await bot.telegram.sendMessage(ctx.from.id, adminMessage, { parse_mode: "Markdown" });
           } else {
             await bot.telegram.sendMessage(
               ctx.from.id,
