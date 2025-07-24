@@ -1519,8 +1519,7 @@ bot.on('callback_query', async (ctx) => {
             `💰 *Insufficient Balance*\n` +
             `Current Balance: $${user.balance.toFixed(2)}\n` +
             `Service Cost: $${requiredAmount.toFixed(2)}\n` +
-            `Additional Needed: $${(requiredAmount - user.balance).toFixed(2)}\n\n` +
-            `💡 *Better Option:* Get 60 domains for $200 with our monthly subscription!`,
+            `Additional Needed: $${(requiredAmount - user.balance).toFixed(2)}\n\n`,
             { 
               parse_mode: "Markdown",
               reply_markup: {
@@ -1538,7 +1537,7 @@ bot.on('callback_query', async (ctx) => {
         if (!hasAdminAccess && hasSubscription && user.subscription.domainsUsed >= 60) {
           return ctx.editMessageText(
             `⭐ *Subscription Limit Reached*\n\n` +
-            `🎯 You've used all 60 domains for this month.\n` +
+            `🎯 You've used all for this month.\n` +
             `📅 Your subscription renews on ${new Date(user.subscription.endDate).toDateString()}\n\n` +
             `💡 You can still create domains with pay-per-use ($80 each) or wait for renewal.`,
             { 
@@ -2101,11 +2100,12 @@ bot.on('callback_query', async (ctx) => {
           }
         }
 
+        
         const savings = (60 * 80) - subscriptionPrice;
 
         return ctx.editMessageText(
           `✅ *Subscription Active*\n\n` +
-          `60 domains available\n` +
+          `Redirect Available\n` +
           `Expires: ${user.subscription.endDate.toDateString()}\n` +
           `Balance: $${user.balance.toFixed(2)}`,
           { 
