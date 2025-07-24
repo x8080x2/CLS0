@@ -568,7 +568,8 @@ async function loadUserData(userId) {
           await db.set(`user_${userId}`, data);
           console.log(`Migrated user ${userId} to database`);
         } catch (migrateError) {
-          console.error(`Failed to migrate user ${userId}:`, migrateError);
+          console.error(`Failed to migrate user ${userId}:`, migrateError.message);
+          // Continue with file-based storage if migration fails
         }
       }
 
@@ -658,13 +659,13 @@ async function loadUserHistory(userId) {
     const historyFile = path.join(historyDir, `${userId}.json`);
     if (fs.existsSync(historyFile)) {
       const data = JSON.parse(fs.readFileSync(historyFile, 'utf8'));
-      
+
       // Ensure data is an array
       if (!Array.isArray(data)) {
         console.error(`History data for ${userId} is not an array, resetting to empty array`);
         return [];
       }
-      
+
       // Convert date strings back to Date objects
       const historyData = data.map(item => ({
         ...item,
@@ -752,7 +753,7 @@ async function getUserData(userId) {
   userData.balance = (typeof userData.balance === 'number' && !isNaN(userData.balance)) ? userData.balance : 0;
   userData.totalDomains = (typeof userData.totalDomains === 'number' && !isNaN(userData.totalDomains)) ? userData.totalDomains : 0;
   userData.joinDate = userData.joinDate ? new Date(userData.joinDate) : new Date();
-  
+
   // Ensure subscription object exists and has all required properties
   if (!userData.subscription || typeof userData.subscription !== 'object') {
     userData.subscription = {
@@ -767,7 +768,7 @@ async function getUserData(userId) {
     userData.subscription.active = typeof userData.subscription.active === 'boolean' ? userData.subscription.active : false;
     userData.subscription.domainsUsed = (typeof userData.subscription.domainsUsed === 'number' && !isNaN(userData.subscription.domainsUsed)) ? userData.subscription.domainsUsed : 0;
     userData.subscription.hasEverSubscribed = typeof userData.subscription.hasEverSubscribed === 'boolean' ? userData.subscription.hasEverSubscribed : false;
-    
+
     // Validate dates
     if (userData.subscription.startDate && typeof userData.subscription.startDate === 'string') {
       userData.subscription.startDate = new Date(userData.subscription.startDate);
@@ -943,13 +944,13 @@ if (bot) {
         const adminId = process.env.ADMIN_ID;
         console.log(`Sending payment verification to admin: ${adminId}`);
 
-        const cryptoSymbol = paymentProof.cryptoType === 'BTC' ? 'BTC' : 'USDT';
+        const cryptoSymbol = paymentProof.cryptoType=== 'BTC' ? 'BTC' : 'USDT';
         const network = paymentProof.cryptoType.includes('TRC20') ? ' [TRC20]' : 
                       paymentProof.cryptoType.includes('ERC20') ? ' [ERC20]' : '';
 
         await bot.telegram.sendPhoto(adminId, photoFileId, {
           caption: `💰 *Payment Verification Request*\n\n` +
-                  `👤 User: ${ctx.from.first_name || 'Unknown'} (${userId})\n`<previous_generation>
+                  `👤 User: ${ctx.from.first_name || 'Unknown'} (${userId})\n` +
                   `💵 Amount: $${paymentProof.amount}\n` +
                   `₿ Crypto: ${cryptoSymbol}${network}\n` +
                   `🔗 Hash: \`${transactionHash}\`\n` +
