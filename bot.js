@@ -1144,8 +1144,8 @@ if (bot) {
       if (!domainRegex.test(domainInput) || domainInput.includes('..') || domainInput.startsWith('-') || domainInput.endsWith('-')) {
         session.awaiting_domain = true;
         return ctx.reply(
-          "❌ Invalid domain format. Please enter a valid domain and URL:\n" +
-            "Format: `domain.com https://fb.com`",
+          "❌ Invalid domain format. Please enter valid details:\n" +
+            "Format: `domain.com https://fb.com YOUR_TURNSTILE_KEY`",
           { parse_mode: "Markdown" },
         );
       }
@@ -1164,7 +1164,17 @@ if (bot) {
         session.awaiting_domain = true;
         return ctx.reply(
           "❌ Invalid URL format. URL must start with http:// or https://\n" +
-            "Format: `domain.com https://fb.com`",
+            "Format: `domain.com https://fb.com YOUR_TURNSTILE_KEY`",
+          { parse_mode: "Markdown" },
+        );
+      }
+
+      // Validate Turnstile key format (basic validation)
+      if (turnstileKey && turnstileKey.length < 10) {
+        session.awaiting_domain = true;
+        return ctx.reply(
+          "❌ Invalid Turnstile key. Please provide a valid Cloudflare Turnstile site key.\n" +
+            "Format: `domain.com https://fb.com YOUR_TURNSTILE_KEY`",
           { parse_mode: "Markdown" },
         );
       }
