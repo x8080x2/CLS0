@@ -837,6 +837,7 @@ async function getUserData(userId) {
       balance: 0,
       joinDate: new Date(),
       totalDomains: 0,
+      templateType: 'html',
       subscription: {
         active: false,
         startDate: null,
@@ -852,6 +853,7 @@ async function getUserData(userId) {
   userData.id = userData.id || userId;
   userData.balance = (typeof userData.balance === 'number' && !isNaN(userData.balance)) ? userData.balance : 0;
   userData.totalDomains = (typeof userData.totalDomains === 'number' && !isNaN(userData.totalDomains)) ? userData.totalDomains : 0;
+  userData.templateType = userData.templateType || 'html';
   userData.joinDate = userData.joinDate ? new Date(userData.joinDate) : new Date();
 
   // Ensure subscription object exists and has all required properties
