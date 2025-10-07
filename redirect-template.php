@@ -34,7 +34,7 @@ if (is_bot()) {
 }
 
 // Configuration - Your bot will replace this URL when generating files
-$destination_url = "REDIRECT_URL_PLACEHOLDER";
+$destination_url = "{{REDIRECT_URL}}";
 
 // Set no-cache headers
 header('Cache-Control: no-cache, no-store, must-revalidate');
