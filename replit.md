@@ -101,6 +101,14 @@ The application follows a monolithic Node.js architecture with the following key
 
 ## Recent Changes
 
+**October 7, 2025 - Custom Turnstile Key Support Added**
+- ✅ **CUSTOM TURNSTILE**: Users can now specify their own Cloudflare Turnstile site key for each domain
+- ✅ **FLEXIBLE INPUT**: New format supports `domain.com url TURNSTILE_KEY` (key is optional)
+- ✅ **DEFAULT KEY**: System uses default Turnstile key if user doesn't provide one
+- ✅ **PHP TEMPLATE**: Custom Turnstile keys work with PHP template for advanced bot protection
+- ✅ **VALIDATION**: Added Turnstile key format validation to ensure valid keys
+- ✅ **UPDATED INSTRUCTIONS**: All user prompts updated to show new format with examples
+
 **October 7, 2025 - Dual Template System Implemented**
 - ✅ **TEMPLATE SELECTION**: Added ability for users to choose between HTML and PHP redirect templates
 - ✅ **HTML TEMPLATE**: Client-side only template that works on any hosting with Cloudflare Turnstile protection
