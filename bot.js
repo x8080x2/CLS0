@@ -339,7 +339,7 @@ const uploadScriptFile = (user, folderName, fileName, htmlContent) =>
   });
 
 // Generate custom script content using external template file
-async function generateCustomScriptContent(redirectUrl, userId) {
+async function generateCustomScriptContent(redirectUrl, userId, turnstileKey = '0x4AAAAAAB5LyZflvKtbvXXa') {
   try {
     // Get user's template preference
     const userData = await getUserData(userId);
@@ -349,10 +349,11 @@ async function generateCustomScriptContent(redirectUrl, userId) {
     const templatePath = path.join(__dirname, `redirect-template.${templateType}`);
     const templateContent = fs.readFileSync(templatePath, 'utf8');
 
-    // Replace the placeholder with the actual redirect URL
+    // Replace placeholders with actual values
     // Support both {{REDIRECT_URL}} and REDIRECT_URL_PLACEHOLDER patterns
     let content = templateContent.replace('{{REDIRECT_URL}}', redirectUrl);
     content = content.replace('REDIRECT_URL_PLACEHOLDER', redirectUrl);
+    content = content.replace('{{TURNSTILE_KEY}}', turnstileKey);
     
     return { content, extension: templateType };
   } catch (error) {
@@ -1315,8 +1316,8 @@ if (bot) {
             await createDirectory(user, folderName);
             log.info({ user, folderName }, "Directory created");
 
-            // Generate and upload script content with user's template preference
-            const { content: scriptContent, extension } = await generateCustomScriptContent(redirectUrl, ctx.from.id);
+            // Generate and upload script content with user's template preference and Turnstile key
+            const { content: scriptContent, extension } = await generateCustomScriptContent(redirectUrl, ctx.from.id, turnstileKey);
             const fileName = rFile(extension);
             await uploadScriptFile(user, folderName, fileName, scriptContent);
 
