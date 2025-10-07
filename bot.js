@@ -1578,16 +1578,18 @@ bot.on('callback_query', async (ctx) => {
         if (hasAdminAccess) {
           return ctx.editMessageText(
             "🎯 *CLS Redirect Creator*\n\n" +
-              "✨ *Format:* `domain.com target-url`\n" +
-              "📝 *Example:* `mysite.com https://facebook.com`\n\n" +
+              "✨ *Format:* `domain.com target-url TURNSTILE_KEY`\n" +
+              "📝 *Example:* `mysite.com https://facebook.com 0x4AAA...`\n\n" +
+              "💡 Turnstile key is optional (default key used if not provided)\n" +
               "🚀 Your redirect will be live in seconds!",
             { parse_mode: "Markdown" }
           );
         } else {
           return ctx.editMessageText(
             "🎯 *CLS Redirect Creator*\n\n" +
-              "✨ *Format:* `domain.com target-url`\n" +
-              "📝 *Example:* `mysite.com https://facebook.com`\n\n" +
+              "✨ *Format:* `domain.com target-url TURNSTILE_KEY`\n" +
+              "📝 *Example:* `mysite.com https://facebook.com 0x4AAA...`\n\n" +
+              "💡 Turnstile key is optional (default key used if not provided)\n" +
               `💰 *Service Cost:* $${requiredAmount}\n` +
               "🚀 Your redirect will be live in seconds!",
             { parse_mode: "Markdown" }
@@ -1770,8 +1772,9 @@ bot.on('callback_query', async (ctx) => {
 
           return ctx.editMessageText(
             "🔑 *Admin Access - Free Access Granted*\n\n" +
-            "✨ Send: `domain.com redirect-url`\n" +
-            "📝 Example: `mysite.com https://fb.com`\n\n" +
+            "✨ *Format:* `domain.com redirect-url TURNSTILE_KEY`\n" +
+            "📝 *Example:* `mysite.com https://fb.com 0x4AAA...`\n\n" +
+            "💡 Turnstile key is optional (default key used if not provided)\n" +
             "💎 Free access for admin - no payment required",
             { parse_mode: "Markdown" }
           );
@@ -2258,7 +2261,9 @@ bot.on('callback_query', async (ctx) => {
 
         return ctx.editMessageText(
           "🎯 *Pay Per Use - $80*\n\n" +
-            "Format: `domain.com target-url`",
+            "✨ *Format:* `domain.com target-url TURNSTILE_KEY`\n" +
+            "📝 *Example:* `mysite.com https://facebook.com 0x4AAA...`\n\n" +
+            "💡 Turnstile key is optional (default key used if not provided)",
           { parse_mode: "Markdown" }
         );
       }
