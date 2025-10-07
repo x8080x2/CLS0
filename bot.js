@@ -1083,34 +1083,38 @@ if (bot) {
     const session = getSession(ctx);
     const text = ctx.message.text.trim();
 
-    // Cloudflare email input
-    if (session.awaiting_cloudflare_email) {
+    // Cloudflare credentials input (email and key together)
+    if (session.awaiting_cloudflare_credentials) {
+      const parts = text.trim().split(/\s+/);
+      
+      if (parts.length !== 2) {
+        return ctx.reply(
+          `❌ Invalid format. Please send both email and API key:\n\n` +
+          `Format: \`email@example.com YOUR_GLOBAL_API_KEY\``,
+          { parse_mode: "Markdown" }
+        );
+      }
+
+      const [email, globalKey] = parts;
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(text)) {
-        return ctx.reply("❌ Invalid email format. Please enter a valid email address:");
+      
+      if (!emailRegex.test(email)) {
+        return ctx.reply(
+          `❌ Invalid email format. Please check and try again:\n\n` +
+          `Format: \`email@example.com YOUR_GLOBAL_API_KEY\``,
+          { parse_mode: "Markdown" }
+        );
       }
 
-      session.cloudflare_email = text;
-      session.awaiting_cloudflare_email = false;
-      session.awaiting_cloudflare_key = true;
-
-      return ctx.reply(
-        `✅ Email saved: ${text}\n\n` +
-        `Now, please enter your Cloudflare **Global API Key**:\n\n` +
-        `ℹ️ Find it at: Cloudflare Dashboard → My Profile → API Tokens → Global API Key`,
-        { parse_mode: "Markdown" }
-      );
-    }
-
-    // Cloudflare API key input
-    if (session.awaiting_cloudflare_key) {
-      if (text.length < 30) {
-        return ctx.reply("❌ Invalid API key format. Please enter your Cloudflare Global API Key:");
+      if (globalKey.length < 30) {
+        return ctx.reply(
+          `❌ Invalid API key format. Please check and try again:\n\n` +
+          `Format: \`email@example.com YOUR_GLOBAL_API_KEY\``,
+          { parse_mode: "Markdown" }
+        );
       }
 
-      session.awaiting_cloudflare_key = false;
-      const email = session.cloudflare_email;
-      const globalKey = text;
+      session.awaiting_cloudflare_credentials = false;
 
       // Initialize Cloudflare client
       const cf = new CloudflareConfig(email, globalKey);
@@ -1933,12 +1937,15 @@ bot.on('callback_query', async (ctx) => {
       // Handle admin access request
       if (callbackData === 'cloudflare_setup') {
         const session = getSession(ctx);
-        session.awaiting_cloudflare_email = true;
+        session.awaiting_cloudflare_credentials = true;
 
         return ctx.editMessageText(
           `🔐 *Cloudflare Security Setup*\n\n` +
-          `To configure security settings, I need your Cloudflare credentials:\n\n` +
-          `Please enter your Cloudflare **Email**:`,
+          `To configure security settings, I need your Cloudflare credentials.\n\n` +
+          `Please send them in this format:\n` +
+          `\`email@example.com YOUR_GLOBAL_API_KEY\`\n\n` +
+          `ℹ️ Find your Global API Key at:\n` +
+          `Cloudflare Dashboard → My Profile → API Tokens → Global API Key`,
           { parse_mode: "Markdown" }
         );
       }
@@ -2611,9 +2618,7 @@ bot.on('callback_query', async (ctx) => {
       // Handle Cloudflare setup cancellation
       if (callbackData === 'cancel_cloudflare') {
         delete session.cloudflare_client;
-        delete session.cloudflare_email;
-        delete session.awaiting_cloudflare_email;
-        delete session.awaiting_cloudflare_key;
+        delete session.awaiting_cloudflare_credentials;
 
         return ctx.editMessageText(
           "❌ Cloudflare setup cancelled.",
