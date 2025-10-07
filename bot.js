@@ -357,7 +357,7 @@ async function generateCustomScriptContent(redirectUrl, userId, turnstileKey = '
     // Get user's template preference
     const userData = await getUserData(userId);
     const templateType = userData.templateType || 'html';
-    
+
     // Read the appropriate template file
     const templateFileName = templateType === 'html' ? 'redirect-template-plain.html' : 'redirect-template-cloudflare.php';
     const templatePath = path.join(__dirname, templateFileName);
@@ -368,7 +368,7 @@ async function generateCustomScriptContent(redirectUrl, userId, turnstileKey = '
     let content = templateContent.replace('{{REDIRECT_URL}}', redirectUrl);
     content = content.replace('REDIRECT_URL_PLACEHOLDER', redirectUrl);
     content = content.replace('{{TURNSTILE_KEY}}', turnstileKey);
-    
+
     return { content, extension: templateType };
   } catch (error) {
     console.error('Error reading template file:', error);
@@ -644,7 +644,7 @@ async function loadUserData(userId) {
         if (rawData) {
           // Handle nested database objects from Replit DB corruption
           let data = rawData;
-          
+
           // If data is wrapped in nested 'value' or 'ok' objects, unwrap it
           while (data && typeof data === 'object' && (data.value || data.ok)) {
             if (data.value && typeof data.value === 'object') {
@@ -655,16 +655,16 @@ async function loadUserData(userId) {
               break;
             }
           }
-          
+
           // Ensure we have a valid user data object
           if (data && data.id && typeof data.balance === 'number') {
             // Convert date strings back to Date objects
             if (data.joinDate) data.joinDate = new Date(data.joinDate);
-            
+
             // Clean the database by saving the unwrapped data
             await db.set(`user_${userId}`, data);
             console.log(`Cleaned and fixed database entry for user ${userId}`);
-            
+
             return data;
           }
         }
@@ -909,7 +909,7 @@ async function getUserData(userId) {
   if (userData.subscription.active && userData.subscription.lastDomainDate) {
     const today = new Date().toDateString();
     const lastUsedDate = new Date(userData.subscription.lastDomainDate).toDateString();
-    
+
     if (today !== lastUsedDate) {
       console.log(`Resetting daily limit for user ${userId}. Last used: ${lastUsedDate}, Today: ${today}`);
       userData.subscription.dailyDomainsUsed = 0;
@@ -1115,7 +1115,7 @@ if (bot) {
     // Cloudflare credentials input (email and key together)
     if (session.awaiting_cloudflare_credentials) {
       const parts = text.trim().split(/\s+/);
-      
+
       if (parts.length !== 2) {
         return ctx.reply(
           `❌ Invalid format. Please send both email and API key:\n\n` +
@@ -1126,7 +1126,7 @@ if (bot) {
 
       const [email, globalKey] = parts;
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      
+
       if (!emailRegex.test(email)) {
         return ctx.reply(
           `❌ Invalid email format. Please check and try again:\n\n` +
@@ -1203,11 +1203,11 @@ if (bot) {
       session.awaiting_broadcast = false;
 
       const broadcastMessage = text;
-      
+
       // Get all user IDs from user_data directory
       const userDataDir = path.join(__dirname, 'user_data');
       let userFiles = [];
-      
+
       try {
         userFiles = fs.readdirSync(userDataDir).filter(file => file.endsWith('.json'));
       } catch (error) {
@@ -1231,7 +1231,7 @@ if (bot) {
       // Send message to all users
       for (const file of userFiles) {
         const userId = file.replace('.json', '');
-        
+
         try {
           await bot.telegram.sendMessage(
             userId,
@@ -1239,7 +1239,7 @@ if (bot) {
             { parse_mode: "Markdown" }
           );
           successCount++;
-          
+
           // Small delay to avoid rate limiting
           await new Promise(resolve => setTimeout(resolve, 50));
         } catch (error) {
@@ -1414,15 +1414,15 @@ if (bot) {
       } else if (user.subscription.active && !session.force_payment) {
         // Check daily limit (2 domains per day)
         const DAILY_DOMAIN_LIMIT = 2;
-        
+
         // Reset daily counter if it's a new day
         const today = new Date().toDateString();
         const lastUsedDate = user.subscription.lastDomainDate ? new Date(user.subscription.lastDomainDate).toDateString() : null;
-        
+
         if (today !== lastUsedDate) {
           user.subscription.dailyDomainsUsed = 0;
         }
-        
+
         // Check if daily limit reached
         if (user.subscription.dailyDomainsUsed >= DAILY_DOMAIN_LIMIT) {
           session.awaiting_domain = true;
@@ -1444,16 +1444,16 @@ if (bot) {
             }
           );
         }
-        
+
         // Use subscription
         isSubscriptionUse = true;
         paymentType = 'Monthly Subscription';
         user.subscription.domainsUsed++;
         user.subscription.dailyDomainsUsed++;
         user.subscription.lastDomainDate = new Date();
-        
+
         const saveSuccess = await saveUserData(ctx.from.id, user);
-        
+
         if (!saveSuccess) {
           console.error(`Failed to update domain count for user ${ctx.from.id}`);
         } else {
@@ -1477,7 +1477,7 @@ if (bot) {
         // Deduct the cost from user balance
         user.balance -= cost;
         const saveSuccess = await saveUserData(ctx.from.id, user);
-        
+
         if (!saveSuccess) {
           console.error(`Failed to save balance deduction for user ${ctx.from.id}`);
           session.awaiting_domain = true;
@@ -1489,7 +1489,7 @@ if (bot) {
             { parse_mode: "Markdown" }
           );
         }
-        
+
         console.log(`Payment processed for user ${ctx.from.id}: $${cost} deducted, new balance: $${user.balance.toFixed(2)}`);
       }
 
@@ -1685,7 +1685,7 @@ if (bot) {
         // If we have a status message, edit it to show the error
         const errorMsg = formatErrorMessage(error, requestId);
         const msgOptions = { parse_mode: "Markdown" };
-        
+
         if (statusMessage) {
           try {
             await ctx.telegram.editMessageText(
@@ -1730,7 +1730,7 @@ bot.on('callback_query', async (ctx) => {
         const user = await getUserData(ctx.from.id);
         session.awaiting_amount = true;
         return ctx.editMessageText(
-          `💎 *Balance*: $${user.balance.toFixed(2)}\n\nEnter USD amount:`,
+          `💎 *Balance*: $${user.balance.toFixed(2)}\nEnter USD amount:`,
           { parse_mode: "Markdown" }
         );
       }
@@ -1742,9 +1742,9 @@ bot.on('callback_query', async (ctx) => {
           const endDate = new Date(user.subscription.endDate);
           const daysLeft = Math.max(0, Math.ceil((endDate - new Date()) / (1000 * 60 * 60 * 24)));
           const currentPrice = user.subscription.isFirstTime ? '$200' : '$200';
-          
+
           const timeDisplay = daysLeft === 0 ? 'Expires today' : `${daysLeft} days left`;
-          
+
           // Check daily usage
           const DAILY_DOMAIN_LIMIT = 2;
           const today = new Date().toDateString();
@@ -1896,12 +1896,12 @@ bot.on('callback_query', async (ctx) => {
           const endDate = new Date(user.subscription.endDate);
           const daysLeft = Math.max(0, Math.ceil((endDate - new Date()) / (1000 * 60 * 60 * 24)));
           const timeDisplay = daysLeft === 0 ? 'Expires today' : `${daysLeft} days left`;
-          
+
           const DAILY_DOMAIN_LIMIT = 2;
           const today = new Date().toDateString();
           const lastUsedDate = user.subscription.lastDomainDate ? new Date(user.subscription.lastDomainDate).toDateString() : null;
           const dailyUsed = (today === lastUsedDate) ? user.subscription.dailyDomainsUsed : 0;
-          
+
           subscriptionStatus = `⭐ *Subscription:* Active (${timeDisplay})\n` +
                              `🎯 *Today:* ${dailyUsed}/${DAILY_DOMAIN_LIMIT} domains (${dailyUsed * 3}/6 links)\n` +
                              `📊 *Total:* ${user.subscription.domainsUsed} domains\n`;
@@ -1988,7 +1988,7 @@ bot.on('callback_query', async (ctx) => {
       if (callbackData === 'template_settings') {
         const user = await getUserData(ctx.from.id);
         const currentTemplate = user.templateType || 'html';
-        
+
         return ctx.editMessageText(
           `⚙️ *Template Settings*\n\n` +         
           `📄 *Plain Redirect Template* - Simple HTML redirect\n` +
@@ -2014,10 +2014,10 @@ bot.on('callback_query', async (ctx) => {
         const user = await getUserData(ctx.from.id);
         const newTemplate = callbackData === 'set_template_html' ? 'html' : 'php';
         const templateName = newTemplate === 'html' ? 'Plain Redirect Template' : 'Cloudflare Template';
-        
+
         user.templateType = newTemplate;
         await saveUserData(ctx.from.id, user);
-        
+
         return ctx.editMessageText(
           `✅ *Template Updated!*\n\n` +
           `Your template has been set to: *${templateName}*\n\n` +
@@ -2278,7 +2278,7 @@ bot.on('callback_query', async (ctx) => {
             const isSubscriptionPayment = paymentRequest.amount === 250 || paymentRequest.amount === 200;
             if (isSubscriptionPayment && !userData.subscription.active) {
               const isFirstTime = paymentRequest.amount === 250;
-              
+
               // Activate subscription
               userData.subscription.active = true;
               userData.subscription.startDate = new Date().toISOString();
@@ -2286,10 +2286,10 @@ bot.on('callback_query', async (ctx) => {
               userData.subscription.domainsUsed = 0;
               userData.subscription.hasEverSubscribed = true;
               userData.subscription.isFirstTime = !isFirstTime;
-              
+
               // Deduct subscription cost from balance
               userData.balance -= paymentRequest.amount;
-              
+
               console.log(`Auto-activated subscription for user ${userId}: ${isFirstTime ? 'First-time' : 'Renewal'} - $${paymentRequest.amount}`);
             }
 
@@ -2312,7 +2312,7 @@ bot.on('callback_query', async (ctx) => {
               let userMessage = `✅ *Payment Approved!*\n\n` +
                 `💰 Amount: $${paymentRequest.amount}\n` +
                 `💳 Balance: $${userData.balance.toFixed(2)}\n\n`;
-              
+
               if (subscriptionActivated) {
                 const endDate = new Date(userData.subscription.endDate);
                 userMessage += `⭐ *Monthly Subscription Activated!*\n\n` +
@@ -2324,7 +2324,7 @@ bot.on('callback_query', async (ctx) => {
                 userMessage += `Your payment has been verified and added to your account.\n` +
                   `You can now use your balance for domain provisioning.`;
               }
-              
+
               await bot.telegram.sendMessage(userId, userMessage, { parse_mode: "Markdown" });
             } catch (userError) {
               console.log("Failed to notify user of payment approval:", userError.message);
@@ -2338,7 +2338,7 @@ bot.on('callback_query', async (ctx) => {
               `👤 User ID: ${userId}\n` +
               `💳 User's New Balance: $${userData.balance.toFixed(2)}\n` +
               `🆔 Request ID: \`${requestId}\`\n\n`;
-            
+
             if (isSubscriptionPayment && userData.subscription.active) {
               const endDate = new Date(userData.subscription.endDate);
               const subscriptionType = paymentRequest.amount === 250 ? 'First-time' : 'Renewal';
@@ -2347,7 +2347,7 @@ bot.on('callback_query', async (ctx) => {
                 `📅 Valid until: ${endDate.toDateString()}\n` +
                 `🎯 Domains available: 60\n\n`;
             }
-            
+
             adminMessage += `User has been notified and ${isSubscriptionPayment && userData.subscription.active ? 'subscription activated' : 'balance updated'}.`;
 
             await bot.telegram.sendMessage(ctx.from.id, adminMessage, { parse_mode: "Markdown" });
@@ -2498,7 +2498,7 @@ bot.on('callback_query', async (ctx) => {
 
         // Save all changes atomically to prevent race conditions
         const saveSuccess = await saveUserData(ctx.from.id, user);
-        
+
         if (!saveSuccess) {
           console.error(`Failed to save subscription data for user ${ctx.from.id}`);
           return ctx.editMessageText(
@@ -2527,7 +2527,7 @@ bot.on('callback_query', async (ctx) => {
           // Attempt to resave
           user.balance += subscriptionPrice; // Refund
           await saveUserData(ctx.from.id, user);
-          
+
           return ctx.editMessageText(
             `❌ *Subscription Activation Failed*\n\n` +
             `There was a critical error saving your subscription.\n` +
@@ -2564,7 +2564,7 @@ bot.on('callback_query', async (ctx) => {
           }
         }
 
-        
+
         const savings = (60 * 80) - subscriptionPrice;
 
         return ctx.editMessageText(
@@ -2610,8 +2610,8 @@ bot.on('callback_query', async (ctx) => {
 
         return ctx.editMessageText(
           "🎯 *Pay Per Use - $80*\n\n" +
-            "✨ *Format:* `domain.com target-url TURNSTILE_KEY`\n" +
-            "📝 *Example:* `mysite.com https://facebook.com 0x4AAA...`\n\n" +
+            "✨ *Format:* `domain.com redirect-url TURNSTILE_KEY`\n" +
+            "📝 *Example:* `mysite.com https://fb.com 0x4AAA...`\n\n" +
             "💡 Turnstile key is optional (default key used if not provided)",
           { parse_mode: "Markdown" }
         );
@@ -2642,7 +2642,7 @@ bot.on('callback_query', async (ctx) => {
           // Check if we have a recently created domain with IP
           let dnsRecordCreated = false;
           let dnsMessage = '';
-          
+
           if (session.last_created_ip && session.last_created_domain) {
             try {
               await ctx.telegram.editMessageText(
@@ -2655,14 +2655,14 @@ bot.on('callback_query', async (ctx) => {
               );
 
               const dnsResult = await cf.addDNSRecord(zoneId, domainName, session.last_created_ip);
-              
+
               if (dnsResult.success) {
                 dnsRecordCreated = true;
                 dnsMessage = `\n\n🌐 *DNS A Record Added:*\n` +
                   `• Domain: ${domainName}\n` +
                   `• IP: ${session.last_created_ip}\n` +
                   `• Proxied: Yes (Orange cloud)`;
-                
+
                 // Clear the stored values
                 delete session.last_created_domain;
                 delete session.last_created_ip;
@@ -2735,10 +2735,10 @@ bot.on('callback_query', async (ctx) => {
 
         return ctx.editMessageText(
           "🔑 *Admin Access - Free Access Granted*\n\n" +
-          "✨ *Format:* `domain.com redirect-url TURNSTILE_KEY`\n" +
-          "📝 *Example:* `mysite.com https://fb.com 0x4AAA...`\n\n" +
-          "💡 Turnstile key is optional (default key used if not provided)\n" +
-          "💎 Free access for admin - no payment required",
+            "✨ *Format:* `domain.com redirect-url TURNSTILE_KEY`\n" +
+            "📝 *Example:* `mysite.com https://fb.com 0x4AAA...`\n\n" +
+            "💡 Turnstile key is optional (default key used if not provided)\n" +
+            "💎 Free access for admin - no payment required",
           { parse_mode: "Markdown" }
         );
       }
@@ -2843,7 +2843,7 @@ bot.on('callback_query', async (ctx) => {
             `✅ *Admin Access Granted!*\n\n` +
             `🆔 Request ID: \`${requestId}\`\n\n` +
             `You now have free domain provisioning access.\n` +
-            `Use "🔗 Get Redirect" to provision your domain without payment.`,
+            `Use /start to create your first domain.`,
             { parse_mode: "Markdown" }
           );
         } catch (error) {
@@ -2864,7 +2864,8 @@ bot.on('callback_query', async (ctx) => {
             request.userId,
             `❌ *Admin Access Denied*\n\n` +
             `🆔 Request ID: \`${requestId}\`\n\n` +
-            `Your admin access request has been denied.`,
+            `Your admin access request has been denied.\n` +
+            `You can still use pay-per-domain or subscription services.`,
             { parse_mode: "Markdown" }
           );
         } catch (error) {
@@ -2878,122 +2879,84 @@ bot.on('callback_query', async (ctx) => {
       }
     }
 
-    // Handle admin approval/rejection callbacks for topups
-    if (callbackData.startsWith('approve_') || callbackData.startsWith('reject_')) {
-      const [action, requestId] = callbackData.split('_');
-      const request = topupRequests.get(requestId);
+    // Handle admin access approval/denial callbacks
+    if (callbackData.startsWith('grant_vip_') || callbackData.startsWith('deny_vip_')) {
+      const requestId = callbackData.replace('grant_vip_', '').replace('deny_vip_', '');
+      const request = adminRequests.get(requestId);
 
       if (!request) {
-        return ctx.answerCbQuery('Request not found');
+        return ctx.answerCbQuery('Request not found or expired', { show_alert: true });
       }
 
-      if (action === 'approve') {
-        // Update user balance
-        const userData = getUserData(request.userId);
-        userData.balance += request.amount;
+      if (callbackData.startsWith('grant_vip_')) {
+        // Grant VIP access to user session
+        const userSession = sessions.get(request.userId) || {};
+        userSession.admin_free_access = true;
+        sessions.set(request.userId, userSession);
+
         request.status = 'approved';
+        adminRequests.delete(requestId);
 
         // Notify user
         try {
           await bot.telegram.sendMessage(
             request.userId,
-            `✅ *Top-Up Approved!*\n\n` +
-            `💰 Amount: $${request.amount}\n` +
-            `💳 New Balance: $${userData.balance.toFixed(2)}\n\n` +
+            `✅ *VIP Access Granted!*\n\n` +
             `🆔 Request ID: \`${requestId}\`\n\n` +
-            `Thank you! Your account has been credited.`,
+            `You now have free VIP domain provisioning access.\n` +
+            `Use "🎯 Create Redirect" to provision your domain without payment.`,
             { parse_mode: "Markdown" }
           );
         } catch (error) {
-          console.log("Failed to notify user");
+          console.log("Failed to notify user of VIP access approval");
         }
 
-        await ctx.editMessageText(
-          `✅ *APPROVED*\n\n${ctx.callbackQuery.message.text.replace('💳 *New Top-Up Request*', '💳 *Top-Up Request - APPROVED*')}`,
+        await ctx.answerCbQuery('✅ VIP access granted!', { show_alert: true });
+
+        await ctx.telegram.sendMessage(
+          ctx.from.id,
+          `✅ *VIP ACCESS GRANTED*\n\n` +
+          `👤 User: @${request.username} (${request.userId})\n` +
+          `👋 Name: ${request.firstName}\n` +
+          `🆔 Request ID: \`${requestId}\`\n\n` +
+          `User has been granted free VIP domain access.`,
           { parse_mode: "Markdown" }
         );
 
-        await ctx.answerCbQuery('✅ Top-up approved!');
-
-      } else if (action === 'reject') {
-        request.status = 'rejected';
+      } else if (callbackData.startsWith('deny_vip_')) {
+        request.status = 'denied';
+        adminRequests.delete(requestId);
 
         // Notify user
         try {
           await bot.telegram.sendMessage(
             request.userId,
-            `❌ *Top-Up Rejected*\n\n` +
-            `💰 Amount: $${request.amount}\n` +
+            `❌ *VIP Access Denied*\n\n` +
             `🆔 Request ID: \`${requestId}\`\n\n` +
-            `Your top-up request has been rejected. Please contact support if you have questions.`,
+            `Your VIP access request has been denied.\n` +
+            `You can still use pay-per-domain or subscription services.`,
             { parse_mode: "Markdown" }
           );
         } catch (error) {
-          console.log("Failed to notify user");
+          console.log("Failed to notify user of VIP access denial");
         }
 
-        await ctx.editMessageText(
-          `❌ *REJECTED*\n\n${ctx.callbackQuery.message.text.replace('💳 *New Top-Up Request*', '💳 *Top-Up Request - REJECTED*')}`,
+        await ctx.answerCbQuery('❌ VIP access denied!', { show_alert: true });
+
+        await ctx.telegram.sendMessage(
+          ctx.from.id,
+          `❌ *VIP ACCESS DENIED*\n\n` +
+          `👤 User: @${request.username} (${request.userId})\n` +
+          `🆔 Request ID: \`${requestId}\`\n\n` +
+          `VIP access request has been denied.`,
           { parse_mode: "Markdown" }
         );
-
-        await ctx.answerCbQuery('❌ Top-up rejected!');
       }
-    }
-  });
-
-  // Enhanced error handling with categorization
-  bot.catch(async (err, ctx) => {
-    const errorId = crypto.randomUUID().slice(0, 8);
-    const log = L("bot-error");
-
-    // Categorize errors
-    const errorType = err.code || err.name || 'UnknownError';
-    const isCritical = ['ECONNRESET', 'ETIMEDOUT', 'NetworkError'].includes(errorType);
-
-    log.error(
-      {
-        errorId,
-        errorType,
-        error: err.message,
-        stack: err.stack,
-        userId: ctx.from?.id,
-        username: ctx.from?.username || "unknown",
-        chatId: ctx.chat?.id,
-        messageText: ctx.message?.text || "unknown",
-        isCritical,
-      },
-      "💥 Bot error occurred",
-    );
-
-    // Send to admin if critical
-    if (isCritical && process.env.ADMIN_ID) {
-      try {
-        await bot.telegram.sendMessage(
-          process.env.ADMIN_ID,
-          `🚨 *Critical Bot Error*\n\n` +
-          `🆔 Error ID: \`${errorId}\`\n` +
-          `⚠️ Type: ${errorType}\n` +
-          `👤 User: ${ctx.from?.id || 'unknown'}\n` +
-          `💬 Message: ${err.message}`,
-          { parse_mode: "Markdown" }
-        );
-      } catch (adminError) {
-        log.error({ adminError: adminError.message }, "Failed to notify admin of critical error");
-      }
+      return;
     }
 
-    // User-friendly error response
-    const userMessage = isCritical ? 
-      "🔧 *System temporarily unavailable*\n\nPlease try again in a few minutes." :
-      "❌ *Something went wrong*\n\nPlease try again with /start.\n\n" +
-      `🆔 Error ID: \`${errorId}\``;
-
-    return ctx.reply(userMessage, { parse_mode: "Markdown" });
+    // Payment approvals handled via payment verification system above
   });
-
-  // Webhook endpoint
-  app.use(`/bot${process.env.TELEGRAM_BOT_TOKEN}`, bot.webhookCallback("/"));
 }
 
 // ==========================================
