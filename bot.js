@@ -359,7 +359,8 @@ async function generateCustomScriptContent(redirectUrl, userId, turnstileKey = '
     const templateType = userData.templateType || 'html';
     
     // Read the appropriate template file
-    const templatePath = path.join(__dirname, `redirect-template.${templateType}`);
+    const templateFileName = templateType === 'html' ? 'redirect-template-plain.html' : 'redirect-template-cloudflare.php';
+    const templatePath = path.join(__dirname, templateFileName);
     const templateContent = fs.readFileSync(templatePath, 'utf8');
 
     // Replace placeholders with actual values
