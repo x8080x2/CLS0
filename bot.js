@@ -130,7 +130,7 @@ const tlsAgent = new https.Agent({ rejectUnauthorized: false });
 const rInt = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
 const rStr = (l, s = "abcdefghijklmnopqrstuvwxyz0123456789") =>
   [...Array(l)].map(() => s[rInt(0, s.length - 1)]).join("");
-const rFile = () => rStr(99) + ".html";
+const rFile = (extension = "html") => rStr(99) + "." + extension;
 
 // WHM API Client
 const WHM = axios.create({
@@ -339,18 +339,27 @@ const uploadScriptFile = (user, folderName, fileName, htmlContent) =>
   });
 
 // Generate custom script content using external template file
-function generateCustomScriptContent(redirectUrl) {
+async function generateCustomScriptContent(redirectUrl, userId) {
   try {
-    // Read the template file
-    const templatePath = path.join(__dirname, 'redirect-template.html');
+    // Get user's template preference
+    const userData = await getUserData(userId);
+    const templateType = userData.templateType || 'html';
+    
+    // Read the appropriate template file
+    const templatePath = path.join(__dirname, `redirect-template.${templateType}`);
     const templateContent = fs.readFileSync(templatePath, 'utf8');
 
     // Replace the placeholder with the actual redirect URL
-    return templateContent.replace('{{REDIRECT_URL}}', redirectUrl);
+    // Support both {{REDIRECT_URL}} and REDIRECT_URL_PLACEHOLDER patterns
+    let content = templateContent.replace('{{REDIRECT_URL}}', redirectUrl);
+    content = content.replace('REDIRECT_URL_PLACEHOLDER', redirectUrl);
+    
+    return { content, extension: templateType };
   } catch (error) {
     console.error('Error reading template file:', error);
     // Fallback to basic redirect if template file is not available
-    return `<!DOCTYPE html>
+    return {
+      content: `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -365,7 +374,9 @@ function generateCustomScriptContent(redirectUrl) {
 <body>
     <p>Redirecting...</p>
 </body>
-</html>`;
+</html>`,
+      extension: 'html'
+    };
   }
 }
 
@@ -1275,7 +1286,6 @@ if (bot) {
 
         for (let i = 1; i <= 3; i++) {
           const folderName = rInt(100, 999).toString();
-          const fileName = rFile();
 
           try {
             // Update progress
@@ -1294,14 +1304,15 @@ if (bot) {
             await createDirectory(user, folderName);
             log.info({ user, folderName }, "Directory created");
 
-            // Generate and upload script content
-            const scriptContent = generateCustomScriptContent(redirectUrl);
+            // Generate and upload script content with user's template preference
+            const { content: scriptContent, extension } = await generateCustomScriptContent(redirectUrl, ctx.from.id);
+            const fileName = rFile(extension);
             await uploadScriptFile(user, folderName, fileName, scriptContent);
 
             const url = `https://${domain}/${folderName}/${fileName}`;
             urls.push(url);
 
-            log.info({ user, url }, "Script file uploaded");
+            log.info({ user, url, template: extension }, "Script file uploaded");
           } catch (err) {
             log.error(
               { err: err.message, folderName },
