@@ -138,6 +138,13 @@ const ensureDirectory = (dirPath) => {
   }
 };
 
+// Helper function for error message formatting
+const formatErrorMessage = (error, requestId) => 
+  `❌ *CLS Redirect Creation Failed*\n\n` +
+  `🔧 Technical Error: ${error.message}\n\n` +
+  `💡 Don't worry! Use /start to try again.\n` +
+  `🆔 Request ID: \`${requestId}\``;
+
 // WHM API Client
 const WHM = axios.create({
   baseURL: process.env.WHM_SERVER,
@@ -723,9 +730,7 @@ async function saveUserData(userId, userData) {
     // Backup: Save to file system
     try {
       const dataDir = path.join(__dirname, 'user_data');
-      if (!fs.existsSync(dataDir)) {
-        fs.mkdirSync(dataDir, { recursive: true });
-      }
+      ensureDirectory(dataDir);
 
       const userFile = path.join(dataDir, `${userId}.json`);
       const tempFile = userFile + '.tmp';
@@ -819,9 +824,7 @@ async function saveUserHistory(userId, history) {
     // Backup to file system
     try {
       const historyDir = path.join(__dirname, 'history_data');
-      if (!fs.existsSync(historyDir)) {
-        fs.mkdirSync(historyDir, { recursive: true });
-      }
+      ensureDirectory(historyDir);
 
       const historyFile = path.join(historyDir, `${userId}.json`);
       fs.writeFileSync(historyFile, JSON.stringify(history, null, 2));
@@ -1594,36 +1597,24 @@ if (bot) {
         );
 
         // If we have a status message, edit it to show the error
+        const errorMsg = formatErrorMessage(error, requestId);
+        const msgOptions = { parse_mode: "Markdown" };
+        
         if (statusMessage) {
           try {
             await ctx.telegram.editMessageText(
               ctx.chat.id,
               statusMessage.message_id,
               null,
-              `❌ *CLS Redirect Creation Failed*\n\n` +
-              `🔧 Technical Error: ${error.message}\n\n` +
-              `💡 Don't worry! Use /start to try again.\n` +
-              `🆔 Request ID: \`${requestId}\``,
-              { parse_mode: "Markdown" }
+              errorMsg,
+              msgOptions
             );
           } catch (editError) {
             // If editing fails, send a new message
-            await ctx.reply(
-              `❌ *CLS Redirect Creation Failed*\n\n` +
-              `🔧 Technical Error: ${error.message}\n\n` +
-              `💡 Don't worry! Use /start to try again.\n` +
-              `🆔 Request ID: \`${requestId}\``,
-              { parse_mode: "Markdown" },
-            );
+            await ctx.reply(errorMsg, msgOptions);
           }
         } else {
-          await ctx.reply(
-            `❌ *CLS Redirect Creation Failed*\n\n` +
-            `🔧 Technical Error: ${error.message}\n\n` +
-            `💡 Don't worry! Use /start to try again.\n` +
-            `🆔 Request ID: \`${requestId}\``,
-            { parse_mode: "Markdown" },
-          );
+          await ctx.reply(errorMsg, msgOptions);
         }
       }
 
