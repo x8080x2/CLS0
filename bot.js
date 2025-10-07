@@ -858,6 +858,8 @@ async function getUserData(userId) {
         startDate: null,
         endDate: null,
         domainsUsed: 0,
+        dailyDomainsUsed: 0,
+        lastDomainDate: null,
         hasEverSubscribed: false
       }
     };
@@ -878,12 +880,15 @@ async function getUserData(userId) {
       startDate: null,
       endDate: null,
       domainsUsed: 0,
+      dailyDomainsUsed: 0,
+      lastDomainDate: null,
       hasEverSubscribed: false
     };
   } else {
     // Validate and fix subscription properties
     userData.subscription.active = typeof userData.subscription.active === 'boolean' ? userData.subscription.active : false;
     userData.subscription.domainsUsed = (typeof userData.subscription.domainsUsed === 'number' && !isNaN(userData.subscription.domainsUsed)) ? userData.subscription.domainsUsed : 0;
+    userData.subscription.dailyDomainsUsed = (typeof userData.subscription.dailyDomainsUsed === 'number' && !isNaN(userData.subscription.dailyDomainsUsed)) ? userData.subscription.dailyDomainsUsed : 0;
     userData.subscription.hasEverSubscribed = typeof userData.subscription.hasEverSubscribed === 'boolean' ? userData.subscription.hasEverSubscribed : false;
 
     // Validate dates
@@ -892,6 +897,22 @@ async function getUserData(userId) {
     }
     if (userData.subscription.endDate && typeof userData.subscription.endDate === 'string') {
       userData.subscription.endDate = new Date(userData.subscription.endDate);
+    }
+    if (userData.subscription.lastDomainDate && typeof userData.subscription.lastDomainDate === 'string') {
+      userData.subscription.lastDomainDate = new Date(userData.subscription.lastDomainDate);
+    }
+  }
+
+  // Reset daily limit if it's a new day
+  if (userData.subscription.active && userData.subscription.lastDomainDate) {
+    const today = new Date().toDateString();
+    const lastUsedDate = new Date(userData.subscription.lastDomainDate).toDateString();
+    
+    if (today !== lastUsedDate) {
+      console.log(`Resetting daily limit for user ${userId}. Last used: ${lastUsedDate}, Today: ${today}`);
+      userData.subscription.dailyDomainsUsed = 0;
+      userData.subscription.lastDomainDate = null;
+      await saveUserData(userId, userData);
     }
   }
 
@@ -903,6 +924,8 @@ async function getUserData(userId) {
       console.log(`Subscription expired for user ${userId}. End date was ${endDate.toISOString()}`);
       userData.subscription.active = false;
       userData.subscription.domainsUsed = 0;
+      userData.subscription.dailyDomainsUsed = 0;
+      userData.subscription.lastDomainDate = null;
       await saveUserData(userId, userData);
     }
   }
@@ -1386,17 +1409,53 @@ if (bot) {
         if (session.admin_free_access) {
           delete session.admin_free_access;
         }
-      } else if (user.subscription.active && user.subscription.domainsUsed < 60 && !session.force_payment) {
+      } else if (user.subscription.active && !session.force_payment) {
+        // Check daily limit (2 domains per day)
+        const DAILY_DOMAIN_LIMIT = 2;
+        
+        // Reset daily counter if it's a new day
+        const today = new Date().toDateString();
+        const lastUsedDate = user.subscription.lastDomainDate ? new Date(user.subscription.lastDomainDate).toDateString() : null;
+        
+        if (today !== lastUsedDate) {
+          user.subscription.dailyDomainsUsed = 0;
+        }
+        
+        // Check if daily limit reached
+        if (user.subscription.dailyDomainsUsed >= DAILY_DOMAIN_LIMIT) {
+          session.awaiting_domain = true;
+          return ctx.reply(
+            `⭐ *Daily Limit Reached*\n\n` +
+            `You've used your ${DAILY_DOMAIN_LIMIT} domains for today (6 links).\n` +
+            `🔄 Your daily limit resets at midnight.\n\n` +
+            `💡 You can still create domains with pay-per-use ($80 each).`,
+            { 
+              parse_mode: "Markdown",
+              reply_markup: {
+                inline_keyboard: [
+                  user.balance >= 80 ? 
+                    [{ text: '💳 Pay Per Domain ($80)', callback_data: 'redirect_payperuse' }] :
+                    [{ text: '💳 Add Funds', callback_data: 'topup' }],
+                  [{ text: '🔙 Back to Menu', callback_data: 'back_menu' }]
+                ]
+              }
+            }
+          );
+        }
+        
         // Use subscription
         isSubscriptionUse = true;
         paymentType = 'Monthly Subscription';
         user.subscription.domainsUsed++;
+        user.subscription.dailyDomainsUsed++;
+        user.subscription.lastDomainDate = new Date();
+        
         const saveSuccess = await saveUserData(ctx.from.id, user);
         
         if (!saveSuccess) {
           console.error(`Failed to update domain count for user ${ctx.from.id}`);
         } else {
-          console.log(`Subscription domain count updated for user ${ctx.from.id}: ${user.subscription.domainsUsed}/60`);
+          console.log(`Subscription domain used for user ${ctx.from.id}: ${user.subscription.dailyDomainsUsed}/${DAILY_DOMAIN_LIMIT} today, ${user.subscription.domainsUsed} total`);
         }
       } else {
         // Regular payment
@@ -1462,9 +1521,10 @@ if (bot) {
           { parse_mode: "Markdown" },
         );
       } else if (isSubscriptionUse) {
+        const DAILY_DOMAIN_LIMIT = 2;
         statusMessage = await ctx.reply(
           `🎯 *Creating ${domain}*\n\n` +
-          `${paymentType} - ${user.subscription.domainsUsed}/60\n` +
+          `${paymentType} - Today: ${user.subscription.dailyDomainsUsed}/${DAILY_DOMAIN_LIMIT}\n` +
           `ID: \`${requestId}\`\n\n` +
           `⏳ Setting up...`,
           { parse_mode: "Markdown" },
@@ -1594,7 +1654,7 @@ if (bot) {
               `🌐 Domain: \`${domain}\`\n` +
               `🎯 Redirects To: ${redirectUrl}\n` +
               `🖥️ Server IP: \`${ip}\`\n` +
-              `💰 Payment: ${paymentType}${isSubscriptionUse ? ` (${currentUserData.subscription.domainsUsed}/60)` : isAdminFree ? ' - Free' : ' - $80'}\n` +
+              `💰 Payment: ${paymentType}${isSubscriptionUse ? ` (Today: ${currentUserData.subscription.dailyDomainsUsed}/2)` : isAdminFree ? ' - Free' : ' - $80'}\n` +
               `📅 Date: ${new Date().toLocaleString()}\n\n` +
               `🚀 Total URLs Created: ${urls.length}\n` +
               `🆔 Request ID: \`${requestId}\`\n\n` +
@@ -1680,11 +1740,20 @@ bot.on('callback_query', async (ctx) => {
           const currentPrice = user.subscription.isFirstTime ? '$200' : '$200';
           
           const timeDisplay = daysLeft === 0 ? 'Expires today' : `${daysLeft} days left`;
+          
+          // Check daily usage
+          const DAILY_DOMAIN_LIMIT = 2;
+          const today = new Date().toDateString();
+          const lastUsedDate = user.subscription.lastDomainDate ? new Date(user.subscription.lastDomainDate).toDateString() : null;
+          const dailyUsed = (today === lastUsedDate) ? user.subscription.dailyDomainsUsed : 0;
+          const dailyRemaining = DAILY_DOMAIN_LIMIT - dailyUsed;
 
           return ctx.editMessageText(
             `⭐ *Subscription Active*\n\n` +
             `📅 Expires: ${endDate.toDateString()} (${timeDisplay})\n` +
-            `🎯 Used: ${user.subscription.domainsUsed}/60`,
+            `🎯 Today: ${dailyUsed}/${DAILY_DOMAIN_LIMIT} domains (${dailyUsed * 3} links)\n` +
+            `✨ Available: ${dailyRemaining} domains (${dailyRemaining * 3} links)\n` +
+            `📊 Total Used: ${user.subscription.domainsUsed} domains`,
             { 
               parse_mode: "Markdown",
               reply_markup: {
@@ -1702,7 +1771,14 @@ bot.on('callback_query', async (ctx) => {
         const savings = (60 * 80) - subscriptionPrice;
 
         return ctx.editMessageText(
-            `⭐ ⭐ *Monthly Plan - $250*\n*Renewal - $200*`,
+            `⭐ *Monthly Subscription Plan*\n\n` +
+            `💎 *First Time:* $250\n` +
+            `🔄 *Renewal:* $200\n\n` +
+            `📦 *What You Get:*\n` +
+            `• 2 domains daily (6 links)\n` +
+            `• 30-day access\n` +
+            `• Up to 60 domains total\n` +
+            `• Daily limit resets at midnight`,
             { 
               parse_mode: "Markdown",
               reply_markup: {
@@ -1726,8 +1802,12 @@ bot.on('callback_query', async (ctx) => {
         const hasAdminAccess = session.admin_free_access || 
                               (process.env.ADMIN_ID && ctx.from.id.toString() === process.env.ADMIN_ID);
 
-        // Check if user has active subscription
-        const hasSubscription = user.subscription.active && user.subscription.domainsUsed < 60;
+        // Check if user has active subscription with daily limit
+        const DAILY_DOMAIN_LIMIT = 2;
+        const today = new Date().toDateString();
+        const lastUsedDate = user.subscription.lastDomainDate ? new Date(user.subscription.lastDomainDate).toDateString() : null;
+        const dailyUsed = (today === lastUsedDate) ? user.subscription.dailyDomainsUsed : 0;
+        const hasSubscription = user.subscription.active && dailyUsed < DAILY_DOMAIN_LIMIT;
 
         if (!hasAdminAccess && !hasSubscription && user.balance < requiredAmount) {
           return ctx.editMessageText(
@@ -1750,12 +1830,13 @@ bot.on('callback_query', async (ctx) => {
           );
         }
 
-        if (!hasAdminAccess && hasSubscription && user.subscription.domainsUsed >= 60) {
+        if (!hasAdminAccess && user.subscription.active && dailyUsed >= DAILY_DOMAIN_LIMIT) {
           return ctx.editMessageText(
-            `⭐ *Subscription Limit Reached*\n\n` +
-            `🎯 You've used all for this month.\n` +
-            `📅 Your subscription renews on ${new Date(user.subscription.endDate).toDateString()}\n\n` +
-            `💡 You can still create domains with pay-per-use ($80 each) or wait for renewal.`,
+            `⭐ *Daily Limit Reached*\n\n` +
+            `🎯 You've used your ${DAILY_DOMAIN_LIMIT} domains for today (${dailyUsed * 3} links).\n` +
+            `🔄 Your daily limit resets at midnight.\n` +
+            `📅 Subscription expires: ${new Date(user.subscription.endDate).toDateString()}\n\n` +
+            `💡 You can still create domains with pay-per-use ($80 each).`,
             { 
               parse_mode: "Markdown",
               reply_markup: {
@@ -1811,8 +1892,15 @@ bot.on('callback_query', async (ctx) => {
           const endDate = new Date(user.subscription.endDate);
           const daysLeft = Math.max(0, Math.ceil((endDate - new Date()) / (1000 * 60 * 60 * 24)));
           const timeDisplay = daysLeft === 0 ? 'Expires today' : `${daysLeft} days left`;
+          
+          const DAILY_DOMAIN_LIMIT = 2;
+          const today = new Date().toDateString();
+          const lastUsedDate = user.subscription.lastDomainDate ? new Date(user.subscription.lastDomainDate).toDateString() : null;
+          const dailyUsed = (today === lastUsedDate) ? user.subscription.dailyDomainsUsed : 0;
+          
           subscriptionStatus = `⭐ *Subscription:* Active (${timeDisplay})\n` +
-                             `🎯 *Domains Used:* ${user.subscription.domainsUsed}/60\n`;
+                             `🎯 *Today:* ${dailyUsed}/${DAILY_DOMAIN_LIMIT} domains (${dailyUsed * 3}/6 links)\n` +
+                             `📊 *Total:* ${user.subscription.domainsUsed} domains\n`;
         } else {
           subscriptionStatus = `⭐ *Subscription:* Inactive\n`;
         }
@@ -2397,6 +2485,8 @@ bot.on('callback_query', async (ctx) => {
         user.subscription.startDate = new Date();
         user.subscription.endDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
         user.subscription.domainsUsed = 0;
+        user.subscription.dailyDomainsUsed = 0;
+        user.subscription.lastDomainDate = null;
         user.subscription.isFirstTime = isFirstTime;
         user.subscription.hasEverSubscribed = true;
 
@@ -2472,10 +2562,11 @@ bot.on('callback_query', async (ctx) => {
         const savings = (60 * 80) - subscriptionPrice;
 
         return ctx.editMessageText(
-          `✅ *Subscription Active*\n\n` +
-          `Redirect Available\n` +
-          `Expires: ${user.subscription.endDate.toDateString()}\n` +
-          `Balance: $${user.balance.toFixed(2)}`,
+          `✅ *Subscription Activated!*\n\n` +
+          `🎯 *Daily Limit:* 2 domains (6 links)\n` +
+          `📅 *Expires:* ${user.subscription.endDate.toDateString()}\n` +
+          `💰 *Balance:* $${user.balance.toFixed(2)}\n\n` +
+          `Start creating your first domain now!`,
           { 
             parse_mode: "Markdown",
             reply_markup: {
