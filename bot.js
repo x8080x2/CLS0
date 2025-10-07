@@ -1988,15 +1988,16 @@ bot.on('callback_query', async (ctx) => {
         
         return ctx.editMessageText(
           `⚙️ *Template Settings*\n\n` +         
-          `🔐 *PHP Template*\n` +        
+          `📄 *Plain Redirect Template* - Simple HTML redirect\n` +
+          `☁️ *Cloudflare Template* - Advanced protection with bot filtering\n\n` +        
           `Choose your preferred template type:`,
           { 
             parse_mode: "Markdown",
             reply_markup: {
               inline_keyboard: [
                 [
-                  { text: currentTemplate === 'html' ? '✅ HTML' : '📄 HTML', callback_data: 'set_template_html' },
-                  { text: currentTemplate === 'php' ? '✅ PHP' : '🔐 PHP', callback_data: 'set_template_php' }
+                  { text: currentTemplate === 'html' ? '✅ Plain Redirect Template' : '📄 Plain Redirect Template', callback_data: 'set_template_html' },
+                  { text: currentTemplate === 'php' ? '✅ Cloudflare Template' : '☁️ Cloudflare Template', callback_data: 'set_template_php' }
                 ],
                 [{ text: '🔙 Back to Menu', callback_data: 'back_menu' }]
               ]
@@ -2009,14 +2010,15 @@ bot.on('callback_query', async (ctx) => {
       if (callbackData === 'set_template_html' || callbackData === 'set_template_php') {
         const user = await getUserData(ctx.from.id);
         const newTemplate = callbackData === 'set_template_html' ? 'html' : 'php';
+        const templateName = newTemplate === 'html' ? 'Plain Redirect Template' : 'Cloudflare Template';
         
         user.templateType = newTemplate;
         await saveUserData(ctx.from.id, user);
         
         return ctx.editMessageText(
           `✅ *Template Updated!*\n\n` +
-          `Your template has been set to: *${newTemplate.toUpperCase()}*\n\n` +
-          `All new redirects will use the ${newTemplate.toUpperCase()} template.`,
+          `Your template has been set to: *${templateName}*\n\n` +
+          `All new redirects will use the ${templateName}.`,
           { 
             parse_mode: "Markdown",
             reply_markup: {
