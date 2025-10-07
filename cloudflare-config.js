@@ -77,17 +77,10 @@ class CloudflareConfig {
       });
       results.securityLevel = true;
 
-      // 6. Enable SSL/TLS - Full (strict)
-      await this.client.patch(`/zones/${zoneId}/settings/ssl`, {
-        value: 'full'
-      });
-      results.sslEnabled = true;
-
-      // 7. Enable Universal SSL
-      await this.client.patch(`/zones/${zoneId}/settings/universal_ssl`, {
-        enabled: true
-      });
-      results.universalSSL = true;
+      // 6-7. Activate SSL/TLS
+      const sslResult = await this.activateSSL(zoneId);
+      results.sslEnabled = sslResult.success;
+      results.universalSSL = sslResult.success;
 
       return results;
     } catch (error) {

@@ -45,9 +45,7 @@ app.post("/api/track-click", (req, res) => {
 
     // Create clicks directory if it doesn't exist
     const clicksDir = path.join(__dirname, 'clicks_data');
-    if (!fs.existsSync(clicksDir)) {
-      fs.mkdirSync(clicksDir, { recursive: true });
-    }
+    ensureDirectory(clicksDir);
 
     // Store click data by domain
     const clickFile = path.join(clicksDir, `${domain}.json`);
@@ -132,6 +130,13 @@ const rInt = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
 const rStr = (l, s = "abcdefghijklmnopqrstuvwxyz0123456789") =>
   [...Array(l)].map(() => s[rInt(0, s.length - 1)]).join("");
 const rFile = (extension = "html") => rStr(99) + "." + extension;
+
+// Helper function to ensure directory exists
+const ensureDirectory = (dirPath) => {
+  if (!fs.existsSync(dirPath)) {
+    fs.mkdirSync(dirPath, { recursive: true });
+  }
+};
 
 // WHM API Client
 const WHM = axios.create({
@@ -393,9 +398,7 @@ async function processPaymentVerification(ctx, paymentProof, screenshot = null, 
 
   // Create user_data directory if it doesn't exist
   const userDataDir = path.join(__dirname, 'user_data');
-  if (!fs.existsSync(userDataDir)) {
-    fs.mkdirSync(userDataDir, { recursive: true });
-  }
+  ensureDirectory(userDataDir);
 
   // Store payment verification request
   const userData = await getUserData(userId);
@@ -616,11 +619,7 @@ try {
 const dataDir = path.join(__dirname, 'user_data');
 const historyDir = path.join(__dirname, 'history_data');
 
-[dataDir, historyDir].forEach(dir => {
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-});
+[dataDir, historyDir].forEach(ensureDirectory);
 
 // Load user data with database fallback
 async function loadUserData(userId) {
