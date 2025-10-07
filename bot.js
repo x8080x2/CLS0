@@ -1883,17 +1883,8 @@ bot.on('callback_query', async (ctx) => {
         const currentTemplate = user.templateType || 'html';
         
         return ctx.editMessageText(
-          `⚙️ *Template Settings*\n\n` +
-          `Current Template: *${currentTemplate.toUpperCase()}*\n\n` +
-          `📄 *HTML Template*\n` +
-          `• Works on any hosting\n` +
-          `• Client-side only\n` +
-          `• Cloudflare Turnstile protection\n\n` +
-          `🔐 *PHP Template*\n` +
-          `• Requires PHP hosting\n` +
-          `• Server-side bot detection\n` +
-          `• Redirects bots to Google before page loads\n` +
-          `• Includes all HTML features\n\n` +
+          `⚙️ *Template Settings*\n\n` +         
+          `🔐 *PHP Template*\n` +        
           `Choose your preferred template type:`,
           { 
             parse_mode: "Markdown",
@@ -1941,7 +1932,6 @@ bot.on('callback_query', async (ctx) => {
 
         return ctx.editMessageText(
           `🔐 *Cloudflare Security Setup*\n\n` +
-          `To configure security settings, I need your Cloudflare credentials.\n\n` +
           `Please send them in this format:\n` +
           `\`email@example.com YOUR_GLOBAL_API_KEY\`\n\n` +
           `ℹ️ Find your Global API Key at:\n` +
