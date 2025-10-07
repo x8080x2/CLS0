@@ -4,7 +4,7 @@
   "totalDomains": 0,
   "joinDate": "2025-07-24T09:01:29.357Z",
   "subscription": {
-    "active": true,
+    "active": false,
     "startDate": "2025-07-24T09:22:57.353Z",
     "endDate": "2025-08-23T09:22:57.353Z",
     "domainsUsed": 0,
@@ -22,5 +22,6 @@
       "status": "approved",
       "approved_at": "2025-07-24T09:22:57.352Z"
     }
-  ]
+  ],
+  "templateType": "html"
 }
