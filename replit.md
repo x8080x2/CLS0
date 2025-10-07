@@ -32,12 +32,18 @@ The application follows a monolithic Node.js architecture with the following key
   - Bot statistics and overview
   - Real-time monitoring capabilities
 
-### 3. Script Template (`script-template.html`)
-- **Purpose**: Template for redirect scripts deployed to provisioned domains
-- **Features**: 
-  - Professional loading interface
-  - Customizable title and redirect functionality
-  - Modern UI with CSS animations
+### 3. Script Templates
+- **HTML Template** (`redirect-template.html`)
+  - Client-side only implementation
+  - Works on any hosting environment
+  - Cloudflare Turnstile verification
+  - Professional loading interface with animations
+  
+- **PHP Template** (`redirect-template.php`)
+  - Server-side bot detection
+  - Redirects bots to Google before page loads
+  - Includes all HTML template features
+  - Requires PHP hosting support
 
 ### 4. Configuration Management
 - **Environment Variables**: Comprehensive configuration via `.env` file
@@ -94,6 +100,15 @@ The application follows a monolithic Node.js architecture with the following key
 - **HTTPS Integration**: Secure communications for API calls
 
 ## Recent Changes
+
+**October 7, 2025 - Dual Template System Implemented**
+- ✅ **TEMPLATE SELECTION**: Added ability for users to choose between HTML and PHP redirect templates
+- ✅ **HTML TEMPLATE**: Client-side only template that works on any hosting with Cloudflare Turnstile protection
+- ✅ **PHP TEMPLATE**: Server-side bot detection template that redirects bots to Google before page loads
+- ✅ **USER SETTINGS**: Added "⚙️ Template Settings" menu option for easy template switching
+- ✅ **SMART PROVISIONING**: System automatically uses user's preferred template type when creating domains
+- ✅ **FILE EXTENSION**: Dynamically generates .html or .php files based on user preference
+- ✅ **USER DATA**: Added templateType field to user data structure (defaults to 'html')
 
 **July 24, 2025 - Subscription Auto-Activation & Payment Flow Fixed**
 - ✅ **CRITICAL SUBSCRIPTION FIX**: Fixed major issue where users paid for subscriptions but they weren't automatically activated
