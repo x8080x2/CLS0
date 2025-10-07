@@ -2389,7 +2389,9 @@ bot.on('callback_query', async (ctx) => {
             `${results.autoHttpsRewrites ? successEmoji : '❌'} Automatic HTTPS Rewrites`,
             `${results.botFightMode ? successEmoji : '❌'} Bot Fight Mode`,
             `${results.browserIntegrityCheck ? successEmoji : '❌'} Browser Integrity Check`,
-            `${results.securityLevel ? successEmoji : '❌'} Security Level: High`
+            `${results.securityLevel ? successEmoji : '❌'} Security Level: High`,
+            `${results.sslEnabled ? successEmoji : '❌'} SSL/TLS: Full`,
+            `${results.universalSSL ? successEmoji : '❌'} Universal SSL: Active`
           ].join('\n');
 
           await ctx.telegram.editMessageText(
@@ -2398,7 +2400,7 @@ bot.on('callback_query', async (ctx) => {
             null,
             `✅ *Security Settings Configured!*\n\n` +
             `${statusText}\n\n` +
-            `Your domain is now protected with Cloudflare security features.`,
+            `🔒 Your domain is now protected with Cloudflare security features and SSL certificates are activated!`,
             {
               parse_mode: "Markdown",
               reply_markup: {

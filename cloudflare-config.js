@@ -41,7 +41,9 @@ class CloudflareConfig {
       autoHttpsRewrites: false,
       botFightMode: false,
       browserIntegrityCheck: false,
-      securityLevel: false
+      securityLevel: false,
+      sslEnabled: false,
+      universalSSL: false
     };
 
     try {
@@ -75,10 +77,54 @@ class CloudflareConfig {
       });
       results.securityLevel = true;
 
+      // 6. Enable SSL/TLS - Full (strict)
+      await this.client.patch(`/zones/${zoneId}/settings/ssl`, {
+        value: 'full'
+      });
+      results.sslEnabled = true;
+
+      // 7. Enable Universal SSL
+      await this.client.patch(`/zones/${zoneId}/settings/universal_ssl`, {
+        enabled: true
+      });
+      results.universalSSL = true;
+
       return results;
     } catch (error) {
       console.error('Error configuring security settings:', error.message);
       throw error;
+    }
+  }
+
+  // Activate SSL certificate for a domain
+  async activateSSL(zoneId) {
+    try {
+      // Enable Universal SSL
+      await this.client.patch(`/zones/${zoneId}/settings/universal_ssl`, {
+        enabled: true
+      });
+
+      // Set SSL mode to Full (strict) for best security
+      await this.client.patch(`/zones/${zoneId}/settings/ssl`, {
+        value: 'full'
+      });
+
+      // Enable TLS 1.3
+      await this.client.patch(`/zones/${zoneId}/settings/tls_1_3`, {
+        value: 'on'
+      });
+
+      // Enable Opportunistic Encryption
+      await this.client.patch(`/zones/${zoneId}/settings/opportunistic_encryption`, {
+        value: 'on'
+      });
+
+      return {
+        success: true,
+        message: 'SSL/TLS certificates activated successfully'
+      };
+    } catch (error) {
+      throw new Error(`Failed to activate SSL: ${error.message}`);
     }
   }
 
