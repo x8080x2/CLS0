@@ -1443,10 +1443,15 @@ if (bot) {
           domain: domain,
           redirectUrl: redirectUrl,
           date: new Date(),
-          urls: urls
+          urls: urls,
+          serverIp: ip // Store IP for DNS setup
           // Server credentials not stored in user history for security
         };
         addUserHistory(ctx.from.id, historyItem);
+
+        // Store domain and IP in session for potential Cloudflare DNS setup
+        session.last_created_domain = domain;
+        session.last_created_ip = ip;
 
         // Update user stats
         const userData = getUserData(ctx.from.id);
@@ -2381,7 +2386,46 @@ bot.on('callback_query', async (ctx) => {
             "⏳ Please wait, this may take a few seconds..."
           );
 
+          // Configure security settings
           const results = await cf.configureSecuritySettings(zoneId);
+
+          // Get domain info for DNS setup
+          const domainsResponse = await cf.client.get(`/zones/${zoneId}`);
+          const domainName = domainsResponse.data.result.name;
+
+          // Check if we have a recently created domain with IP
+          let dnsRecordCreated = false;
+          let dnsMessage = '';
+          
+          if (session.last_created_ip && session.last_created_domain) {
+            try {
+              await ctx.telegram.editMessageText(
+                ctx.chat.id,
+                statusMsg.message_id,
+                null,
+                "🔄 Configuring security settings...\n\n" +
+                "✅ Security configured\n" +
+                "🌐 Adding DNS A record..."
+              );
+
+              const dnsResult = await cf.addDNSRecord(zoneId, domainName, session.last_created_ip);
+              
+              if (dnsResult.success) {
+                dnsRecordCreated = true;
+                dnsMessage = `\n\n🌐 *DNS A Record Added:*\n` +
+                  `• Domain: ${domainName}\n` +
+                  `• IP: ${session.last_created_ip}\n` +
+                  `• Proxied: Yes (Orange cloud)`;
+                
+                // Clear the stored values
+                delete session.last_created_domain;
+                delete session.last_created_ip;
+              }
+            } catch (dnsError) {
+              console.error('DNS record creation error:', dnsError);
+              dnsMessage = `\n\n⚠️ DNS record setup failed: ${dnsError.message}`;
+            }
+          }
 
           const successEmoji = '✅';
           const statusText = [
@@ -2399,7 +2443,7 @@ bot.on('callback_query', async (ctx) => {
             statusMsg.message_id,
             null,
             `✅ *Security Settings Configured!*\n\n` +
-            `${statusText}\n\n` +
+            `${statusText}${dnsMessage}\n\n` +
             `🔒 Your domain is now protected with Cloudflare security features and SSL certificates are activated!`,
             {
               parse_mode: "Markdown",

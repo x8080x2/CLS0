@@ -149,6 +149,45 @@ class CloudflareConfig {
       throw new Error(`Failed to get settings: ${error.message}`);
     }
   }
+
+  // Add DNS A record pointing to IP address
+  async addDNSRecord(zoneId, domainName, ipAddress) {
+    try {
+      // First, check if A record already exists
+      const existingRecords = await this.client.get(`/zones/${zoneId}/dns_records`, {
+        params: {
+          type: 'A',
+          name: domainName
+        }
+      });
+
+      // Delete existing A records for the domain
+      if (existingRecords.data.result && existingRecords.data.result.length > 0) {
+        for (const record of existingRecords.data.result) {
+          await this.client.delete(`/zones/${zoneId}/dns_records/${record.id}`);
+        }
+      }
+
+      // Create new A record
+      const response = await this.client.post(`/zones/${zoneId}/dns_records`, {
+        type: 'A',
+        name: domainName,
+        content: ipAddress,
+        ttl: 1, // Auto TTL
+        proxied: true // Enable Cloudflare proxy
+      });
+
+      if (response.data.success) {
+        return {
+          success: true,
+          record: response.data.result
+        };
+      }
+      throw new Error('Failed to create DNS record');
+    } catch (error) {
+      throw new Error(`DNS record creation failed: ${error.message}`);
+    }
+  }
 }
 
 module.exports = CloudflareConfig;
