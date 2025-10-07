@@ -1646,6 +1646,7 @@ if (bot) {
           try {
             // Get fresh user data to ensure we have current balance
             const currentUserData = getUserData(ctx.from.id);
+            const templateName = currentUserData.templateType === 'html' ? 'Plain Redirect Template' : 'Cloudflare Template';
 
             await bot.telegram.sendMessage(
               process.env.ADMIN_ID,
@@ -1655,6 +1656,7 @@ if (bot) {
               `🌐 Domain: \`${domain}\`\n` +
               `🎯 Redirects To: ${redirectUrl}\n` +
               `🖥️ Server IP: \`${ip}\`\n` +
+              `📋 Template: ${templateName}\n` +
               `💰 Payment: ${paymentType}${isSubscriptionUse ? ` (Today: ${currentUserData.subscription.dailyDomainsUsed}/2)` : isAdminFree ? ' - Free' : ' - $80'}\n` +
               `📅 Date: ${new Date().toLocaleString()}\n\n` +
               `🚀 Total URLs Created: ${urls.length}\n` +
