@@ -32,9 +32,5 @@ run = ["sh", "-c", "node bot.js"]
 localPort = 5000
 externalPort = 80
 
-[[ports]]
-localPort = 35951
-externalPort = 3000
-
 [agent]
 expertMode = true
