@@ -2638,7 +2638,7 @@ bot.on('callback_query', async (ctx) => {
         Object.keys(session).forEach(key => delete session[key]);
 
         return ctx.editMessageText(
-          `🏠 *Main Menu*`,
+          `🎯 *CLS Redirect Bot*`,
           { 
             parse_mode: "Markdown",
             reply_markup: {
@@ -2649,11 +2649,18 @@ bot.on('callback_query', async (ctx) => {
                 ],
                 [
                   { text: '⭐ Monthly Subscription', callback_data: 'subscription' },
-                  { text: '👤 Profile', callback_data: 'profile' }
+                  { text: '👤 My Profile', callback_data: 'profile' }
                 ],
                 [
                   { text: '📊 My Redirects', callback_data: 'history' },
+                  { text: 'Domain Tester 🚥', url: 'https://t.me/clstes_bot' }
+                ],
+                [
+                  { text: '⚙️ Template Settings', callback_data: 'template_settings' },
                   { text: '🔑 VIP Access Request', callback_data: 'admin_access' }
+                ],
+                [
+                  { text: '☁️ Cloudflare Security Setup', callback_data: 'cloudflare_setup' }
                 ]
               ]
             }
