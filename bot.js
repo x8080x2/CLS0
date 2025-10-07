@@ -1124,18 +1124,19 @@ if (bot) {
     if (session.awaiting_domain) {
       session.awaiting_domain = false;
 
-      // Parse domain and redirect URL
+      // Parse domain, redirect URL, and optional Turnstile key
       const parts = text.trim().split(" ");
-      if (parts.length !== 2) {
+      if (parts.length < 2 || parts.length > 3) {
         session.awaiting_domain = true;
         return ctx.reply(
-          "❌ Invalid format. Please send domain and redirect URL separated by space:\n" +
-            "Format: `domain.com https://fb.com`",
+          "❌ Invalid format. Send domain, redirect URL, and Turnstile key:\n" +
+            "Format: `domain.com https://fb.com YOUR_TURNSTILE_KEY`\n\n" +
+            "Or without custom key: `domain.com https://fb.com`",
           { parse_mode: "Markdown" },
         );
       }
 
-      const [domainInput, redirectUrl] = parts;
+      const [domainInput, redirectUrl, turnstileKey = '0x4AAAAAAB5LyZflvKtbvXXa'] = parts;
 
       // Enhanced domain validation
       const domainRegex =
