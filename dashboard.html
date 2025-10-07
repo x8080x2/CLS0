@@ -209,18 +209,6 @@
     </div>
     
     <script>
-        // Update uptime
-        function updateUptime() {
-            const startTime = Date.now();
-            setInterval(() => {
-                const uptime = Date.now() - startTime;
-                const minutes = Math.floor(uptime / 60000);
-                const seconds = Math.floor((uptime % 60000) / 1000);
-                document.getElementById('uptime').textContent = 
-                    `${minutes}:${seconds.toString().padStart(2, '0')}`;
-            }, 1000);
-        }
-        
         // Check system health
         async function checkHealth() {
             try {
@@ -233,7 +221,6 @@
         }
         
         // Initialize
-        updateUptime();
         checkHealth();
         setInterval(checkHealth, 60000); // Check every minute
     </script>
