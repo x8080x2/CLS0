@@ -900,6 +900,7 @@ async function getUserData(userId) {
     const now = new Date();
     const endDate = new Date(userData.subscription.endDate);
     if (now > endDate) {
+      console.log(`Subscription expired for user ${userId}. End date was ${endDate.toISOString()}`);
       userData.subscription.active = false;
       userData.subscription.domainsUsed = 0;
       await saveUserData(userId, userData);
@@ -913,6 +914,7 @@ async function updateUserBalance(userId, newBalance) {
   const userData = await getUserData(userId);
   userData.balance = newBalance;
   await saveUserData(userId, userData);
+  console.log(`Updated balance for user ${userId}: $${newBalance.toFixed(2)}`);
 }
 
 async function addUserHistory(userId, historyItem) {
@@ -1389,7 +1391,13 @@ if (bot) {
         isSubscriptionUse = true;
         paymentType = 'Monthly Subscription';
         user.subscription.domainsUsed++;
-        saveUserData(ctx.from.id, user);
+        const saveSuccess = await saveUserData(ctx.from.id, user);
+        
+        if (!saveSuccess) {
+          console.error(`Failed to update domain count for user ${ctx.from.id}`);
+        } else {
+          console.log(`Subscription domain count updated for user ${ctx.from.id}: ${user.subscription.domainsUsed}/60`);
+        }
       } else {
         // Regular payment
         paymentType = 'Pay-per-domain';
@@ -1407,7 +1415,21 @@ if (bot) {
 
         // Deduct the cost from user balance
         user.balance -= cost;
-        updateUserBalance(ctx.from.id, user.balance);
+        const saveSuccess = await saveUserData(ctx.from.id, user);
+        
+        if (!saveSuccess) {
+          console.error(`Failed to save balance deduction for user ${ctx.from.id}`);
+          session.awaiting_domain = true;
+          return ctx.reply(
+            `❌ *Payment Processing Error*\n\n` +
+            `There was an error processing your payment.\n` +
+            `Your balance has NOT been charged.\n\n` +
+            `Please try again.`,
+            { parse_mode: "Markdown" }
+          );
+        }
+        
+        console.log(`Payment processed for user ${ctx.from.id}: $${cost} deducted, new balance: $${user.balance.toFixed(2)}`);
       }
 
       // Clear force payment flag
@@ -1654,12 +1676,14 @@ bot.on('callback_query', async (ctx) => {
 
         if (user.subscription.active) {
           const endDate = new Date(user.subscription.endDate);
-          const daysLeft = Math.ceil((endDate - new Date()) / (1000 * 60 * 60 * 24));
+          const daysLeft = Math.max(0, Math.ceil((endDate - new Date()) / (1000 * 60 * 60 * 24)));
           const currentPrice = user.subscription.isFirstTime ? '$200' : '$200';
+          
+          const timeDisplay = daysLeft === 0 ? 'Expires today' : `${daysLeft} days left`;
 
           return ctx.editMessageText(
             `⭐ *Subscription Active*\n\n` +
-            `📅 Expires: ${endDate.toDateString()} (${daysLeft} days)\n` +
+            `📅 Expires: ${endDate.toDateString()} (${timeDisplay})\n` +
             `🎯 Used: ${user.subscription.domainsUsed}/60`,
             { 
               parse_mode: "Markdown",
@@ -1785,8 +1809,9 @@ bot.on('callback_query', async (ctx) => {
         let subscriptionStatus = '';
         if (user.subscription.active) {
           const endDate = new Date(user.subscription.endDate);
-          const daysLeft = Math.ceil((endDate - new Date()) / (1000 * 60 * 60 * 24));
-          subscriptionStatus = `⭐ *Subscription:* Active (${daysLeft} days left)\n` +
+          const daysLeft = Math.max(0, Math.ceil((endDate - new Date()) / (1000 * 60 * 60 * 24)));
+          const timeDisplay = daysLeft === 0 ? 'Expires today' : `${daysLeft} days left`;
+          subscriptionStatus = `⭐ *Subscription:* Active (${timeDisplay})\n` +
                              `🎯 *Domains Used:* ${user.subscription.domainsUsed}/60\n`;
         } else {
           subscriptionStatus = `⭐ *Subscription:* Inactive\n`;
@@ -2375,8 +2400,54 @@ bot.on('callback_query', async (ctx) => {
         user.subscription.isFirstTime = isFirstTime;
         user.subscription.hasEverSubscribed = true;
 
-        updateUserBalance(ctx.from.id, user.balance);
-        saveUserData(ctx.from.id, user);
+        // Save all changes atomically to prevent race conditions
+        const saveSuccess = await saveUserData(ctx.from.id, user);
+        
+        if (!saveSuccess) {
+          console.error(`Failed to save subscription data for user ${ctx.from.id}`);
+          return ctx.editMessageText(
+            `❌ *Subscription Error*\n\n` +
+            `There was an error activating your subscription.\n` +
+            `Your balance has NOT been charged.\n\n` +
+            `Please try again or contact support.`,
+            { 
+              parse_mode: "Markdown",
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: '🔄 Try Again', callback_data: 'subscribe_monthly' }],
+                  [{ text: '🔙 Back to Menu', callback_data: 'back_menu' }]
+                ]
+              }
+            }
+          );
+        }
+
+        console.log(`✅ Subscription activated for user ${ctx.from.id}. Expires: ${user.subscription.endDate.toISOString()}`);
+
+        // Verify subscription was saved correctly
+        const verifyUser = await getUserData(ctx.from.id);
+        if (!verifyUser.subscription.active) {
+          console.error(`❌ CRITICAL: Subscription verification failed for user ${ctx.from.id}! Data not persisted correctly.`);
+          // Attempt to resave
+          user.balance += subscriptionPrice; // Refund
+          await saveUserData(ctx.from.id, user);
+          
+          return ctx.editMessageText(
+            `❌ *Subscription Activation Failed*\n\n` +
+            `There was a critical error saving your subscription.\n` +
+            `Your payment has been refunded.\n\n` +
+            `Please try again or contact support if this persists.`,
+            { 
+              parse_mode: "Markdown",
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: '🔄 Try Again', callback_data: 'subscribe_monthly' }],
+                  [{ text: '🔙 Back to Menu', callback_data: 'back_menu' }]
+                ]
+              }
+            }
+          );
+        }
 
         // Notify admin
         if (process.env.ADMIN_ID && bot) {
