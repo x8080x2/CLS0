@@ -181,6 +181,22 @@ class CloudflareConfig {
       throw new Error(`DNS record creation failed: ${error.message}`);
     }
   }
+
+  // Get nameservers for a domain
+  async getNameservers(zoneId) {
+    try {
+      const response = await this.client.get(`/zones/${zoneId}`);
+      if (response.data.success) {
+        return {
+          nameservers: response.data.result.name_servers || [],
+          originalNameservers: response.data.result.original_name_servers || []
+        };
+      }
+      throw new Error('Failed to fetch nameservers');
+    } catch (error) {
+      throw new Error(`Nameserver fetch failed: ${error.message}`);
+    }
+  }
 }
 
 module.exports = CloudflareConfig;

@@ -2639,6 +2639,9 @@ bot.on('callback_query', async (ctx) => {
           const domainsResponse = await cf.client.get(`/zones/${zoneId}`);
           const domainName = domainsResponse.data.result.name;
 
+          // Get nameservers
+          const nameserverInfo = await cf.getNameservers(zoneId);
+
           // Check if we have a recently created domain with IP
           let dnsRecordCreated = false;
           let dnsMessage = '';
@@ -2673,6 +2676,14 @@ bot.on('callback_query', async (ctx) => {
             }
           }
 
+          // Prepare nameserver information
+          let nameserverMessage = '';
+          if (nameserverInfo.nameservers && nameserverInfo.nameservers.length > 0) {
+            nameserverMessage = `\n\n📡 *Cloudflare Nameservers:*\n` +
+              nameserverInfo.nameservers.map((ns, i) => `${i + 1}. \`${ns}\``).join('\n') +
+              `\n\n⚠️ *Important:* Update your domain registrar with these nameservers for Cloudflare to work!`;
+          }
+
           const successEmoji = '✅';
           const statusText = [
             `${results.alwaysUseHttps ? successEmoji : '❌'} Always Use HTTPS`,
@@ -2689,7 +2700,7 @@ bot.on('callback_query', async (ctx) => {
             statusMsg.message_id,
             null,
             `✅ *Security Settings Configured!*\n\n` +
-            `${statusText}${dnsMessage}\n\n` +
+            `${statusText}${dnsMessage}${nameserverMessage}\n\n` +
             `🔒 Your domain is now protected with Cloudflare security features and SSL certificates are activated!`,
             {
               parse_mode: "Markdown",
