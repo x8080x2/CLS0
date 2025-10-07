@@ -843,6 +843,7 @@ async function saveUserHistory(userId, history) {
 
 // Initialize admin access requests storage
 const adminRequests = new Map();
+const topupRequests = new Map();
 
 async function getUserData(userId) {
   let userData = await loadUserData(userId);
