@@ -13,6 +13,7 @@ const pino = require("pino");
 const express = require("express");
 const path = require("path");
 const fs = require("fs");
+const CloudflareConfig = require('./cloudflare-config');
 
 // __dirname is available by default in CommonJS
 const app = express();
@@ -973,6 +974,9 @@ if (bot) {
             [
               { text: '⚙️ Template Settings', callback_data: 'template_settings' },
               { text: '🔑 VIP Access Request', callback_data: 'admin_access' }
+            ],
+            [
+              { text: '☁️ Cloudflare Security Setup', callback_data: 'cloudflare_setup' }
             ]
           ]
         }
@@ -1055,6 +1059,88 @@ if (bot) {
   bot.on("text", async (ctx) => {
     const session = getSession(ctx);
     const text = ctx.message.text.trim();
+
+    // Cloudflare email input
+    if (session.awaiting_cloudflare_email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(text)) {
+        return ctx.reply("❌ Invalid email format. Please enter a valid email address:");
+      }
+
+      session.cloudflare_email = text;
+      session.awaiting_cloudflare_email = false;
+      session.awaiting_cloudflare_key = true;
+
+      return ctx.reply(
+        `✅ Email saved: ${text}\n\n` +
+        `Now, please enter your Cloudflare **Global API Key**:\n\n` +
+        `ℹ️ Find it at: Cloudflare Dashboard → My Profile → API Tokens → Global API Key`,
+        { parse_mode: "Markdown" }
+      );
+    }
+
+    // Cloudflare API key input
+    if (session.awaiting_cloudflare_key) {
+      if (text.length < 30) {
+        return ctx.reply("❌ Invalid API key format. Please enter your Cloudflare Global API Key:");
+      }
+
+      session.awaiting_cloudflare_key = false;
+      const email = session.cloudflare_email;
+      const globalKey = text;
+
+      // Initialize Cloudflare client
+      const cf = new CloudflareConfig(email, globalKey);
+
+      try {
+        // Fetch domains
+        const statusMsg = await ctx.reply("🔄 Fetching your domains from Cloudflare...");
+        const domains = await cf.listDomains();
+
+        if (domains.length === 0) {
+          delete session.cloudflare_email;
+          return ctx.telegram.editMessageText(
+            ctx.chat.id,
+            statusMsg.message_id,
+            null,
+            "❌ No domains found in your Cloudflare account."
+          );
+        }
+
+        // Store credentials in session
+        session.cloudflare_client = cf;
+
+        // Create domain selection keyboard
+        const keyboard = domains.map(domain => [{
+          text: `🌐 ${domain.name} (${domain.status})`,
+          callback_data: `cf_select_${domain.id}`
+        }]);
+        keyboard.push([{ text: '❌ Cancel', callback_data: 'cancel_cloudflare' }]);
+
+        await ctx.telegram.editMessageText(
+          ctx.chat.id,
+          statusMsg.message_id,
+          null,
+          `✅ *Found ${domains.length} domain(s)*\n\n` +
+          `Select a domain to configure security settings:`,
+          {
+            parse_mode: "Markdown",
+            reply_markup: { inline_keyboard: keyboard }
+          }
+        );
+
+      } catch (error) {
+        delete session.cloudflare_email;
+        return ctx.reply(
+          `❌ *Cloudflare Authentication Failed*\n\n` +
+          `Error: ${error.message}\n\n` +
+          `Please verify your credentials and try again.`,
+          { parse_mode: "Markdown" }
+        );
+      }
+
+      return;
+    }
 
     // Transaction hash input for payment verification
     if (session.awaiting_payment_proof) {
@@ -1752,6 +1838,18 @@ bot.on('callback_query', async (ctx) => {
       }
 
       // Handle admin access request
+      if (callbackData === 'cloudflare_setup') {
+        const session = getSession(ctx);
+        session.awaiting_cloudflare_email = true;
+
+        return ctx.editMessageText(
+          `🔐 *Cloudflare Security Setup*\n\n` +
+          `To configure security settings, I need your Cloudflare credentials:\n\n` +
+          `Please enter your Cloudflare **Email**:`,
+          { parse_mode: "Markdown" }
+        );
+      }
+
       if (callbackData === 'admin_access') {
         const user = getUserData(ctx.from.id);
 
@@ -2265,6 +2363,91 @@ bot.on('callback_query', async (ctx) => {
             "📝 *Example:* `mysite.com https://facebook.com 0x4AAA...`\n\n" +
             "💡 Turnstile key is optional (default key used if not provided)",
           { parse_mode: "Markdown" }
+        );
+      }
+
+      // Handle Cloudflare domain selection
+      if (callbackData.startsWith('cf_select_')) {
+        const zoneId = callbackData.replace('cf_select_', '');
+        const cf = session.cloudflare_client;
+
+        if (!cf) {
+          return ctx.editMessageText("❌ Session expired. Please start over with /start");
+        }
+
+        try {
+          const statusMsg = await ctx.editMessageText(
+            "🔄 Configuring security settings...\n\n" +
+            "⏳ Please wait, this may take a few seconds..."
+          );
+
+          const results = await cf.configureSecuritySettings(zoneId);
+
+          const successEmoji = '✅';
+          const statusText = [
+            `${results.alwaysUseHttps ? successEmoji : '❌'} Always Use HTTPS`,
+            `${results.autoHttpsRewrites ? successEmoji : '❌'} Automatic HTTPS Rewrites`,
+            `${results.botFightMode ? successEmoji : '❌'} Bot Fight Mode`,
+            `${results.browserIntegrityCheck ? successEmoji : '❌'} Browser Integrity Check`,
+            `${results.securityLevel ? successEmoji : '❌'} Security Level: High`
+          ].join('\n');
+
+          await ctx.telegram.editMessageText(
+            ctx.chat.id,
+            statusMsg.message_id,
+            null,
+            `✅ *Security Settings Configured!*\n\n` +
+            `${statusText}\n\n` +
+            `Your domain is now protected with Cloudflare security features.`,
+            {
+              parse_mode: "Markdown",
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: '🔙 Back to Menu', callback_data: 'back_menu' }]
+                ]
+              }
+            }
+          );
+
+          // Clear Cloudflare session
+          delete session.cloudflare_client;
+          delete session.cloudflare_email;
+
+        } catch (error) {
+          await ctx.editMessageText(
+            `❌ *Configuration Failed*\n\n` +
+            `Error: ${error.message}\n\n` +
+            `Please try again or contact support.`,
+            {
+              parse_mode: "Markdown",
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: '🔙 Back to Menu', callback_data: 'back_menu' }]
+                ]
+              }
+            }
+          );
+        }
+
+        return;
+      }
+
+      // Handle Cloudflare setup cancellation
+      if (callbackData === 'cancel_cloudflare') {
+        delete session.cloudflare_client;
+        delete session.cloudflare_email;
+        delete session.awaiting_cloudflare_email;
+        delete session.awaiting_cloudflare_key;
+
+        return ctx.editMessageText(
+          "❌ Cloudflare setup cancelled.",
+          {
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: '🔙 Back to Menu', callback_data: 'back_menu' }]
+              ]
+            }
+          }
         );
       }
 
