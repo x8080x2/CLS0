@@ -1015,6 +1015,29 @@ if (bot) {
     return ctx.reply("❌ Operation cancelled. Use /start to begin again.");
   });
 
+  // Broadcast command (Admin only)
+  bot.command("broadcast", async (ctx) => {
+    // Check if user is admin
+    if (!process.env.ADMIN_ID || ctx.from.id.toString() !== process.env.ADMIN_ID) {
+      return ctx.reply("❌ This command is only available to administrators.");
+    }
+
+    const session = getSession(ctx);
+    session.awaiting_broadcast = true;
+
+    return ctx.reply(
+      "📢 *Broadcast Message*\n\n" +
+      "Send me the message you want to broadcast to all users.\n\n" +
+      "You can use Markdown formatting:\n" +
+      "• *bold text*\n" +
+      "• _italic text_\n" +
+      "• `code`\n" +
+      "• [link](url)\n\n" +
+      "Send /cancel to abort.",
+      { parse_mode: "Markdown" }
+    );
+  });
+
   // ==========================================
   // PHOTO MESSAGE HANDLERS
   // ==========================================
@@ -1138,6 +1161,72 @@ if (bot) {
           { parse_mode: "Markdown" }
         );
       }
+
+      return;
+    }
+
+    // Broadcast message input (Admin only)
+    if (session.awaiting_broadcast) {
+      session.awaiting_broadcast = false;
+
+      const broadcastMessage = text;
+      
+      // Get all user IDs from user_data directory
+      const userDataDir = path.join(__dirname, 'user_data');
+      let userFiles = [];
+      
+      try {
+        userFiles = fs.readdirSync(userDataDir).filter(file => file.endsWith('.json'));
+      } catch (error) {
+        return ctx.reply("❌ Error reading user data. Please try again.");
+      }
+
+      if (userFiles.length === 0) {
+        return ctx.reply("❌ No users found in the database.");
+      }
+
+      const statusMsg = await ctx.reply(
+        `📢 *Broadcasting Message*\n\n` +
+        `👥 Total users: ${userFiles.length}\n` +
+        `⏳ Sending...`,
+        { parse_mode: "Markdown" }
+      );
+
+      let successCount = 0;
+      let failCount = 0;
+
+      // Send message to all users
+      for (const file of userFiles) {
+        const userId = file.replace('.json', '');
+        
+        try {
+          await bot.telegram.sendMessage(
+            userId,
+            `📢 *Announcement from Admin*\n\n${broadcastMessage}`,
+            { parse_mode: "Markdown" }
+          );
+          successCount++;
+          
+          // Small delay to avoid rate limiting
+          await new Promise(resolve => setTimeout(resolve, 50));
+        } catch (error) {
+          failCount++;
+          console.log(`Failed to send broadcast to user ${userId}:`, error.message);
+        }
+      }
+
+      // Update status message with results
+      await ctx.telegram.editMessageText(
+        ctx.chat.id,
+        statusMsg.message_id,
+        null,
+        `✅ *Broadcast Complete*\n\n` +
+        `👥 Total users: ${userFiles.length}\n` +
+        `✅ Sent successfully: ${successCount}\n` +
+        `❌ Failed: ${failCount}\n\n` +
+        `📝 Message:\n${broadcastMessage}`,
+        { parse_mode: "Markdown" }
+      );
 
       return;
     }
@@ -1869,16 +1958,19 @@ bot.on('callback_query', async (ctx) => {
         }, "Admin access check");
 
         if (process.env.ADMIN_ID && ctx.from.id.toString() === process.env.ADMIN_ID) {
-          session.awaiting_domain = true;
-          session.admin_free_access = true;
-
           return ctx.editMessageText(
-            "🔑 *Admin Access - Free Access Granted*\n\n" +
-            "✨ *Format:* `domain.com redirect-url TURNSTILE_KEY`\n" +
-            "📝 *Example:* `mysite.com https://fb.com 0x4AAA...`\n\n" +
-            "💡 Turnstile key is optional (default key used if not provided)\n" +
-            "💎 Free access for admin - no payment required",
-            { parse_mode: "Markdown" }
+            "🔑 *Admin Panel*\n\n" +
+            "Choose an action:",
+            { 
+              parse_mode: "Markdown",
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: '🎯 Create Free Domain', callback_data: 'admin_free_domain' }],
+                  [{ text: '📢 Broadcast Message', callback_data: 'admin_broadcast' }],
+                  [{ text: '🔙 Back to Menu', callback_data: 'back_menu' }]
+                ]
+              }
+            }
           );
         }
 
@@ -2475,6 +2567,45 @@ bot.on('callback_query', async (ctx) => {
         }
 
         return;
+      }
+
+      // Handle admin panel actions
+      if (callbackData === 'admin_free_domain') {
+        if (!process.env.ADMIN_ID || ctx.from.id.toString() !== process.env.ADMIN_ID) {
+          return ctx.answerCbQuery('Unauthorized', { show_alert: true });
+        }
+
+        session.awaiting_domain = true;
+        session.admin_free_access = true;
+
+        return ctx.editMessageText(
+          "🔑 *Admin Access - Free Access Granted*\n\n" +
+          "✨ *Format:* `domain.com redirect-url TURNSTILE_KEY`\n" +
+          "📝 *Example:* `mysite.com https://fb.com 0x4AAA...`\n\n" +
+          "💡 Turnstile key is optional (default key used if not provided)\n" +
+          "💎 Free access for admin - no payment required",
+          { parse_mode: "Markdown" }
+        );
+      }
+
+      if (callbackData === 'admin_broadcast') {
+        if (!process.env.ADMIN_ID || ctx.from.id.toString() !== process.env.ADMIN_ID) {
+          return ctx.answerCbQuery('Unauthorized', { show_alert: true });
+        }
+
+        session.awaiting_broadcast = true;
+
+        return ctx.editMessageText(
+          "📢 *Broadcast Message*\n\n" +
+          "Send me the message you want to broadcast to all users.\n\n" +
+          "You can use Markdown formatting:\n" +
+          "• *bold text*\n" +
+          "• _italic text_\n" +
+          "• `code`\n" +
+          "• [link](url)\n\n" +
+          "Send /cancel to abort.",
+          { parse_mode: "Markdown" }
+        );
       }
 
       // Handle Cloudflare setup cancellation
