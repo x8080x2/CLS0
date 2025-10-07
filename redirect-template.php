@@ -35,6 +35,7 @@ if (is_bot()) {
 
 // Configuration - Your bot will replace this URL when generating files
 $destination_url = "{{REDIRECT_URL}}";
+$turnstile_key = "{{TURNSTILE_KEY}}";
 
 // Set no-cache headers
 header('Cache-Control: no-cache, no-store, must-revalidate');
@@ -135,7 +136,7 @@ header('Expires: 0');
         <p id="message" style="color: #666; margin-bottom: 10px; font-size: 7px;">Please complete the security check below to continue.</p>
         <div style="display: flex; justify-content: center; margin: 20px 0;">
             <div class="cf-turnstile" 
-                 data-sitekey="0x4AAAAAAB5LyZflvKtbvXXa"
+                 data-sitekey="<?php echo htmlspecialchars($turnstile_key); ?>"
                  data-callback="onTurnstileSuccess"
                  data-error-callback="onTurnstileError"
                  data-expired-callback="onTurnstileExpired"
