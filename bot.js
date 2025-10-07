@@ -1438,18 +1438,17 @@ if (bot) {
           { parse_mode: "Markdown" }
         );
 
-        // Save to user history (without sensitive server details)
+        // Save to user history (without sensitive server details including IP)
         const historyItem = {
           domain: domain,
           redirectUrl: redirectUrl,
           date: new Date(),
-          urls: urls,
-          serverIp: ip // Store IP for DNS setup
-          // Server credentials not stored in user history for security
+          urls: urls
+          // Server credentials and IP not stored in user history for security
         };
         addUserHistory(ctx.from.id, historyItem);
 
-        // Store domain and IP in session for potential Cloudflare DNS setup
+        // Store domain and IP in session for potential Cloudflare DNS setup (session only, not in history)
         session.last_created_domain = domain;
         session.last_created_ip = ip;
 
