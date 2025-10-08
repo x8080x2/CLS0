@@ -1,0 +1,87 @@
+2025-10-08T10:36:30.146741588Z ==> ///////////////////////////////////////////////////////////
+2025-10-08T10:38:52.790634731Z ==> Deploying...
+2025-10-08T10:39:02.910400528Z ==> Running ' npm start'
+2025-10-08T10:39:03.144892463Z 
+2025-10-08T10:39:03.144921544Z > workspace@1.0.0 start
+2025-10-08T10:39:03.144925594Z > node bot.js
+2025-10-08T10:39:03.144928274Z 
+2025-10-08T10:39:03.228732315Z Environment variables loaded from .env file
+2025-10-08T10:39:03.712387311Z {"level":30,"time":1759919943711,"pid":80,"hostname":"srv-d21vh9vfte5s73848q90-5685f5bb7-p7v5c","reqId":"startup","msg":"🚀 Domain Provisioning Bot starting..."}
+2025-10-08T10:39:03.810166738Z {"level":30,"time":1759919943712,"pid":80,"hostname":"srv-d21vh9vfte5s73848q90-5685f5bb7-p7v5c","reqId":"startup","msg":"📊 Environment: production"}
+2025-10-08T10:39:03.810185819Z {"level":30,"time":1759919943712,"pid":80,"hostname":"srv-d21vh9vfte5s73848q90-5685f5bb7-p7v5c","reqId":"startup","msg":"🔧 Log Level: info"}
+2025-10-08T10:39:03.810189449Z {"level":30,"time":1759919943712,"pid":80,"hostname":"srv-d21vh9vfte5s73848q90-5685f5bb7-p7v5c","reqId":"startup","msg":"🌐 WHM Server: https://cp2.tor1.ultacp.com:2087"}
+2025-10-08T10:39:03.810191909Z {"level":30,"time":1759919943720,"pid":80,"hostname":"srv-d21vh9vfte5s73848q90-5685f5bb7-p7v5c","reqId":"server","port":"10000","msg":"Server started"}
+2025-10-08T10:39:04.29723663Z {"level":30,"time":1759919944297,"pid":80,"hostname":"srv-d21vh9vfte5s73848q90-5685f5bb7-p7v5c","reqId":"server","msg":"Bot started with webhook: https://cls0.onrender.com/webhook/8155895045:AAGg_m5Z6Kvl2h4llRaDG44RgtQ5EwyPBXs"}
+2025-10-08T10:39:04.300282847Z /opt/render/project/src/node_modules/telegraf/lib/core/network/client.js:315
+2025-10-08T10:39:04.300296417Z             throw new error_1.default(data, { method, payload });
+2025-10-08T10:39:04.300299757Z                   ^
+2025-10-08T10:39:04.300301917Z 
+2025-10-08T10:39:04.300304547Z TelegramError: 429: Too Many Requests: retry after 1
+2025-10-08T10:39:04.300307377Z     at Telegram.callApi (/opt/render/project/src/node_modules/telegraf/lib/core/network/client.js:315:19)
+2025-10-08T10:39:04.300323298Z     at process.processTicksAndRejections (node:internal/process/task_queues:105:5) {
+2025-10-08T10:39:04.300327638Z   response: {
+2025-10-08T10:39:04.300329788Z     ok: false,
+2025-10-08T10:39:04.300331838Z     error_code: 429,
+2025-10-08T10:39:04.300333948Z     description: 'Too Many Requests: retry after 1',
+2025-10-08T10:39:04.300336528Z     parameters: { retry_after: 1 }
+2025-10-08T10:39:04.300338638Z   },
+2025-10-08T10:39:04.300340698Z   on: {
+2025-10-08T10:39:04.300342968Z     method: 'setWebhook',
+2025-10-08T10:39:04.300344998Z     payload: {
+2025-10-08T10:39:04.300347069Z       url: 'https://cls0.onrender.com/bot8155895045:AAGg_m5Z6Kvl2h4llRaDG44RgtQ5EwyPBXs'
+2025-10-08T10:39:04.300349169Z     }
+2025-10-08T10:39:04.300351298Z   }
+2025-10-08T10:39:04.300353339Z }
+2025-10-08T10:39:04.300355229Z 
+2025-10-08T10:39:04.300358379Z Node.js v22.16.0
+2025-10-08T10:39:05.477195663Z ==> Exited with status 1
+2025-10-08T10:39:05.492284162Z ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+2025-10-08T10:39:06.881198868Z ==> Running ' npm start'
+2025-10-08T10:39:07.146291799Z 
+2025-10-08T10:39:07.14631515Z > workspace@1.0.0 start
+2025-10-08T10:39:07.14631841Z > node bot.js
+2025-10-08T10:39:07.14632045Z 
+2025-10-08T10:39:07.236197123Z Environment variables loaded from .env file
+2025-10-08T10:39:07.707341965Z {"level":30,"time":1759919947706,"pid":67,"hostname":"srv-d21vh9vfte5s73848q90-5685f5bb7-p7v5c","reqId":"startup","msg":"🚀 Domain Provisioning Bot starting..."}
+2025-10-08T10:39:07.747308886Z {"level":30,"time":1759919947707,"pid":67,"hostname":"srv-d21vh9vfte5s73848q90-5685f5bb7-p7v5c","reqId":"startup","msg":"📊 Environment: production"}
+2025-10-08T10:39:07.747335416Z {"level":30,"time":1759919947707,"pid":67,"hostname":"srv-d21vh9vfte5s73848q90-5685f5bb7-p7v5c","reqId":"startup","msg":"🔧 Log Level: info"}
+2025-10-08T10:39:07.747339196Z {"level":30,"time":1759919947707,"pid":67,"hostname":"srv-d21vh9vfte5s73848q90-5685f5bb7-p7v5c","reqId":"startup","msg":"🌐 WHM Server: https://cp2.tor1.ultacp.com:2087"}
+2025-10-08T10:39:07.747341477Z {"level":30,"time":1759919947716,"pid":67,"hostname":"srv-d21vh9vfte5s73848q90-5685f5bb7-p7v5c","reqId":"server","port":"10000","msg":"Server started"}
+2025-10-08T10:39:08.283757595Z {"level":50,"time":1759919948283,"pid":67,"hostname":"srv-d21vh9vfte5s73848q90-5685f5bb7-p7v5c","reqId":"server","msg":"Failed to set webhook: 429: Too Many Requests: retry after 1"}
+2025-10-08T10:39:28.696718497Z ==> Deploying...
+2025-10-08T10:39:38.45049867Z ==> Running ' npm start'
+2025-10-08T10:39:38.698728867Z 
+2025-10-08T10:39:38.698761158Z > workspace@1.0.0 start
+2025-10-08T10:39:38.698764138Z > node bot.js
+2025-10-08T10:39:38.698766348Z 
+2025-10-08T10:39:38.778199823Z Environment variables loaded from .env file
+2025-10-08T10:39:39.179242547Z {"level":30,"time":1759919979178,"pid":62,"hostname":"srv-d21vh9vfte5s73848q90-6c9f744cf6-mhqvk","reqId":"startup","msg":"🚀 Domain Provisioning Bot starting..."}
+2025-10-08T10:39:39.282722118Z {"level":30,"time":1759919979179,"pid":62,"hostname":"srv-d21vh9vfte5s73848q90-6c9f744cf6-mhqvk","reqId":"startup","msg":"📊 Environment: production"}
+2025-10-08T10:39:39.282735589Z {"level":30,"time":1759919979179,"pid":62,"hostname":"srv-d21vh9vfte5s73848q90-6c9f744cf6-mhqvk","reqId":"startup","msg":"🔧 Log Level: info"}
+2025-10-08T10:39:39.282739829Z {"level":30,"time":1759919979179,"pid":62,"hostname":"srv-d21vh9vfte5s73848q90-6c9f744cf6-mhqvk","reqId":"startup","msg":"🌐 WHM Server: https://cp2.tor1.ultacp.com:2087"}
+2025-10-08T10:39:39.282742939Z {"level":30,"time":1759919979189,"pid":62,"hostname":"srv-d21vh9vfte5s73848q90-6c9f744cf6-mhqvk","reqId":"server","port":"10000","msg":"Server started"}
+2025-10-08T10:39:39.765102772Z {"level":30,"time":1759919979764,"pid":62,"hostname":"srv-d21vh9vfte5s73848q90-6c9f744cf6-mhqvk","reqId":"server","msg":"Bot started with webhook: https://cls0.onrender.com/webhook/8155895045:AAGg_m5Z6Kvl2h4llRaDG44RgtQ5EwyPBXs"}
+2025-10-08T10:39:39.767210541Z /opt/render/project/src/node_modules/telegraf/lib/core/network/client.js:315
+2025-10-08T10:39:39.767221782Z             throw new error_1.default(data, { method, payload });
+2025-10-08T10:39:39.767224952Z                   ^
+2025-10-08T10:39:39.767227072Z 
+2025-10-08T10:39:39.767230012Z TelegramError: 429: Too Many Requests: retry after 1
+2025-10-08T10:39:39.767233012Z     at Telegram.callApi (/opt/render/project/src/node_modules/telegraf/lib/core/network/client.js:315:19)
+2025-10-08T10:39:39.767238642Z     at process.processTicksAndRejections (node:internal/process/task_queues:105:5) {
+2025-10-08T10:39:39.767240902Z   response: {
+2025-10-08T10:39:39.767243132Z     ok: false,
+2025-10-08T10:39:39.767245412Z     error_code: 429,
+2025-10-08T10:39:39.767247602Z     description: 'Too Many Requests: retry after 1',
+2025-10-08T10:39:39.767250202Z     parameters: { retry_after: 1 }
+2025-10-08T10:39:39.767252482Z   },
+2025-10-08T10:39:39.767254743Z   on: {
+2025-10-08T10:39:39.767257363Z     method: 'setWebhook',
+2025-10-08T10:39:39.767259412Z     payload: {
+2025-10-08T10:39:39.767261693Z       url: 'https://cls0.onrender.com/bot8155895045:AAGg_m5Z6Kvl2h4llRaDG44RgtQ5EwyPBXs'
+2025-10-08T10:39:39.767263833Z     }
+2025-10-08T10:39:39.767266513Z   }
+2025-10-08T10:39:39.767268673Z }
+2025-10-08T10:39:39.767270683Z 
+2025-10-08T10:39:39.767272783Z Node.js v22.16.0
+2025-10-08T10:39:41.196769031Z ==> Exited with status 1
+2025-10-08T10:39:41.21455535Z ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys

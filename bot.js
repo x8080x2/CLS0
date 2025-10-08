@@ -579,11 +579,7 @@ async function generateTopUpMessage(usdAmount, cryptoType) {
 let bot = null;
 if (process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_BOT_TOKEN !== "your_telegram_bot_token_here") {
   bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
-
-  // Set webhook if in production
-  if (process.env.NODE_ENV === "production" && process.env.WEBHOOK_DOMAIN) {
-    bot.telegram.setWebhook(`${process.env.WEBHOOK_DOMAIN}/bot${process.env.TELEGRAM_BOT_TOKEN}`);
-  }
+  // Webhook will be set after server starts
 }
 
 // ==========================================
@@ -2787,12 +2783,32 @@ const server = app.listen(PORT, "0.0.0.0", async () => {
     if (process.env.NODE_ENV === "production" || process.env.RENDER) {
       const WEBHOOK_URL = process.env.WEBHOOK_URL || `https://${process.env.RENDER_EXTERNAL_HOSTNAME}/webhook/${process.env.TELEGRAM_BOT_TOKEN}`;
       
-      try {
-        await bot.telegram.setWebhook(WEBHOOK_URL);
-        log.info(`Bot started with webhook: ${WEBHOOK_URL}`);
-      } catch (error) {
-        log.error(`Failed to set webhook: ${error.message}`);
-      }
+      // Retry logic for webhook setting (handles 429 rate limits)
+      let retries = 0;
+      const maxRetries = 3;
+      
+      const setWebhookWithRetry = async () => {
+        try {
+          await bot.telegram.setWebhook(WEBHOOK_URL);
+          log.info(`Bot started with webhook: ${WEBHOOK_URL}`);
+          return true;
+        } catch (error) {
+          if (error.response?.error_code === 429 && retries < maxRetries) {
+            const retryAfter = error.response.parameters?.retry_after || 2;
+            retries++;
+            log.warn(`Telegram rate limit hit. Retrying in ${retryAfter} seconds... (attempt ${retries}/${maxRetries})`);
+            await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
+            return setWebhookWithRetry();
+          } else {
+            log.error(`Failed to set webhook: ${error.message}`);
+            log.info('Server will continue running. Webhook can be set manually later.');
+            return false;
+          }
+        }
+      };
+      
+      // Don't await - let it retry in background, server continues
+      setWebhookWithRetry();
     } else {
       // Development mode - use polling
       await bot.telegram.deleteWebhook();
