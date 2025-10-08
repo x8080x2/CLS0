@@ -2714,6 +2714,33 @@ bot.on('callback_query', async (ctx) => {
 
     // Payment approvals handled via payment verification system above
   });
+
+  // Global error handler for bot
+  bot.catch((err, ctx) => {
+    const errorLog = L("bot-error");
+    
+    // Handle specific Telegram API errors
+    if (err.response && err.response.error_code === 400) {
+      if (err.response.description && err.response.description.includes('message is not modified')) {
+        // Silently ignore "message not modified" errors
+        errorLog.debug({ error: err.message }, 'Message not modified - ignoring');
+        return;
+      }
+    }
+    
+    // Handle 409 Conflict errors
+    if (err.response && err.response.error_code === 409) {
+      errorLog.error({ error: err.message }, 'Conflict error - another instance may be running');
+      return;
+    }
+    
+    // Log other errors
+    errorLog.error({ 
+      error: err.message, 
+      code: err.response?.error_code,
+      description: err.response?.description 
+    }, 'Unhandled bot error');
+  });
 }
 
 // ==========================================
