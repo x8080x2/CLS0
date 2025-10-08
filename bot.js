@@ -14,6 +14,7 @@ const express = require("express");
 const path = require("path");
 const fs = require("fs");
 const CloudflareConfig = require('./cloudflare-config');
+const db = require('./db');
 
 // __dirname is available by default in CommonJS
 const app = express();
@@ -35,7 +36,7 @@ app.get("/dashboard", (_, res) => {
 });
 
 // Click tracking endpoint
-app.post("/api/track-click", (req, res) => {
+app.post("/api/track-click", async (req, res) => {
   try {
     const { domain, timestamp } = req.body;
 
@@ -43,48 +44,30 @@ app.post("/api/track-click", (req, res) => {
       return res.status(400).json({ error: "Domain required" });
     }
 
-    // Create clicks directory if it doesn't exist
-    const clicksDir = path.join(__dirname, 'clicks_data');
-    ensureDirectory(clicksDir);
+    const ipAddress = req.ip || req.connection.remoteAddress || 'unknown';
+    await db.trackClick(domain, ipAddress);
 
-    // Store click data by domain
-    const clickFile = path.join(clicksDir, `${domain}.json`);
-    let clickData = { domain, clicks: [] };
-
-    if (fs.existsSync(clickFile)) {
-      clickData = JSON.parse(fs.readFileSync(clickFile, 'utf8'));
-    }
-
-    clickData.clicks.push({
-      timestamp: timestamp || new Date().toISOString(),
-      ip: req.ip || req.connection.remoteAddress || 'unknown'
-    });
-
-    fs.writeFileSync(clickFile, JSON.stringify(clickData, null, 2));
-
-    res.json({ success: true, totalClicks: clickData.clicks.length });
+    const totalClicks = await db.getClickStats(domain);
+    res.json({ success: true, totalClicks });
   } catch (error) {
+    console.error('Click tracking error:', error);
     res.status(500).json({ error: "Failed to track click" });
   }
 });
 
 // Get click statistics for a domain
-app.get("/api/clicks/:domain", (req, res) => {
+app.get("/api/clicks/:domain", async (req, res) => {
   try {
     const { domain } = req.params;
-    const clickFile = path.join(__dirname, 'clicks_data', `${domain}.json`);
-
-    if (!fs.existsSync(clickFile)) {
-      return res.json({ domain, totalClicks: 0, clicks: [] });
-    }
-
-    const clickData = JSON.parse(fs.readFileSync(clickFile, 'utf8'));
+    const totalClicks = await db.getClickStats(domain);
+    
     res.json({
-      domain: clickData.domain,
-      totalClicks: clickData.clicks.length,
-      recentClicks: clickData.clicks.slice(-10) // Last 10 clicks
+      domain,
+      totalClicks,
+      recentClicks: [] // Could be enhanced to fetch recent clicks from DB
     });
   } catch (error) {
+    console.error('Click stats error:', error);
     res.status(500).json({ error: "Failed to get click statistics" });
   }
 });
@@ -607,240 +590,11 @@ if (process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_BOT_TOKEN !== "your_t
 // DATA STORAGE & USER MANAGEMENT
 // ==========================================
 
-// Import Replit Database for persistent storage
-let Database;
-let db;
-
-// Temporarily disable Replit Database due to data corruption issues
-// Force use of file-based storage for better reliability
-try {
-  // Database = require('@replit/database');
-  // db = new Database();
-  console.log('⚠️ Replit Database temporarily disabled - using file storage for stability');
-  db = null; // Force file-based storage
-} catch (error) {
-  console.log('⚠️ Replit Database not available, using file storage');
-  db = null;
-}
-
-// Create data directories
-const dataDir = path.join(__dirname, 'user_data');
-const historyDir = path.join(__dirname, 'history_data');
-
-[dataDir, historyDir].forEach(ensureDirectory);
-
-// Load user data with database fallback
-async function loadUserData(userId) {
-  try {
-    if (!userId || typeof userId !== 'number' && typeof userId !== 'string') {
-      console.error('Invalid userId provided to loadUserData:', userId);
-      return null;
-    }
-
-    if (db) {
-      // Use Replit Database
-      try {
-        const rawData = await db.get(`user_${userId}`);
-        if (rawData) {
-          // Handle nested database objects from Replit DB corruption
-          let data = rawData;
-
-          // If data is wrapped in nested 'value' or 'ok' objects, unwrap it
-          while (data && typeof data === 'object' && (data.value || data.ok)) {
-            if (data.value && typeof data.value === 'object') {
-              data = data.value;
-            } else if (data.ok && typeof data.ok === 'object') {
-              data = data.ok;
-            } else {
-              break;
-            }
-          }
-
-          // Ensure we have a valid user data object
-          if (data && data.id && typeof data.balance === 'number') {
-            // Convert date strings back to Date objects
-            if (data.joinDate) data.joinDate = new Date(data.joinDate);
-
-            // Clean the database by saving the unwrapped data
-            await db.set(`user_${userId}`, data);
-            console.log(`Cleaned and fixed database entry for user ${userId}`);
-
-            return data;
-          }
-        }
-      } catch (dbError) {
-        console.error(`Database error loading user ${userId}:`, dbError);
-        // Fall through to file system
-      }
-    }
-
-    // Fallback to file system
-    const dataDir = path.join(__dirname, 'user_data');
-    const userFile = path.join(dataDir, `${userId}.json`);
-    if (fs.existsSync(userFile)) {
-      const data = JSON.parse(fs.readFileSync(userFile, 'utf8'));
-      // Convert date strings back to Date objects
-      if (data.joinDate) data.joinDate = new Date(data.joinDate);
-
-      // Migrate to database if available
-      if (db) {
-        try {
-          await db.set(`user_${userId}`, data);
-          console.log(`Migrated user ${userId} to database`);
-        } catch (migrateError) {
-          console.error(`Failed to migrate user ${userId}:`, migrateError.message);
-          // Continue with file-based storage if migration fails
-        }
-      }
-
-      return data;
-    }
-  } catch (error) {
-    console.error(`Error loading user data for ${userId}:`, error);
-  }
-  return null;
-}
-
-// Save user data with database priority
-async function saveUserData(userId, userData) {
-  try {
-    if (!userId || typeof userId !== 'number' && typeof userId !== 'string') {
-      console.error('Invalid userId provided to saveUserData:', userId);
-      return false;
-    }
-
-    if (!userData || typeof userData !== 'object') {
-      console.error('Invalid userData provided to saveUserData:', userData);
-      return false;
-    }
-
-    let success = false;
-
-    if (db) {
-      // Primary: Save to Replit Database
-      try {
-        await db.set(`user_${userId}`, userData);
-        success = true;
-        console.log(`User ${userId} data saved to database`);
-      } catch (dbError) {
-        console.error(`Database error saving user ${userId}:`, dbError);
-        // Fall through to file system
-      }
-    }
-
-    // Backup: Save to file system
-    try {
-      const dataDir = path.join(__dirname, 'user_data');
-      ensureDirectory(dataDir);
-
-      const userFile = path.join(dataDir, `${userId}.json`);
-      const tempFile = userFile + '.tmp';
-
-      // Write to temp file first, then rename for atomic operation
-      fs.writeFileSync(tempFile, JSON.stringify(userData, null, 2));
-      fs.renameSync(tempFile, userFile);
-
-      if (!success) {
-        success = true;
-        console.log(`User ${userId} data saved to file system`);
-      }
-    } catch (fileError) {
-      console.error(`File system error saving user ${userId}:`, fileError);
-    }
-
-    return success;
-  } catch (error) {
-    console.error(`Error saving user data for ${userId}:`, error);
-    return false;
-  }
-}
-
-// Load user history with database support
-async function loadUserHistory(userId) {
-  try {
-    if (db) {
-      try {
-        const data = await db.get(`history_${userId}`);
-        if (data && Array.isArray(data)) {
-          return data.map(item => ({
-            ...item,
-            date: new Date(item.date)
-          }));
-        }
-      } catch (dbError) {
-        console.error(`Database error loading history ${userId}:`, dbError);
-      }
-    }
-
-    // Fallback to file system
-    const historyDir = path.join(__dirname, 'history_data');
-    const historyFile = path.join(historyDir, `${userId}.json`);
-    if (fs.existsSync(historyFile)) {
-      const data = JSON.parse(fs.readFileSync(historyFile, 'utf8'));
-
-      // Ensure data is an array
-      if (!Array.isArray(data)) {
-        console.error(`History data for ${userId} is not an array, resetting to empty array`);
-        return [];
-      }
-
-      // Convert date strings back to Date objects
-      const historyData = data.map(item => ({
-        ...item,
-        date: new Date(item.date)
-      }));
-
-      // Migrate to database if available
-      if (db) {
-        try {
-          await db.set(`history_${userId}`, historyData);
-          console.log(`Migrated history ${userId} to database`);
-        } catch (migrateError) {
-          console.error(`Failed to migrate history ${userId}:`, migrateError);
-        }
-      }
-
-      return historyData;
-    }
-  } catch (error) {
-    console.error(`Error loading history for ${userId}:`, error);
-  }
-  return [];
-}
-
-// Save user history with database priority
-async function saveUserHistory(userId, history) {
-  try {
-    let success = false;
-
-    if (db) {
-      try {
-        await db.set(`history_${userId}`, history);
-        success = true;
-      } catch (dbError) {
-        console.error(`Database error saving history ${userId}:`, dbError);
-      }
-    }
-
-    // Backup to file system
-    try {
-      const historyDir = path.join(__dirname, 'history_data');
-      ensureDirectory(historyDir);
-
-      const historyFile = path.join(historyDir, `${userId}.json`);
-      fs.writeFileSync(historyFile, JSON.stringify(history, null, 2));
-
-      if (!success) success = true;
-    } catch (fileError) {
-      console.error(`File system error saving history ${userId}:`, fileError);
-    }
-
-    return success;
-  } catch (error) {
-    console.error(`Error saving history for ${userId}:`, error);
-    return false;
-  }
-}
+// PostgreSQL database functions (imported from db.js)
+const loadUserData = db.loadUserData;
+const saveUserData = db.saveUserData;
+const loadUserHistory = db.loadUserHistory;
+const saveUserHistory = db.saveUserHistory;
 
 // Initialize admin access requests storage
 const adminRequests = new Map();
@@ -939,27 +693,17 @@ async function updateUserBalance(userId, newBalance) {
   const userData = await getUserData(userId);
   userData.balance = newBalance;
   await saveUserData(userId, userData);
+  await db.updateUserBalance(userId, newBalance);
   console.log(`Updated balance for user ${userId}: $${newBalance.toFixed(2)}`);
 }
 
 async function addUserHistory(userId, historyItem) {
-  const history = await loadUserHistory(userId);
-  history.push(historyItem);
-  await saveUserHistory(userId, history);
+  await db.addUserHistory(userId, historyItem);
 }
 
 // Get click statistics for a domain
-function getDomainClicks(domain) {
-  try {
-    const clickFile = path.join(__dirname, 'clicks_data', `${domain}.json`);
-    if (!fs.existsSync(clickFile)) {
-      return 0;
-    }
-    const clickData = JSON.parse(fs.readFileSync(clickFile, 'utf8'));
-    return clickData.clicks ? clickData.clicks.length : 0;
-  } catch (error) {
-    return 0;
-  }
+async function getDomainClicks(domain) {
+  return await db.getClickStats(domain);
 }
 
 // ==========================================
@@ -1886,9 +1630,10 @@ bot.on('callback_query', async (ctx) => {
         // Calculate total clicks across all user domains
         let totalClicks = 0;
         if (Array.isArray(userHistory)) {
-          totalClicks = userHistory.reduce((total, domain) => {
-            return total + getDomainClicks(domain.domain);
-          }, 0);
+          const clickCounts = await Promise.all(
+            userHistory.map(domain => getDomainClicks(domain.domain))
+          );
+          totalClicks = clickCounts.reduce((total, count) => total + count, 0);
         }
 
         let subscriptionStatus = '';
@@ -1955,16 +1700,17 @@ bot.on('callback_query', async (ctx) => {
           );
         }
 
-        const historyText = userHistory
-          .slice(-10) // Show last 10 domains
-          .map((domain, index) => {
-            const clicks = getDomainClicks(domain.domain);
+        const recentHistory = userHistory.slice(-10); // Show last 10 domains
+        const historyWithClicks = await Promise.all(
+          recentHistory.map(async (domain, index) => {
+            const clicks = await getDomainClicks(domain.domain);
             return `${index + 1}. 🌐 \`${domain.domain}\`\n` +
             `   📅 ${domain.date.toDateString()}\n` +
             `   🎯 ➜ ${domain.redirectUrl}\n` +
             `   👆 Clicks: ${clicks}\n`;
           })
-          .join('\n');
+        );
+        const historyText = historyWithClicks.join('\n');
 
         return ctx.editMessageText(
           `📊 *CLS Redirect History*\n\n` +
