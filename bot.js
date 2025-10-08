@@ -2738,20 +2738,41 @@ app.get("/health", (req, res) => {
 
 // Removed unused API endpoints for cleaner codebase
 
+// Telegram Webhook endpoint
+if (bot) {
+  const WEBHOOK_PATH = `/webhook/${process.env.TELEGRAM_BOT_TOKEN}`;
+  app.post(WEBHOOK_PATH, (req, res) => {
+    bot.handleUpdate(req.body, res);
+  });
+}
+
 // ==========================================
 // SERVER STARTUP & SHUTDOWN HANDLERS
 // ==========================================
 
 const PORT = process.env.PORT || 5000;
-const server = app.listen(PORT, "0.0.0.0", () => {
+const server = app.listen(PORT, "0.0.0.0", async () => {
   const log = L("server");
   log.info({ port: PORT }, "Server started");
 
-  // Use polling in development only if bot is initialized
-  if (process.env.NODE_ENV !== "production" && bot) {
-    bot.launch();
-    log.info("Bot started with polling");
-  } else if (!bot) {
+  if (bot) {
+    // Use webhooks in production, polling in development
+    if (process.env.NODE_ENV === "production" || process.env.RENDER) {
+      const WEBHOOK_URL = process.env.WEBHOOK_URL || `https://${process.env.RENDER_EXTERNAL_HOSTNAME}/webhook/${process.env.TELEGRAM_BOT_TOKEN}`;
+      
+      try {
+        await bot.telegram.setWebhook(WEBHOOK_URL);
+        log.info(`Bot started with webhook: ${WEBHOOK_URL}`);
+      } catch (error) {
+        log.error(`Failed to set webhook: ${error.message}`);
+      }
+    } else {
+      // Development mode - use polling
+      await bot.telegram.deleteWebhook();
+      bot.launch();
+      log.info("Bot started with polling (development mode)");
+    }
+  } else {
     log.info("Bot not initialized - Telegram token missing. Dashboard available at /dashboard");
   }
 });
