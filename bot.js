@@ -2430,7 +2430,6 @@ bot.on('callback_query', async (ctx) => {
           const statusText = [
             `${results.alwaysUseHttps ? successEmoji : '❌'} Always Use HTTPS`,
             `${results.autoHttpsRewrites ? successEmoji : '❌'} Automatic HTTPS Rewrites`,
-            `${results.botFightMode ? successEmoji : '❌'} Bot Fight Mode`,
             `${results.browserIntegrityCheck ? successEmoji : '❌'} Browser Integrity Check`,
             `${results.securityLevel ? successEmoji : '❌'} Security Level: High`,
             `${results.sslEnabled ? successEmoji : '❌'} SSL/TLS: Full`,
@@ -2450,7 +2449,8 @@ bot.on('callback_query', async (ctx) => {
             null,
             `✅ *Security Settings Configured!*\n\n` +
             `${statusText}${dnsMessage}${nameserverMessage}${errorDetails}\n\n` +
-            `🔒 Your domain is now protected with Cloudflare security features${results.sslEnabled ? ' and SSL certificates are activated' : ''}!`,
+            `🔒 Your domain is now protected with Cloudflare security features${results.sslEnabled ? ' and SSL certificates are activated' : ''}!\n\n` +
+            `💡 *Tip:* Enable Bot Fight Mode manually in Cloudflare dashboard (Security > Bots) for additional bot protection.`,
             {
               parse_mode: "Markdown",
               reply_markup: {

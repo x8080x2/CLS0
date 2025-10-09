@@ -39,7 +39,6 @@ class CloudflareConfig {
     const results = {
       alwaysUseHttps: false,
       autoHttpsRewrites: false,
-      botFightMode: false,
       browserIntegrityCheck: false,
       securityLevel: false,
       sslEnabled: false,
@@ -69,18 +68,7 @@ class CloudflareConfig {
       results.errors.push({ setting: 'Automatic HTTPS Rewrites', error: error.response?.data?.errors?.[0]?.message || error.message });
     }
 
-    // 3. Bot Fight Mode (may require paid plan)
-    try {
-      await this.client.patch(`/zones/${zoneId}/settings/bot_fight_mode`, {
-        value: 'on'
-      });
-      results.botFightMode = true;
-    } catch (error) {
-      console.error('Failed to enable Bot Fight Mode (may require paid plan):', error.response?.data || error.message);
-      results.errors.push({ setting: 'Bot Fight Mode', error: error.response?.data?.errors?.[0]?.message || error.message });
-    }
-
-    // 4. Browser Integrity Check
+    // 3. Browser Integrity Check
     try {
       await this.client.patch(`/zones/${zoneId}/settings/browser_check`, {
         value: 'on'
@@ -91,7 +79,7 @@ class CloudflareConfig {
       results.errors.push({ setting: 'Browser Integrity Check', error: error.response?.data?.errors?.[0]?.message || error.message });
     }
 
-    // 5. Security Level - set to High
+    // 4. Security Level - set to High
     try {
       await this.client.patch(`/zones/${zoneId}/settings/security_level`, {
         value: 'high'
@@ -102,7 +90,7 @@ class CloudflareConfig {
       results.errors.push({ setting: 'Security Level', error: error.response?.data?.errors?.[0]?.message || error.message });
     }
 
-    // 6-7. Activate SSL/TLS
+    // 5. Activate SSL/TLS
     try {
       const sslResult = await this.activateSSL(zoneId);
       results.sslEnabled = sslResult.success;
