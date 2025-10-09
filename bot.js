@@ -402,10 +402,6 @@ async function processPaymentVerification(ctx, paymentProof, screenshot = null, 
   const userId = ctx.from.id;
   const requestId = `PAY_${userId}_${Date.now()}`;
 
-  // Create user_data directory if it doesn't exist
-  const userDataDir = path.join(__dirname, 'user_data');
-  ensureDirectory(userDataDir);
-
   // Store payment verification request
   const userData = await getUserData(userId);
   userData.pending_payments = userData.pending_payments || [];
@@ -959,23 +955,23 @@ if (bot) {
 
       const broadcastMessage = text;
 
-      // Get all user IDs from user_data directory
-      const userDataDir = path.join(__dirname, 'user_data');
-      let userFiles = [];
+      // Get all user IDs from database
+      let userIds = [];
 
       try {
-        userFiles = fs.readdirSync(userDataDir).filter(file => file.endsWith('.json'));
+        const result = await db.pool.query('SELECT id FROM users');
+        userIds = result.rows.map(row => row.id);
       } catch (error) {
         return ctx.reply("❌ Error reading user data. Please try again.");
       }
 
-      if (userFiles.length === 0) {
+      if (userIds.length === 0) {
         return ctx.reply("❌ No users found in the database.");
       }
 
       const statusMsg = await ctx.reply(
         `📢 *Broadcasting Message*\n\n` +
-        `👥 Total users: ${userFiles.length}\n` +
+        `👥 Total users: ${userIds.length}\n` +
         `⏳ Sending...`,
         { parse_mode: "Markdown" }
       );
@@ -984,8 +980,7 @@ if (bot) {
       let failCount = 0;
 
       // Send message to all users
-      for (const file of userFiles) {
-        const userId = file.replace('.json', '');
+      for (const userId of userIds) {
 
         try {
           await bot.telegram.sendMessage(
@@ -1387,10 +1382,10 @@ if (bot) {
         session.last_created_ip = ip;
 
         // Update user stats
-        const userData = getUserData(ctx.from.id);
-        const userHistory = loadUserHistory(ctx.from.id);
+        const userData = await getUserData(ctx.from.id);
+        const userHistory = await loadUserHistory(ctx.from.id);
         userData.totalDomains = userHistory.length;
-        saveUserData(ctx.from.id, userData);
+        await saveUserData(ctx.from.id, userData);
 
         log.info(
           { domain, urls, ip },
@@ -1401,7 +1396,7 @@ if (bot) {
         if (process.env.ADMIN_ID && process.env.ADMIN_ID !== "your_telegram_admin_user_id" && bot) {
           try {
             // Get fresh user data to ensure we have current balance
-            const currentUserData = getUserData(ctx.from.id);
+            const currentUserData = await getUserData(ctx.from.id);
             const templateName = currentUserData.templateType === 'html' ? 'Plain Redirect Template' : 'Cloudflare Template';
 
             await bot.telegram.sendMessage(
