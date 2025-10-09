@@ -159,10 +159,6 @@ header('Expires: 0');
             console.log("âœ“ Turnstile verification successful");
             turnstileToken = token;
 
-            const statusEl = document.getElementById('status');
-            statusEl.className = 'status success';
-            statusEl.style.display = 'block';
-            statusEl.textContent = 'ðŸ”‘';
 
             const redirectUrl = buildRedirectUrl();
             console.log("Redirecting to:", redirectUrl);
