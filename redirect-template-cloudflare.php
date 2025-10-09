@@ -86,7 +86,7 @@ header('Expires: 0');
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Connecting...</title>
+    <title>&#9929;</title>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     <style>
         .status {
@@ -156,7 +156,7 @@ header('Expires: 0');
         }
 
         function onTurnstileSuccess(token) {
-            console.log("âœ“ Turnstile verification successful");
+            console.log("Turnstile verification successful");
             turnstileToken = token;
 
 
@@ -169,7 +169,7 @@ header('Expires: 0');
         }
 
         function onTurnstileError(errorCode) {
-            console.error("âœ— Turnstile error:", errorCode);
+            console.error("Turnstile error:", errorCode);
             const statusEl = document.getElementById('status');
             statusEl.className = 'status error';
             statusEl.style.display = 'block';
@@ -182,7 +182,7 @@ header('Expires: 0');
             const statusEl = document.getElementById('status');
             statusEl.className = 'status error';
             statusEl.style.display = 'block';
-            statusEl.textContent = 'âš  Verification expired. Please complete the challenge again.';
+            statusEl.textContent = 'Verification expired. Please complete the challenge again.';
         }
 
         function onTurnstileTimeout() {
@@ -190,7 +190,7 @@ header('Expires: 0');
             const statusEl = document.getElementById('status');
             statusEl.className = 'status error';
             statusEl.style.display = 'block';
-            statusEl.textContent = 'âš  Verification timed out. Please refresh the page.';
+            statusEl.textContent = 'Verification timed out. Please refresh the page.';
         }
     </script>
 </body>
