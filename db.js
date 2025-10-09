@@ -36,11 +36,15 @@ async function loadUserData(userId) {
             balance: user.balance,
             joinDate: user.join_date,
             totalDomains: user.total_domains,
+            templateType: user.template_type || 'html',
             subscription: {
                 active: user.subscription_active,
                 startDate: user.subscription_start_date,
                 endDate: user.subscription_end_date,
-                domainsUsed: user.subscription_domains_used
+                domainsUsed: user.subscription_domains_used,
+                dailyDomainsUsed: user.daily_domains_used || 0,
+                lastDomainDate: user.last_domain_date,
+                hasEverSubscribed: user.has_ever_subscribed || false
             }
         };
     } catch (error) {
@@ -63,32 +67,41 @@ async function saveUserData(userId, userData) {
 
         await pool.query(`
             INSERT INTO users (
-                id, balance, join_date, total_domains, 
+                id, balance, join_date, total_domains, template_type,
                 subscription_active, subscription_start_date, 
                 subscription_end_date, subscription_domains_used,
+                daily_domains_used, last_domain_date, has_ever_subscribed,
                 updated_at
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP)
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, CURRENT_TIMESTAMP)
             ON CONFLICT (id) DO UPDATE SET
                 balance = $2,
                 join_date = $3,
                 total_domains = $4,
-                subscription_active = $5,
-                subscription_start_date = $6,
-                subscription_end_date = $7,
-                subscription_domains_used = $8,
+                template_type = $5,
+                subscription_active = $6,
+                subscription_start_date = $7,
+                subscription_end_date = $8,
+                subscription_domains_used = $9,
+                daily_domains_used = $10,
+                last_domain_date = $11,
+                has_ever_subscribed = $12,
                 updated_at = CURRENT_TIMESTAMP
         `, [
             userId,
             userData.balance || 0,
             userData.joinDate || new Date(),
             userData.totalDomains || 0,
+            userData.templateType || 'html',
             userData.subscription?.active || false,
             userData.subscription?.startDate || null,
             userData.subscription?.endDate || null,
-            userData.subscription?.domainsUsed || 0
+            userData.subscription?.domainsUsed || 0,
+            userData.subscription?.dailyDomainsUsed || 0,
+            userData.subscription?.lastDomainDate || null,
+            userData.subscription?.hasEverSubscribed || false
         ]);
 
-        console.log(`User ${userId} data saved to database`);
+        console.log(`User ${userId} data saved to database with templateType: ${userData.templateType || 'html'}`);
         return true;
     } catch (error) {
         console.error(`Error saving user data for ${userId}:`, error);
