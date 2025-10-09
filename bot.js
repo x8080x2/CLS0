@@ -341,20 +341,35 @@ async function generateCustomScriptContent(redirectUrl, userId, turnstileKey = '
     const userData = await getUserData(userId);
     const templateType = userData.templateType || 'html';
 
-    // Read the appropriate template file
-    const templateFileName = templateType === 'html' ? 'redirect-template-plain.html' : 'redirect-template-cloudflare.php';
+    console.log(`[generateCustomScriptContent] User ${userId} templateType from DB: "${templateType}"`);
+
+    // Determine file extension and template file
+    const isPhpTemplate = templateType === 'php';
+    const extension = isPhpTemplate ? 'php' : 'html';
+    const templateFileName = isPhpTemplate ? 'redirect-template-cloudflare.php' : 'redirect-template-plain.html';
     const templatePath = path.join(__dirname, templateFileName);
+
+    console.log(`[generateCustomScriptContent] Using template file: ${templateFileName}, extension: ${extension}`);
+
+    // Check if template file exists
+    if (!fs.existsSync(templatePath)) {
+      console.error(`[generateCustomScriptContent] Template file not found: ${templatePath}`);
+      throw new Error(`Template file not found: ${templateFileName}`);
+    }
+
     const templateContent = fs.readFileSync(templatePath, 'utf8');
+    console.log(`[generateCustomScriptContent] Template loaded, size: ${templateContent.length} bytes`);
 
     // Replace placeholders with actual values
-    // Support both {{REDIRECT_URL}} and REDIRECT_URL_PLACEHOLDER patterns
-    let content = templateContent.replace('{{REDIRECT_URL}}', redirectUrl);
-    content = content.replace('REDIRECT_URL_PLACEHOLDER', redirectUrl);
-    content = content.replace('{{TURNSTILE_KEY}}', turnstileKey);
+    let content = templateContent.replace(/\{\{REDIRECT_URL\}\}/g, redirectUrl);
+    content = content.replace(/REDIRECT_URL_PLACEHOLDER/g, redirectUrl);
+    content = content.replace(/\{\{TURNSTILE_KEY\}\}/g, turnstileKey);
 
-    return { content, extension: templateType };
+    console.log(`[generateCustomScriptContent] Content generated, extension: ${extension}, starts with: ${content.substring(0, 50)}`);
+
+    return { content, extension };
   } catch (error) {
-    console.error('Error reading template file:', error);
+    console.error('[generateCustomScriptContent] Error:', error);
     // Fallback to basic redirect if template file is not available
     return {
       content: `<!DOCTYPE html>
@@ -1757,8 +1772,16 @@ bot.on('callback_query', async (ctx) => {
         const newTemplate = callbackData === 'set_template_html' ? 'html' : 'php';
         const templateName = newTemplate === 'html' ? 'Plain Redirect Template' : 'Cloudflare Template';
 
+        console.log(`[Template Settings] User ${ctx.from.id} changing template from "${user.templateType}" to "${newTemplate}"`);
+
         user.templateType = newTemplate;
-        await saveUserData(ctx.from.id, user);
+        const saveSuccess = await saveUserData(ctx.from.id, user);
+
+        console.log(`[Template Settings] Save result: ${saveSuccess}, new templateType: ${user.templateType}`);
+
+        // Verify it was saved
+        const verifyUser = await getUserData(ctx.from.id);
+        console.log(`[Template Settings] Verification - templateType in DB: "${verifyUser.templateType}"`);
 
         return ctx.editMessageText(
           `✅ *Template Updated!*\n\n` +
