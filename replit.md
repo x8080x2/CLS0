@@ -7,10 +7,10 @@ This Telegram bot automates domain provisioning with cPanel integration, enablin
 ## Recent Changes
 
 **October 9, 2025:**
-- ✅ Migrated to Replit's built-in PostgreSQL database
-- ✅ Migrated all user data from local JSON files to database (21 users, 7 history records)
+- ✅ Migrated all user data from local JSON files to Neon PostgreSQL database (21 users, 7 history records)
 - ✅ Removed legacy local storage folders (user_data, history_data, topup_data, clicks_data)
-- ✅ All data now stored securely in database with backup support
+- ✅ Database now accessible from both Replit (development) and Render (production)
+- ✅ All data stored securely with persistence across deployments
 
 ## User Preferences
 
@@ -18,7 +18,7 @@ Preferred communication style: Simple, everyday language.
 
 ## System Architecture
 
-The application is built on a monolithic Node.js architecture utilizing the Telegraf framework for Telegram interactions and an Express server for web functionalities. It integrates with WHM/cPanel for automated hosting account creation and uses Replit's built-in PostgreSQL database for persistent data storage.
+The application is built on a monolithic Node.js architecture utilizing the Telegraf framework for Telegram interactions and an Express server for web functionalities. It integrates with WHM/cPanel for automated hosting account creation and uses Neon PostgreSQL database for persistent data storage (accessible from both Replit and Render).
 
 **UI/UX Decisions:**
 - The web dashboard (`dashboard.html`) features a modern, responsive design with gradient styling for monitoring bot activity.
