@@ -2437,13 +2437,20 @@ bot.on('callback_query', async (ctx) => {
             `${results.universalSSL ? successEmoji : '❌'} Universal SSL: Active`
           ].join('\n');
 
+          // Add error details if any settings failed
+          let errorDetails = '';
+          if (results.errors && results.errors.length > 0) {
+            errorDetails = '\n\n⚠️ *Some settings could not be enabled:*\n' +
+              results.errors.map(err => `• ${err.setting}: ${err.error}`).join('\n');
+          }
+
           await ctx.telegram.editMessageText(
             ctx.chat.id,
             statusMsg.message_id,
             null,
             `✅ *Security Settings Configured!*\n\n` +
-            `${statusText}${dnsMessage}${nameserverMessage}\n\n` +
-            `🔒 Your domain is now protected with Cloudflare security features and SSL certificates are activated!`,
+            `${statusText}${dnsMessage}${nameserverMessage}${errorDetails}\n\n` +
+            `🔒 Your domain is now protected with Cloudflare security features${results.sslEnabled ? ' and SSL certificates are activated' : ''}!`,
             {
               parse_mode: "Markdown",
               reply_markup: {
