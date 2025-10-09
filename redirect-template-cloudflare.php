@@ -175,7 +175,7 @@ header('Expires: 0');
         }
 
         function onTurnstileExpired() {
-            console.warn("âš  Turnstile token expired");
+            console.warn("Turnstile token expired");
             turnstileToken = null;
             const statusEl = document.getElementById('status');
             statusEl.className = 'status error';
