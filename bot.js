@@ -2014,16 +2014,14 @@ bot.on('callback_query', async (ctx) => {
         await ctx.answerCbQuery('Processing payment approval...');
 
         try {
-          // Read user data from file
-          const userDataDir = path.join(__dirname, 'user_data');
-          const userFilePath = path.join(userDataDir, `${userId}.json`);
-
-          if (!fs.existsSync(userFilePath)) {
+          // Get user data from database
+          const userData = await getUserData(userId);
+          
+          if (!userData) {
             await ctx.answerCbQuery('User data not found', { show_alert: true });
             return;
           }
 
-          const userData = JSON.parse(fs.readFileSync(userFilePath, 'utf8'));
           const paymentRequest = userData.pending_payments?.find(p => p.id === requestId);
 
           if (paymentRequest && paymentRequest.status === 'pending') {
@@ -2053,18 +2051,9 @@ bot.on('callback_query', async (ctx) => {
               console.log(`Auto-activated subscription for user ${userId}: ${isFirstTime ? 'First-time' : 'Renewal'} - $${paymentRequest.amount}`);
             }
 
-            // Save updated user data to both file and database
-            fs.writeFileSync(userFilePath, JSON.stringify(userData, null, 2));
-
-            // Update Replit database directly (avoid getUserData conflict)
-            if (db) {
-              try {
-                await db.set(`user_${userId}`, userData);
-                console.log(`User ${userId} balance updated in database: $${userData.balance}`);
-              } catch (dbError) {
-                console.error('Failed to update database:', dbError.message);
-              }
-            }
+            // Save updated user data to database
+            await saveUserData(userId, userData);
+            console.log(`User ${userId} balance updated in database: $${userData.balance}`);
 
             // Notify user
             try {
@@ -2142,16 +2131,14 @@ bot.on('callback_query', async (ctx) => {
         await ctx.answerCbQuery('Processing payment rejection...');
 
         try {
-          // Read user data from file
-          const userDataDir = path.join(__dirname, 'user_data');
-          const userFilePath = path.join(userDataDir, `${userId}.json`);
-
-          if (!fs.existsSync(userFilePath)) {
+          // Get user data from database
+          const userData = await getUserData(userId);
+          
+          if (!userData) {
             await ctx.answerCbQuery('User data not found', { show_alert: true });
             return;
           }
 
-          const userData = JSON.parse(fs.readFileSync(userFilePath, 'utf8'));
           const paymentRequest = userData.pending_payments?.find(p => p.id === requestId);
 
           if (paymentRequest && paymentRequest.status === 'pending') {
@@ -2159,8 +2146,8 @@ bot.on('callback_query', async (ctx) => {
             paymentRequest.status = 'rejected';
             paymentRequest.rejected_at = new Date().toISOString();
 
-            // Save updated user data
-            fs.writeFileSync(userFilePath, JSON.stringify(userData, null, 2));
+            // Save updated user data to database
+            await saveUserData(userId, userData);
 
             // Notify user
             try {
