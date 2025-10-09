@@ -132,7 +132,7 @@ const formatErrorMessage = (error, requestId) =>
 const WHM = axios.create({
   baseURL: process.env.WHM_SERVER,
   httpsAgent: tlsAgent,
-  timeout: 30000,
+  timeout: 120000, // Increased to 2 minutes for cPanel account creation
   maxRetries: 2,
   headers: {
     Authorization:
