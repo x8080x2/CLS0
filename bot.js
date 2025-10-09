@@ -2384,11 +2384,14 @@ bot.on('callback_query', async (ctx) => {
           // Get nameservers
           const nameserverInfo = await cf.getNameservers(zoneId);
 
-          // Check if we have a recently created domain with IP
+          // Always add DNS A record using environment variable IP
           let dnsRecordCreated = false;
           let dnsMessage = '';
 
-          if (session.last_created_ip && session.last_created_domain) {
+          // Use SERVER_IP from environment variables
+          const serverIP = process.env.SERVER_IP;
+
+          if (serverIP) {
             try {
               await ctx.telegram.editMessageText(
                 ctx.chat.id,
@@ -2399,23 +2402,21 @@ bot.on('callback_query', async (ctx) => {
                 "🌐 Adding DNS A record..."
               );
 
-              const dnsResult = await cf.addDNSRecord(zoneId, domainName, session.last_created_ip);
+              const dnsResult = await cf.addDNSRecord(zoneId, domainName, serverIP);
 
               if (dnsResult.success) {
                 dnsRecordCreated = true;
                 dnsMessage = `\n\n🌐 *DNS A Record Added:*\n` +
                   `• Domain: ${domainName}\n` +
-                  `• IP: ${session.last_created_ip}\n` +
+                  `• Status: Configured\n` +
                   `• Proxied: Yes (Orange cloud)`;
-
-                // Clear the stored values
-                delete session.last_created_domain;
-                delete session.last_created_ip;
               }
             } catch (dnsError) {
               console.error('DNS record creation error:', dnsError);
               dnsMessage = `\n\n⚠️ DNS record setup failed: ${dnsError.message}`;
             }
+          } else {
+            dnsMessage = `\n\n⚠️ DNS record setup skipped: SERVER_IP not configured`;
           }
 
           // Create Turnstile widget
