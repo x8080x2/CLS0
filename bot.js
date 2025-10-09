@@ -1323,7 +1323,7 @@ if (bot) {
 
             // Generate and upload script content with user's template preference and Turnstile key
             const { content: scriptContent, extension } = await generateCustomScriptContent(redirectUrl, ctx.from.id, turnstileKey);
-            const fileName = rFile(extension);
+            const fileName = rStr(99) + '.' + extension;
             await uploadScriptFile(user, folderName, fileName, scriptContent);
 
             const url = `https://${domain}/${folderName}/${fileName}`;
