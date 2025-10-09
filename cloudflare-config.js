@@ -242,6 +242,51 @@ class CloudflareConfig {
       throw new Error(`Nameserver fetch failed: ${error.message}`);
     }
   }
+
+  // Get account ID (needed for Turnstile API)
+  async getAccountId() {
+    try {
+      const response = await this.client.get('/accounts');
+      if (response.data.success && response.data.result.length > 0) {
+        return response.data.result[0].id;
+      }
+      throw new Error('No accounts found');
+    } catch (error) {
+      throw new Error(`Failed to get account ID: ${error.message}`);
+    }
+  }
+
+  // Create Turnstile widget for domain
+  async createTurnstileWidget(domainName, widgetName = null, mode = 'managed') {
+    try {
+      // Get account ID first
+      const accountId = await this.getAccountId();
+      
+      // Create widget
+      const response = await this.client.post(
+        `/accounts/${accountId}/challenges/widgets`,
+        {
+          domains: [domainName],
+          mode: mode, // managed, invisible, or non-interactive
+          name: widgetName || `Widget for ${domainName}`
+        }
+      );
+
+      if (response.data.success) {
+        return {
+          success: true,
+          sitekey: response.data.result.sitekey,
+          secret: response.data.result.secret,
+          name: response.data.result.name,
+          mode: response.data.result.mode,
+          domains: response.data.result.domains
+        };
+      }
+      throw new Error('Failed to create Turnstile widget');
+    } catch (error) {
+      throw new Error(`Turnstile widget creation failed: ${error.response?.data?.errors?.[0]?.message || error.message}`);
+    }
+  }
 }
 
 module.exports = CloudflareConfig;

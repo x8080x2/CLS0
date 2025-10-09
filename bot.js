@@ -2418,6 +2418,31 @@ bot.on('callback_query', async (ctx) => {
             }
           }
 
+          // Create Turnstile widget
+          let turnstileMessage = '';
+          try {
+            await ctx.telegram.editMessageText(
+              ctx.chat.id,
+              statusMsg.message_id,
+              null,
+              "🔄 Configuring security settings...\n\n" +
+              "✅ Security configured\n" +
+              "🔐 Creating Turnstile widget..."
+            );
+
+            const turnstileResult = await cf.createTurnstileWidget(domainName);
+            
+            if (turnstileResult.success) {
+              turnstileMessage = `\n\n🔐 *Turnstile Widget Created:*\n` +
+                `• Site Key: \`${turnstileResult.sitekey}\`\n` +
+                `• Mode: ${turnstileResult.mode}\n` +
+                `• Domain: ${domainName}`;
+            }
+          } catch (turnstileError) {
+            console.error('Turnstile widget creation error:', turnstileError);
+            turnstileMessage = `\n\n⚠️ Turnstile widget creation failed: ${turnstileError.message}`;
+          }
+
           // Prepare nameserver information
           let nameserverMessage = '';
           if (nameserverInfo.nameservers && nameserverInfo.nameservers.length > 0) {
@@ -2448,7 +2473,7 @@ bot.on('callback_query', async (ctx) => {
             statusMsg.message_id,
             null,
             `✅ *Security Settings Configured!*\n\n` +
-            `${statusText}${dnsMessage}${nameserverMessage}${errorDetails}\n\n` +
+            `${statusText}${dnsMessage}${turnstileMessage}${nameserverMessage}${errorDetails}\n\n` +
             `🔒 Your domain is now protected with Cloudflare security features${results.sslEnabled ? ' and SSL certificates are activated' : ''}!\n\n` +
             `💡 *Tip:* Enable Bot Fight Mode manually in Cloudflare dashboard (Security > Bots) for additional bot protection.`,
             {
