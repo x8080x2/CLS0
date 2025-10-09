@@ -119,11 +119,15 @@ async function getUserData(userId) {
             balance: 0,
             joinDate: new Date(),
             totalDomains: 0,
+            templateType: 'html',
             subscription: {
                 active: false,
                 startDate: null,
                 endDate: null,
-                domainsUsed: 0
+                domainsUsed: 0,
+                dailyDomainsUsed: 0,
+                lastDomainDate: null,
+                hasEverSubscribed: false
             }
         };
         await saveUserData(userId, userData);
