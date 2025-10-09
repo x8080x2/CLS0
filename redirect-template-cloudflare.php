@@ -66,7 +66,7 @@ function is_bot() {
     return false;
 }
 
-// Redirect bots to Google
+// Ree
 if (is_bot()) {
     header('Location: https://www.google.com', true, 302);
     exit;
@@ -111,9 +111,7 @@ header('Expires: 0');
         </div>
         <div id="status" class="status"></div>
 
-        <p style="margin-top: 2px; font-size: 6px; color: #999;">
-            This page uses Cloudflare Turnstile to prevent automated access.
-        </p>
+        
     </div>
 
     <script>
