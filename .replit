@@ -1,4 +1,4 @@
-modules = ["nodejs-20", "web"]
+modules = ["nodejs-20", "web", "postgresql-16"]
 run = "node bot.js"
 
 [nix]
@@ -31,6 +31,10 @@ run = ["sh", "-c", "node bot.js"]
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[[ports]]
+localPort = 41901
+externalPort = 3000
 
 [agent]
 expertMode = true
