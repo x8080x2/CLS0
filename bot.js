@@ -1469,7 +1469,6 @@ if (bot) {
 bot.on('callback_query', async (ctx) => {
     const callbackData = ctx.callbackQuery.data;
     const session = getSession(ctx);
-    const user = getUserData(ctx.from.id);
 
     // Always answer callback query first to remove loading state
     await ctx.answerCbQuery();
@@ -1810,8 +1809,6 @@ bot.on('callback_query', async (ctx) => {
       }
 
       if (callbackData === 'admin_access') {
-        const user = getUserData(ctx.from.id);
-
         // Check if user is admin - gets free access
         const log = L("admin-access");
 
