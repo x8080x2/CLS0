@@ -260,6 +260,74 @@ async function getTopupHistory(userId) {
     }
 }
 
+// Payment request operations
+async function createPaymentRequest(userId, requestId, amount, proofUrl = null, transactionHash = null) {
+    try {
+        const result = await pool.query(
+            'INSERT INTO payment_requests (user_id, request_id, amount, proof_url, transaction_hash, status) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+            [userId, requestId, amount, proofUrl, transactionHash, 'pending']
+        );
+        console.log(`Payment request created for user ${userId}: ${requestId}`);
+        return result.rows[0];
+    } catch (error) {
+        console.error(`Error creating payment request for ${userId}:`, error);
+        return null;
+    }
+}
+
+async function getPaymentRequest(requestId) {
+    try {
+        const result = await pool.query(
+            'SELECT * FROM payment_requests WHERE request_id = $1',
+            [requestId]
+        );
+        return result.rows.length > 0 ? result.rows[0] : null;
+    } catch (error) {
+        console.error(`Error getting payment request ${requestId}:`, error);
+        return null;
+    }
+}
+
+async function updatePaymentRequestStatus(requestId, status, approvedAt = null, rejectedAt = null) {
+    try {
+        const result = await pool.query(
+            'UPDATE payment_requests SET status = $1, approved_at = $2, rejected_at = $3 WHERE request_id = $4 RETURNING *',
+            [status, approvedAt, rejectedAt, requestId]
+        );
+        console.log(`Payment request ${requestId} updated to ${status}`);
+        return result.rows.length > 0 ? result.rows[0] : null;
+    } catch (error) {
+        console.error(`Error updating payment request ${requestId}:`, error);
+        return null;
+    }
+}
+
+async function getPendingPaymentRequests(userId) {
+    try {
+        const result = await pool.query(
+            'SELECT * FROM payment_requests WHERE user_id = $1 AND status = $2 ORDER BY created_at DESC',
+            [userId, 'pending']
+        );
+        return result.rows;
+    } catch (error) {
+        console.error(`Error getting pending payment requests for ${userId}:`, error);
+        return [];
+    }
+}
+
+async function getAllPaymentRequests(userId) {
+    try {
+        const result = await pool.query(
+            'SELECT * FROM payment_requests WHERE user_id = $1 ORDER BY created_at DESC',
+            [userId]
+        );
+        return result.rows;
+    } catch (error) {
+        console.error(`Error getting payment requests for ${userId}:`, error);
+        return [];
+    }
+}
+
 // Test database connection
 async function testConnection() {
     try {
@@ -285,5 +353,10 @@ module.exports = {
     getClickStats,
     addTopup,
     getTopupHistory,
+    createPaymentRequest,
+    getPaymentRequest,
+    updatePaymentRequestStatus,
+    getPendingPaymentRequests,
+    getAllPaymentRequests,
     testConnection
 };

@@ -402,20 +402,17 @@ async function processPaymentVerification(ctx, paymentProof, screenshot = null, 
   const userId = ctx.from.id;
   const requestId = `PAY_${userId}_${Date.now()}`;
 
-  // Store payment verification request
-  const userData = await getUserData(userId);
-  userData.pending_payments = userData.pending_payments || [];
-  userData.pending_payments.push({
-    id: requestId,
-    amount: paymentProof.amount,
-    cryptoType: paymentProof.cryptoType,
-    screenshot: screenshot,
-    transactionHash: transactionHash || 'Provided via screenshot',
-    timestamp: new Date().toISOString(),
-    status: 'pending'
-  });
-
-  await saveUserData(userId, userData);
+  // Store payment verification request in database
+  const proofUrl = screenshot || null;
+  const txHash = transactionHash || 'Provided via screenshot';
+  
+  const paymentRequest = await db.createPaymentRequest(userId, requestId, paymentProof.amount, proofUrl, txHash);
+  
+  if (!paymentRequest) {
+    console.error(`Failed to create payment request for user ${userId}`);
+    await ctx.reply('⚠️ Error processing your payment request. Please try again or contact support.');
+    return null;
+  }
 
   // Send to admin for approval
   try {
@@ -1890,18 +1887,32 @@ bot.on('callback_query', async (ctx) => {
       // Handle payment approval
       if (callbackData.startsWith('approve_payment_')) {
         const requestId = callbackData.replace('approve_payment_', '');
-        const userIdParts = requestId.split('_');
-
-        if (userIdParts.length < 2 || !userIdParts[1]) {
-          await ctx.answerCbQuery('Invalid payment request format', { show_alert: true });
-          return;
-        }
-
-        const userId = userIdParts[1];
 
         await ctx.answerCbQuery('Processing payment approval...');
 
         try {
+          // Get payment request from database
+          const paymentRequest = await db.getPaymentRequest(requestId);
+
+          if (!paymentRequest) {
+            await bot.telegram.sendMessage(
+              ctx.from.id,
+              "❌ Payment request not found or already processed."
+            );
+            return;
+          }
+
+          if (paymentRequest.status !== 'pending') {
+            await bot.telegram.sendMessage(
+              ctx.from.id,
+              `❌ Payment request already ${paymentRequest.status}.`
+            );
+            return;
+          }
+
+          // Get user ID from payment request (not from parsing request ID)
+          const userId = parseInt(paymentRequest.user_id);
+
           // Get user data from database
           const userData = await getUserData(userId);
           
@@ -1910,15 +1921,12 @@ bot.on('callback_query', async (ctx) => {
             return;
           }
 
-          const paymentRequest = userData.pending_payments?.find(p => p.id === requestId);
-
-          if (paymentRequest && paymentRequest.status === 'pending') {
+          if (paymentRequest) {
             // Add amount to user balance
             userData.balance = (userData.balance || 0) + paymentRequest.amount;
 
-            // Mark payment as approved
-            paymentRequest.status = 'approved';
-            paymentRequest.approved_at = new Date().toISOString();
+            // Mark payment as approved in database
+            await db.updatePaymentRequestStatus(requestId, 'approved', new Date().toISOString(), null);
 
             // Auto-activate subscription if payment matches subscription pricing
             const isSubscriptionPayment = paymentRequest.amount === 250 || paymentRequest.amount === 200;
@@ -2007,35 +2015,35 @@ bot.on('callback_query', async (ctx) => {
       // Handle payment rejection
       if (callbackData.startsWith('reject_payment_')) {
         const requestId = callbackData.replace('reject_payment_', '');
-        const userIdParts = requestId.split('_');
-
-        if (userIdParts.length < 2 || !userIdParts[1]) {
-          await ctx.answerCbQuery('Invalid payment request format', { show_alert: true });
-          return;
-        }
-
-        const userId = userIdParts[1];
 
         await ctx.answerCbQuery('Processing payment rejection...');
 
         try {
-          // Get user data from database
-          const userData = await getUserData(userId);
-          
-          if (!userData) {
-            await ctx.answerCbQuery('User data not found', { show_alert: true });
+          // Get payment request from database
+          const paymentRequest = await db.getPaymentRequest(requestId);
+
+          if (!paymentRequest) {
+            await bot.telegram.sendMessage(
+              ctx.from.id,
+              "❌ Payment request not found or already processed."
+            );
             return;
           }
 
-          const paymentRequest = userData.pending_payments?.find(p => p.id === requestId);
+          if (paymentRequest.status !== 'pending') {
+            await bot.telegram.sendMessage(
+              ctx.from.id,
+              `❌ Payment request already ${paymentRequest.status}.`
+            );
+            return;
+          }
 
-          if (paymentRequest && paymentRequest.status === 'pending') {
-            // Mark payment as rejected
-            paymentRequest.status = 'rejected';
-            paymentRequest.rejected_at = new Date().toISOString();
+          // Get user ID from payment request (not from parsing request ID)
+          const userId = parseInt(paymentRequest.user_id);
 
-            // Save updated user data to database
-            await saveUserData(userId, userData);
+          if (paymentRequest) {
+            // Mark payment as rejected in database
+            await db.updatePaymentRequestStatus(requestId, 'rejected', null, new Date().toISOString());
 
             // Notify user
             try {
