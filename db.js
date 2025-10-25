@@ -396,8 +396,7 @@ module.exports = {
     loadUserHistory,
     saveUserHistory,
     addUserHistory,
-    trackClick,
-    getClickStats,
+    
     addTopup,
     getTopupHistory,
     createPaymentRequest,

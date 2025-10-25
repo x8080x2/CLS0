@@ -35,42 +35,7 @@ app.get("/dashboard", (_, res) => {
   res.sendFile(path.join(__dirname, "dashboard.html"));
 });
 
-// Click tracking endpoint
-app.post("/api/track-click", async (req, res) => {
-  try {
-    const { domain, timestamp } = req.body;
-
-    if (!domain) {
-      return res.status(400).json({ error: "Domain required" });
-    }
-
-    const ipAddress = req.ip || req.connection.remoteAddress || 'unknown';
-    await db.trackClick(domain, ipAddress);
-
-    const totalClicks = await db.getClickStats(domain);
-    res.json({ success: true, totalClicks });
-  } catch (error) {
-    console.error('Click tracking error:', error);
-    res.status(500).json({ error: "Failed to track click" });
-  }
-});
-
-// Get click statistics for a domain
-app.get("/api/clicks/:domain", async (req, res) => {
-  try {
-    const { domain } = req.params;
-    const totalClicks = await db.getClickStats(domain);
-    
-    res.json({
-      domain,
-      totalClicks,
-      recentClicks: [] // Could be enhanced to fetch recent clicks from DB
-    });
-  } catch (error) {
-    console.error('Click stats error:', error);
-    res.status(500).json({ error: "Failed to get click statistics" });
-  }
-});
+// Removed click tracking endpoint and related functions as per user request.
 
 // Enhanced Logger with better formatting
 let loggerConfig = {
@@ -405,9 +370,9 @@ async function processPaymentVerification(ctx, paymentProof, screenshot = null, 
   // Store payment verification request in database
   const proofUrl = screenshot || null;
   const txHash = transactionHash || 'Provided via screenshot';
-  
+
   const paymentRequest = await db.createPaymentRequest(userId, requestId, paymentProof.amount, proofUrl, txHash);
-  
+
   if (!paymentRequest) {
     console.error(`Failed to create payment request for user ${userId}`);
     await ctx.reply('⚠️ Error processing your payment request. Please try again or contact support.');
@@ -696,11 +661,6 @@ async function updateUserBalance(userId, newBalance) {
 
 async function addUserHistory(userId, historyItem) {
   await db.addUserHistory(userId, historyItem);
-}
-
-// Get click statistics for a domain
-async function getDomainClicks(domain) {
-  return await db.getClickStats(domain);
 }
 
 // ==========================================
@@ -1643,7 +1603,7 @@ bot.on('callback_query', async (ctx) => {
         }
       }
 
-      
+
 
 
       // Handle template settings
@@ -2018,7 +1978,7 @@ bot.on('callback_query', async (ctx) => {
 
           // Get user data from database
           const userData = await getUserData(userId);
-          
+
           if (!userData) {
             await ctx.answerCbQuery('User data not found', { show_alert: true });
             return;
@@ -2436,7 +2396,7 @@ bot.on('callback_query', async (ctx) => {
             );
 
             const turnstileResult = await cf.createTurnstileWidget(domainName);
-            
+
             if (turnstileResult.success) {
               turnstileMessage = `\n\n🔐 *Turnstile Widget Created:*\n` +
                 `• Site Key: \`${turnstileResult.sitekey}\`\n` +
@@ -2457,7 +2417,7 @@ bot.on('callback_query', async (ctx) => {
           }
 
           const successEmoji = '✅';
-          
+
 
           // Add error details if any settings failed
           let errorDetails = '';
@@ -2776,7 +2736,7 @@ bot.on('callback_query', async (ctx) => {
   // Global error handler for bot
   bot.catch((err, ctx) => {
     const errorLog = L("bot-error");
-    
+
     // Handle specific Telegram API errors
     if (err.response && err.response.error_code === 400) {
       if (err.response.description && err.response.description.includes('message is not modified')) {
@@ -2785,13 +2745,13 @@ bot.on('callback_query', async (ctx) => {
         return;
       }
     }
-    
+
     // Handle 409 Conflict errors
     if (err.response && err.response.error_code === 409) {
       errorLog.error({ error: err.message }, 'Conflict error - another instance may be running');
       return;
     }
-    
+
     // Log other errors
     errorLog.error({ 
       error: err.message, 
@@ -2844,11 +2804,11 @@ const server = app.listen(PORT, "0.0.0.0", async () => {
     // Use webhooks in production, polling in development
     if (process.env.NODE_ENV === "production" || process.env.RENDER) {
       const WEBHOOK_URL = process.env.WEBHOOK_URL || `https://${process.env.RENDER_EXTERNAL_HOSTNAME}/webhook/${process.env.TELEGRAM_BOT_TOKEN}`;
-      
+
       // Retry logic for webhook setting (handles 429 rate limits)
       let retries = 0;
       const maxRetries = 3;
-      
+
       const setWebhookWithRetry = async () => {
         try {
           await bot.telegram.setWebhook(WEBHOOK_URL);
@@ -2868,7 +2828,7 @@ const server = app.listen(PORT, "0.0.0.0", async () => {
           }
         }
       };
-      
+
       // Don't await - let it retry in background, server continues
       setWebhookWithRetry();
     } else {
