@@ -131,10 +131,10 @@ class CloudflareConfig {
       results.errors.push({ setting: 'Universal SSL', error: error.response?.data?.errors?.[0]?.message || error.message });
     }
 
-    // Set SSL mode to Flexible (works with most servers without origin SSL)
+    // Set SSL mode to Full (encrypts traffic between Cloudflare and origin)
     try {
       await this.client.patch(`/zones/${zoneId}/settings/ssl`, {
-        value: 'flexible'
+        value: 'full'
       });
       results.sslMode = true;
     } catch (error) {
