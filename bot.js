@@ -734,7 +734,7 @@ if (bot) {
     );
 
     return ctx.reply(
-      `🎯 *CLS Redirect Bot*`,
+      `🎯 *Redirect Bot*`,
       { 
         parse_mode: "Markdown",
         reply_markup: {
@@ -1523,13 +1523,10 @@ bot.on('callback_query', async (ctx) => {
 
         return ctx.editMessageText(
             `⭐ *Monthly Subscription Plan*\n\n` +
-            `💎 *First Time:* $250\n` +
+            `💎 *First Time User:* $250\n` +
             `🔄 *Renewal:* $200\n\n` +
-            `📦 *What You Get:*\n` +
             `• 2 domains daily (6 links)\n` +
-            `• 30-day access\n` +
-            `• Up to 60 domains total\n` +
-            `• Daily limit resets at midnight`,
+            `• 30-day Access`,
             { 
               parse_mode: "Markdown",
               reply_markup: {
