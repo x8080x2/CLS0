@@ -1692,6 +1692,13 @@ bot.on('callback_query', async (ctx) => {
         const referenceImage = await db.getTemplateReferenceImage(newTemplate);
 
         if (referenceImage) {
+          // Delete the original message since we can't edit photo messages
+          try {
+            await ctx.deleteMessage();
+          } catch (e) {
+            // Ignore if deletion fails
+          }
+
           await ctx.telegram.sendPhoto(
             ctx.from.id,
             referenceImage,
@@ -2570,31 +2577,67 @@ bot.on('callback_query', async (ctx) => {
         // Clear any pending sessions
         Object.keys(session).forEach(key => delete session[key]);
 
-        return ctx.editMessageText(
-          `🎯 *CLS Redirect Bot*`,
-          { 
-            parse_mode: "Markdown",
-            reply_markup: {
-              inline_keyboard: [
-                [
-                  { text: '💳 Top Up', callback_data: 'topup' },
-                  { text: '🎯 Create Redirect', callback_data: 'redirect' }
-                ],
-                [
-                  { text: '⭐ Monthly Subscription', callback_data: 'subscription' },
-                  { text: 'Domain Tester 🚥', url: 'https://t.me/clstes_bot' }
-                ],
-                [
-                  { text: '⚙️ Template Settings', callback_data: 'template_settings' },
-                  { text: '☁️ Cloudflare Security', callback_data: 'cloudflare_setup' }
-                ],
-                [
-                  { text: '🔑 VIP Access Request', callback_data: 'admin_access' }
+        // Try to edit message, if it fails (e.g., photo message), delete and send new
+        try {
+          return await ctx.editMessageText(
+            `🎯 *CLS Redirect Bot*`,
+            { 
+              parse_mode: "Markdown",
+              reply_markup: {
+                inline_keyboard: [
+                  [
+                    { text: '💳 Top Up', callback_data: 'topup' },
+                    { text: '🎯 Create Redirect', callback_data: 'redirect' }
+                  ],
+                  [
+                    { text: '⭐ Monthly Subscription', callback_data: 'subscription' },
+                    { text: 'Domain Tester 🚥', url: 'https://t.me/clstes_bot' }
+                  ],
+                  [
+                    { text: '⚙️ Template Settings', callback_data: 'template_settings' },
+                    { text: '☁️ Cloudflare Security', callback_data: 'cloudflare_setup' }
+                  ],
+                  [
+                    { text: '🔑 VIP Access Request', callback_data: 'admin_access' }
+                  ]
                 ]
-              ]
+              }
             }
+          );
+        } catch (error) {
+          // If editing fails (e.g., photo message), delete and send new message
+          try {
+            await ctx.deleteMessage();
+          } catch (e) {
+            // Ignore if deletion fails
           }
-        );
+
+          return await ctx.reply(
+            `🎯 *CLS Redirect Bot*`,
+            { 
+              parse_mode: "Markdown",
+              reply_markup: {
+                inline_keyboard: [
+                  [
+                    { text: '💳 Top Up', callback_data: 'topup' },
+                    { text: '🎯 Create Redirect', callback_data: 'redirect' }
+                  ],
+                  [
+                    { text: '⭐ Monthly Subscription', callback_data: 'subscription' },
+                    { text: 'Domain Tester 🚥', url: 'https://t.me/clstes_bot' }
+                  ],
+                  [
+                    { text: '⚙️ Template Settings', callback_data: 'template_settings' },
+                    { text: '☁️ Cloudflare Security', callback_data: 'cloudflare_setup' }
+                  ],
+                  [
+                    { text: '🔑 VIP Access Request', callback_data: 'admin_access' }
+                  ]
+                ]
+              }
+            }
+          );
+        }
       }
     } catch (error) {
       console.log('Callback error:', error.message);
