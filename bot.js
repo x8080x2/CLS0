@@ -738,13 +738,11 @@ if (bot) {
               { text: 'Domain Tester 🚥', url: 'https://t.me/clstes_bot' }
             ],
             [
-              { text: '⚙️ Template Settings', callback_data: 'template_settings' }
+              { text: '⚙️ Template Settings', callback_data: 'template_settings' },
+              { text: '☁️ Cloudflare Security', callback_data: 'cloudflare_setup' }
             ],
             [
               { text: '🔑 VIP Access Request', callback_data: 'admin_access' }
-            ],
-            [
-              { text: '☁️ Cloudflare Security Setup', callback_data: 'cloudflare_setup' }
             ]
           ]
         }
@@ -2483,13 +2481,11 @@ bot.on('callback_query', async (ctx) => {
                   { text: 'Domain Tester 🚥', url: 'https://t.me/clstes_bot' }
                 ],
                 [
-                  { text: '⚙️ Template Settings', callback_data: 'template_settings' }
+                  { text: '⚙️ Template Settings', callback_data: 'template_settings' },
+                  { text: '☁️ Cloudflare Security', callback_data: 'cloudflare_setup' }
                 ],
                 [
                   { text: '🔑 VIP Access Request', callback_data: 'admin_access' }
-                ],
-                [
-                  { text: '☁️ Cloudflare Security Setup', callback_data: 'cloudflare_setup' }
                 ]
               ]
             }
