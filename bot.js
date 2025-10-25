@@ -1847,8 +1847,7 @@ bot.on('callback_query', async (ctx) => {
           await ctx.editMessageText(
             `📸 *Payment Confirmation Required*\n\n` +
             `Please provide a screenshot of your payment confirmation showing the $${amount} amount, destination address, and transaction confirmation.\n\n` +
-            `Or simply send the transaction hash (TXID) as text.\n\n` +
-            `💡 After you send the proof, an admin will verify your payment.`,
+            `💡Send the transaction hash (TXID) as text or link.`,
             { parse_mode: "Markdown" }
           );
         } catch (error) {
@@ -1856,8 +1855,7 @@ bot.on('callback_query', async (ctx) => {
           await ctx.reply(
             `📸 *Payment Confirmation Required*\n\n` +
             `Please provide a screenshot of your payment confirmation showing the $${amount} amount, destination address, and transaction confirmation.\n\n` +
-            `Or simply send the transaction hash (TXID) as text.\n\n` +
-            `💡 After you send the proof, an admin will verify your payment.`,
+            `💡Send the transaction hash (TXID) as text or link.`,
             { parse_mode: "Markdown" }
           );
         }
