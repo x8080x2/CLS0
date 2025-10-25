@@ -546,13 +546,16 @@ async function generateTopUpMessage(usdAmount, cryptoType) {
 
   const wallet = CRYPTO_WALLETS[cryptoType];
   const cryptoSymbol = cryptoType === 'BTC' ? 'BTC' : 'USDT';
-  const network = cryptoType.includes('TRC20') ? ' [TRC20]' : cryptoType.includes('ERC20') ? ' [ERC20]' : '';
+  const network = cryptoType.includes('TRC20') ? ' (TRC20)' : cryptoType.includes('ERC20') ? ' (ERC20)' : '';
+
+  // Escape special Markdown characters in wallet address
+  const escapedWallet = wallet.replace(/_/g, '\\_');
 
   return {
     text: `⚠️ *Please send the exact amount to the address below:*
 
-*Address:* \`${wallet}\`
-*Amount:* \`${amount} ${cryptoSymbol}${network}\`
+*Address:* \`${escapedWallet}\`
+*Amount:* ${amount} ${cryptoSymbol}${network}
 *USD Value:* $${usdAmount}
 *Status:* 🕜 WAITING FOR PAYMENT
 
