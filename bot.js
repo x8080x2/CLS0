@@ -745,10 +745,9 @@ if (bot) {
             ],
             [
               { text: '⭐ Monthly Subscription', callback_data: 'subscription' },
-              { text: '👤 My Profile', callback_data: 'profile' }
+              { text: 'Domain Tester 🚥', url: 'https://t.me/clstes_bot' }
             ],
             [
-              { text: 'Domain Tester 🚥', url: 'https://t.me/clstes_bot' },
               { text: '⚙️ Template Settings', callback_data: 'template_settings' }
             ],
             [
@@ -2584,10 +2583,9 @@ bot.on('callback_query', async (ctx) => {
                 ],
                 [
                   { text: '⭐ Monthly Subscription', callback_data: 'subscription' },
-                  { text: '👤 My Profile', callback_data: 'profile' }
+                  { text: 'Domain Tester 🚥', url: 'https://t.me/clstes_bot' }
                 ],
                 [
-                  { text: 'Domain Tester 🚥', url: 'https://t.me/clstes_bot' },
                   { text: '⚙️ Template Settings', callback_data: 'template_settings' }
                 ],
                 [
