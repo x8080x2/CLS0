@@ -748,11 +748,10 @@ if (bot) {
               { text: '👤 My Profile', callback_data: 'profile' }
             ],
             [
-              { text: '📊 My Redirects', callback_data: 'history' },
-              { text: 'Domain Tester 🚥', url: 'https://t.me/clstes_bot' }
+              { text: 'Domain Tester 🚥', url: 'https://t.me/clstes_bot' },
+              { text: '⚙️ Template Settings', callback_data: 'template_settings' }
             ],
             [
-              { text: '⚙️ Template Settings', callback_data: 'template_settings' },
               { text: '🔑 VIP Access Request', callback_data: 'admin_access' }
             ],
             [
@@ -2588,11 +2587,10 @@ bot.on('callback_query', async (ctx) => {
                   { text: '👤 My Profile', callback_data: 'profile' }
                 ],
                 [
-                  { text: '📊 My Redirects', callback_data: 'history' },
-                  { text: 'Domain Tester 🚥', url: 'https://t.me/clstes_bot' }
+                  { text: 'Domain Tester 🚥', url: 'https://t.me/clstes_bot' },
+                  { text: '⚙️ Template Settings', callback_data: 'template_settings' }
                 ],
                 [
-                  { text: '⚙️ Template Settings', callback_data: 'template_settings' },
                   { text: '🔑 VIP Access Request', callback_data: 'admin_access' }
                 ],
                 [
