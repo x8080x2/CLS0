@@ -811,6 +811,38 @@ if (bot) {
   bot.on('photo', async (ctx) => {
     const session = getSession(ctx);
 
+    // Admin setting template reference image
+    if (session.awaiting_template_image) {
+      // Check if user is admin
+      if (!process.env.ADMIN_ID || ctx.from.id.toString() !== process.env.ADMIN_ID) {
+        delete session.awaiting_template_image;
+        return ctx.reply("❌ This action is only available to administrators.");
+      }
+
+      const templateType = session.awaiting_template_image;
+      const photo = ctx.message.photo[ctx.message.photo.length - 1];
+      const photoFileId = photo.file_id;
+
+      // Save to database
+      const success = await db.setTemplateReferenceImage(templateType, photoFileId);
+
+      delete session.awaiting_template_image;
+
+      if (success) {
+        const templateName = templateType === 'html' ? 'Plain Redirect Template' : 'Cloudflare Template';
+        await ctx.reply(
+          `✅ *Reference Image Set!*\n\n` +
+          `Template: ${templateName}\n` +
+          `Image has been saved successfully.\n\n` +
+          `Users will now see this image when selecting this template.`,
+          { parse_mode: "Markdown" }
+        );
+      } else {
+        await ctx.reply("❌ Failed to save reference image. Please try again.");
+      }
+      return;
+    }
+
     if (session.awaiting_payment_proof) {
       // Get the highest resolution photo
       const photo = ctx.message.photo[ctx.message.photo.length - 1];
@@ -1656,19 +1688,90 @@ bot.on('callback_query', async (ctx) => {
         const verifyUser = await getUserData(ctx.from.id);
         console.log(`[Template Settings] Verification - templateType in DB: "${verifyUser.templateType}"`);
 
+        // Get reference image if available
+        const referenceImage = await db.getTemplateReferenceImage(newTemplate);
+
+        if (referenceImage) {
+          await ctx.telegram.sendPhoto(
+            ctx.from.id,
+            referenceImage,
+            {
+              caption: `✅ *Template Updated!*\n\n` +
+                `Your template has been set to: *${templateName}*\n\n` +
+                `All new redirects will use the ${templateName}.\n\n` +
+                `📸 Reference image above shows what this template looks like.`,
+              parse_mode: "Markdown",
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: '⚙️ Change Template', callback_data: 'template_settings' }],
+                  [{ text: '🔙 Back to Menu', callback_data: 'back_menu' }]
+                ]
+              }
+            }
+          );
+        } else {
+          await ctx.editMessageText(
+            `✅ *Template Updated!*\n\n` +
+            `Your template has been set to: *${templateName}*\n\n` +
+            `All new redirects will use the ${templateName}.`,
+            { 
+              parse_mode: "Markdown",
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: '⚙️ Change Template', callback_data: 'template_settings' }],
+                  [{ text: '🔙 Back to Menu', callback_data: 'back_menu' }]
+                ]
+              }
+            }
+          );
+        }
+        return;
+      }
+
+      // Admin template image management
+      if (callbackData === 'admin_template_images') {
+        if (!process.env.ADMIN_ID || ctx.from.id.toString() !== process.env.ADMIN_ID) {
+          return ctx.answerCbQuery('Unauthorized', { show_alert: true });
+        }
+
+        const allImages = await db.getAllTemplateReferenceImages();
+        const htmlImage = allImages['html'] ? '✅' : '❌';
+        const phpImage = allImages['php'] ? '✅' : '❌';
+
         return ctx.editMessageText(
-          `✅ *Template Updated!*\n\n` +
-          `Your template has been set to: *${templateName}*\n\n` +
-          `All new redirects will use the ${templateName}.`,
+          `🖼️ *Template Reference Images*\n\n` +
+          `${htmlImage} Plain Redirect Template\n` +
+          `${phpImage} Cloudflare Template\n\n` +
+          `Select a template to set/update its reference image:`,
           { 
             parse_mode: "Markdown",
             reply_markup: {
               inline_keyboard: [
-                [{ text: '⚙️ Change Template', callback_data: 'template_settings' }],
-                [{ text: '🔙 Back to Menu', callback_data: 'back_menu' }]
+                [{ text: '📄 Set Plain Template Image', callback_data: 'admin_set_image_html' }],
+                [{ text: '☁️ Set Cloudflare Template Image', callback_data: 'admin_set_image_php' }],
+                [{ text: '🔙 Back to Admin Panel', callback_data: 'admin_access' }]
               ]
             }
           }
+        );
+      }
+
+      if (callbackData === 'admin_set_image_html' || callbackData === 'admin_set_image_php') {
+        if (!process.env.ADMIN_ID || ctx.from.id.toString() !== process.env.ADMIN_ID) {
+          return ctx.answerCbQuery('Unauthorized', { show_alert: true });
+        }
+
+        const templateType = callbackData === 'admin_set_image_html' ? 'html' : 'php';
+        const templateName = templateType === 'html' ? 'Plain Redirect Template' : 'Cloudflare Template';
+
+        session.awaiting_template_image = templateType;
+
+        return ctx.editMessageText(
+          `🖼️ *Set Reference Image*\n\n` +
+          `Template: ${templateName}\n\n` +
+          `📸 Send a photo to set as the reference image for this template.\n\n` +
+          `This image will be shown to users when they select this template.`,
+          { parse_mode: "Markdown" }
         );
       }
 
@@ -1709,6 +1812,7 @@ bot.on('callback_query', async (ctx) => {
                 inline_keyboard: [
                   [{ text: '🎯 Create Free Domain', callback_data: 'admin_free_domain' }],
                   [{ text: '📢 Broadcast Message', callback_data: 'admin_broadcast' }],
+                  [{ text: '🖼️ Set Template Images', callback_data: 'admin_template_images' }],
                   [{ text: '🔙 Back to Menu', callback_data: 'back_menu' }]
                 ]
               }

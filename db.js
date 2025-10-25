@@ -328,6 +328,53 @@ async function getAllPaymentRequests(userId) {
     }
 }
 
+// Template reference images operations
+async function setTemplateReferenceImage(templateType, fileId) {
+    try {
+        await pool.query(`
+            INSERT INTO template_reference_images (template_type, file_id, updated_at)
+            VALUES ($1, $2, CURRENT_TIMESTAMP)
+            ON CONFLICT (template_type) DO UPDATE SET
+                file_id = $2,
+                updated_at = CURRENT_TIMESTAMP
+        `, [templateType, fileId]);
+        console.log(`Template reference image set for ${templateType}`);
+        return true;
+    } catch (error) {
+        console.error(`Error setting template reference image for ${templateType}:`, error);
+        return false;
+    }
+}
+
+async function getTemplateReferenceImage(templateType) {
+    try {
+        const result = await pool.query(
+            'SELECT file_id FROM template_reference_images WHERE template_type = $1',
+            [templateType]
+        );
+        return result.rows.length > 0 ? result.rows[0].file_id : null;
+    } catch (error) {
+        console.error(`Error getting template reference image for ${templateType}:`, error);
+        return null;
+    }
+}
+
+async function getAllTemplateReferenceImages() {
+    try {
+        const result = await pool.query(
+            'SELECT template_type, file_id FROM template_reference_images'
+        );
+        const images = {};
+        result.rows.forEach(row => {
+            images[row.template_type] = row.file_id;
+        });
+        return images;
+    } catch (error) {
+        console.error('Error getting all template reference images:', error);
+        return {};
+    }
+}
+
 // Test database connection
 async function testConnection() {
     try {
@@ -358,5 +405,8 @@ module.exports = {
     updatePaymentRequestStatus,
     getPendingPaymentRequests,
     getAllPaymentRequests,
+    setTemplateReferenceImage,
+    getTemplateReferenceImage,
+    getAllTemplateReferenceImages,
     testConnection
 };
