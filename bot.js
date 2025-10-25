@@ -552,12 +552,13 @@ async function generateTopUpMessage(usdAmount, cryptoType) {
     text: `⚠️ *Please send the exact amount to the address below:*
 
 *Address:* \`${wallet}\`
-*Amount of payment:* ${amount}.000000
-*Status:* 🕜 WAITING FOR PAYMENT...
+*Amount:* \`${amount} ${cryptoSymbol}${network}\`
+*USD Value:* $${usdAmount}
+*Status:* 🕜 WAITING FOR PAYMENT
 
-❗️ *Ensure the funds are sent within 30 minutes.*
+❗️ *Ensure the funds are sent within 30 minutes*
 🟢 *Click "I Paid" below after sending payment*
-⚠️ *This address is valid for one-time use only.*`,
+⚠️ *This address is valid for one-time use only*`,
     keyboard: {
       inline_keyboard: [
         [
