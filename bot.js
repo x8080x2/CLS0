@@ -1852,15 +1852,8 @@ bot.on('callback_query', async (ctx) => {
 
         await ctx.editMessageText(
           `📸 *Payment Confirmation Required*\n\n` +
-          `Please provide either:\n` +
-          `📷 Screenshot of your payment confirmation\n` +
-          `OR\n` +
-          `🔗 Transaction hash (TXID)\n\n` +
-          `For screenshot, it should show:\n` +
-          `• Payment amount: $${amount}\n` +
-          `• Destination address\n` +
-          `• Transaction confirmation\n\n` +
-          `*You can add transaction hash as caption or send it separately*`,
+          `Please provide a screenshot of your payment confirmation showing the $${amount} amount, destination address, and transaction confirmation, or send the transaction hash (TXID) separately.\n` +         
+          `***`,
           { parse_mode: "Markdown" }
         );
         return;
