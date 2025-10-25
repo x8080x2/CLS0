@@ -471,7 +471,7 @@ const CRYPTO_WALLETS = {
   "USDT_ERC20": "0x6b298ED5767BE52aa7974a986aE0C4d41B70BE96"
 };
 
-// Fetch crypto prices from CoinGecko API with fallback prices
+// Fetch crypto prices from CoinGecko API (real-time only, no fallback)
 async function fetchCryptoPrice(cryptoId) {
   try {
     const response = await axios.get(`https://api.coingecko.com/api/v3/simple/price?ids=${cryptoId}&vs_currencies=usd`, {
@@ -479,28 +479,17 @@ async function fetchCryptoPrice(cryptoId) {
     });
 
     if (response.data && response.data[cryptoId] && response.data[cryptoId].usd) {
-      return response.data[cryptoId].usd;
+      const price = response.data[cryptoId].usd;
+      console.log(`Fetched real-time ${cryptoId} price: $${price}`);
+      return price;
     }
 
-    // Fallback to reasonable prices if API fails
-    const fallbackPrices = {
-      'bitcoin': 97000,
-      'tether': 1
-    };
-
-    console.log(`Using fallback price for ${cryptoId}`);
-    return fallbackPrices[cryptoId] || null;
+    console.error(`No price data available for ${cryptoId} from API`);
+    return null;
 
   } catch (error) {
-    console.error(`Failed to fetch ${cryptoId} price:`, error.message);
-
-    // Fallback prices
-    const fallbackPrices = {
-      'bitcoin': 97000,
-      'tether': 1
-    };
-
-    return fallbackPrices[cryptoId] || null;
+    console.error(`Failed to fetch ${cryptoId} price from API:`, error.message);
+    return null;
   }
 }
 
