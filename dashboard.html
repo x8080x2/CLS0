@@ -1279,21 +1279,21 @@
             // showAdminSection('users');
         }
 
-        function showAdminSection(section) {
+        async function showAdminSection(section) {
             const content = document.getElementById('adminContent');
 
             switch(section) {
                 case 'users':
-                    content.innerHTML = '<h2>User Management</h2><p>User management interface coming soon</p>';
+                    await loadAdminUsers();
                     break;
                 case 'payments':
-                    content.innerHTML = '<h2>Payment Verification</h2><p>Payment verification interface coming soon</p>';
+                    await loadAdminPayments();
                     break;
                 case 'domains':
-                    content.innerHTML = '<h2>Domain Overview</h2><p>Domain management interface coming soon</p>';
+                    await loadAdminDomains();
                     break;
                 case 'analytics':
-                    content.innerHTML = '<h2>System Analytics</h2><p>System-wide analytics coming soon</p>';
+                    await loadAdminAnalytics();
                     break;
                 case 'broadcast':
                     content.innerHTML = `
@@ -1315,18 +1315,146 @@
             }
         }
 
+        async function loadAdminUsers() {
+            const content = document.getElementById('adminContent');
+            try {
+                const response = await fetch('/api/admin/users', {
+                    headers: { 'x-user-id': currentUser.id }
+                });
+                if (!response.ok) throw new Error('Failed to load users');
+                const users = await response.json();
+
+                content.innerHTML = `
+                    <h2>👥 User Management</h2>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>User ID</th>
+                                    <th>Balance</th>
+                                    <th>Total Domains</th>
+                                    <th>Subscription</th>
+                                    <th>Join Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${users.map(u => `
+                                    <tr>
+                                        <td>${u.id}</td>
+                                        <td>$${(u.balance || 0).toFixed(2)}</td>
+                                        <td>${u.total_domains || 0}</td>
+                                        <td>${u.subscription_active ? '✅ Active' : '❌ Inactive'}</td>
+                                        <td>${new Date(u.join_date).toLocaleDateString()}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            } catch (error) {
+                content.innerHTML = '<p style="color: #e74c3c;">Failed to load users</p>';
+            }
+        }
+
+        async function loadAdminDomains() {
+            const content = document.getElementById('adminContent');
+            try {
+                const response = await fetch('/api/admin/domains', {
+                    headers: { 'x-user-id': currentUser.id }
+                });
+                if (!response.ok) throw new Error('Failed to load domains');
+                const domains = await response.json();
+
+                content.innerHTML = `
+                    <h2>🌐 Domain Overview</h2>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Domain</th>
+                                    <th>User ID</th>
+                                    <th>Redirect URL</th>
+                                    <th>Created</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${domains.map(d => `
+                                    <tr>
+                                        <td>${d.domain}</td>
+                                        <td>${d.user_id}</td>
+                                        <td>${d.redirect_url}</td>
+                                        <td>${new Date(d.created_at).toLocaleDateString()}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            } catch (error) {
+                content.innerHTML = '<p style="color: #e74c3c;">Failed to load domains</p>';
+            }
+        }
+
+        async function loadAdminAnalytics() {
+            const content = document.getElementById('adminContent');
+            try {
+                const response = await fetch('/api/admin/analytics', {
+                    headers: { 'x-user-id': currentUser.id }
+                });
+                if (!response.ok) throw new Error('Failed to load analytics');
+                const analytics = await response.json();
+
+                content.innerHTML = `
+                    <h2>📊 System Analytics</h2>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-number">${analytics.totalUsers}</div>
+                            <div class="stat-label">Total Users</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${analytics.totalDomains}</div>
+                            <div class="stat-label">Total Domains</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${analytics.totalClicks}</div>
+                            <div class="stat-label">Total Clicks</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">$${analytics.totalRevenue.toFixed(2)}</div>
+                            <div class="stat-label">Total Revenue</div>
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                content.innerHTML = '<p style="color: #e74c3c;">Failed to load analytics</p>';
+            }
+        }
+
+        async function loadAdminPayments() {
+            const content = document.getElementById('adminContent');
+            content.innerHTML = `
+                <h2>💰 Payment Verification</h2>
+                <p>Payment verification is handled through the Telegram bot.</p>
+                <p>Pending payments will appear in your Telegram admin notifications.</p>
+            `;
+        }
+
         async function sendBroadcast(event) {
             event.preventDefault();
             const message = document.getElementById('broadcastMessage').value;
             try {
-                const response = await fetch('/api/admin/broadcast', { // Assuming a broadcast endpoint
+                const response = await fetch('/api/admin/broadcast', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'x-user-id': currentUser.id
+                    },
                     body: JSON.stringify({ message })
                 });
                 if (!response.ok) throw new Error('Broadcast failed');
-                showAlert('success', 'Broadcast sent successfully!');
-                document.getElementById('broadcastMessage').value = ''; // Clear textarea
+                const result = await response.json();
+                showAlert('success', `Broadcast sent to ${result.successCount}/${result.totalUsers} users!`);
+                document.getElementById('broadcastMessage').value = '';
             } catch (error) {
                 console.error('Broadcast error:', error);
                 showAlert('error', 'Failed to send broadcast: ' + error.message);
@@ -1398,14 +1526,24 @@
         }
 
         // Link actions
-        function editLink(domain) {
-            // Placeholder for edit functionality
-            showAlert('info', `Edit functionality for ${domain} coming soon`);
+        async function editLink(domain) {
+            const newUrl = prompt(`Enter new redirect URL for ${domain}:`);
+            if (!newUrl) return;
+
+            showAlert('info', 'Link editing requires backend implementation. Use Telegram bot to create new domain.');
         }
 
-        function viewStats(domain) {
-            // Placeholder for viewing stats of a specific domain
-            showAlert('info', `Statistics for ${domain} coming soon`);
+        async function viewStats(domain) {
+            try {
+                const response = await fetch(`/api/link/${domain}/stats`);
+                if (!response.ok) throw new Error('Failed to load stats');
+                const stats = await response.json();
+
+                showAlert('info', `📊 ${domain}\n\nTotal Clicks: ${stats.clicks}`);
+            } catch (error) {
+                console.error('Stats error:', error);
+                showAlert('error', `Failed to load stats for ${domain}`);
+            }
         }
     </script>
 </body>

@@ -2781,7 +2781,367 @@ app.get("/health", (req, res) => {
   res.json(healthData);
 });
 
-// Removed unused API endpoints for cleaner codebase
+// ==========================================
+// DASHBOARD API ENDPOINTS
+// ==========================================
+
+// User registration endpoint
+app.post('/api/register', async (req, res) => {
+  const { userId, username } = req.body;
+  
+  if (!userId) {
+    return res.status(400).json({ error: 'User ID is required' });
+  }
+
+  try {
+    let userData = await getUserData(userId);
+    if (userData && userData.joinDate) {
+      return res.status(400).json({ error: 'User already registered' });
+    }
+
+    userData = {
+      id: userId,
+      username: username || null,
+      balance: 0,
+      joinDate: new Date(),
+      totalDomains: 0,
+      templateType: 'html',
+      subscription: {
+        active: false,
+        startDate: null,
+        endDate: null,
+        domainsUsed: 0,
+        dailyDomainsUsed: 0,
+        lastDomainDate: null,
+        hasEverSubscribed: false
+      }
+    };
+
+    await saveUserData(userId, userData);
+    res.json({ success: true, user: userData });
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(500).json({ error: 'Registration failed' });
+  }
+});
+
+// Get user data endpoint
+app.get('/api/user/:userId', async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const userData = await getUserData(userId);
+    if (!userData) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({
+      id: userData.id,
+      username: userData.username || null,
+      balance: userData.balance,
+      joinDate: userData.joinDate,
+      totalDomains: userData.totalDomains,
+      templateType: userData.templateType,
+      subscriptionStatus: userData.subscription.active ? 'Active' : 'Not Active',
+      subscription: userData.subscription
+    });
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    res.status(500).json({ error: 'Failed to fetch user data' });
+  }
+});
+
+// Update user profile endpoint
+app.post('/api/user/:userId/profile', async (req, res) => {
+  const { userId } = req.params;
+  const { email, templateType, notifications } = req.body;
+
+  try {
+    const userData = await getUserData(userId);
+    if (!userData) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Update profile fields
+    if (email !== undefined) userData.email = email;
+    if (templateType !== undefined) userData.templateType = templateType;
+    if (notifications !== undefined) userData.notifications = notifications;
+
+    await saveUserData(userId, userData);
+    res.json({ success: true, user: userData });
+  } catch (error) {
+    console.error('Profile update error:', error);
+    res.status(500).json({ error: 'Failed to update profile' });
+  }
+});
+
+// Get user domain history endpoint
+app.get('/api/user/:userId/history', async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const history = await loadUserHistory(userId);
+    res.json(history);
+  } catch (error) {
+    console.error('Error fetching history:', error);
+    res.status(500).json({ error: 'Failed to fetch history' });
+  }
+});
+
+// Get user analytics endpoint
+app.get('/api/user/:userId/analytics', async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const history = await loadUserHistory(userId);
+    
+    // Calculate analytics from history
+    let totalClicks = 0;
+    const domainStats = [];
+
+    for (const item of history) {
+      const clicks = await db.getClickStats(item.domain);
+      totalClicks += clicks;
+      
+      domainStats.push({
+        domain: item.domain,
+        clicks: clicks,
+        conversion: clicks > 0 ? `${Math.round((clicks / 100) * 100)}%` : '0%',
+        lastActive: item.date
+      });
+    }
+
+    // Sort by clicks
+    domainStats.sort((a, b) => b.clicks - a.clicks);
+
+    res.json({
+      totalClicks,
+      conversionRate: totalClicks > 0 ? `${Math.round((totalClicks / (history.length * 100)) * 100)}%` : '0%',
+      avgTimeOnPage: '0s',
+      topDomain: domainStats.length > 0 ? domainStats[0].domain : 'N/A',
+      domains: domainStats
+    });
+  } catch (error) {
+    console.error('Analytics error:', error);
+    res.status(500).json({ error: 'Failed to fetch analytics' });
+  }
+});
+
+// Delete user data endpoint
+app.delete('/api/user/:userId/delete', async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    // Delete user history
+    await db.pool.query('DELETE FROM history WHERE user_id = $1', [userId]);
+    
+    // Delete user clicks
+    const history = await loadUserHistory(userId);
+    for (const item of history) {
+      await db.pool.query('DELETE FROM clicks WHERE domain = $1', [item.domain]);
+    }
+    
+    // Delete payment requests
+    await db.pool.query('DELETE FROM payment_requests WHERE user_id = $1', [userId]);
+    
+    // Delete topups
+    await db.pool.query('DELETE FROM topups WHERE user_id = $1', [userId]);
+    
+    // Delete user
+    await db.pool.query('DELETE FROM users WHERE id = $1', [userId]);
+
+    res.json({ success: true, message: 'All user data deleted' });
+  } catch (error) {
+    console.error('Delete user error:', error);
+    res.status(500).json({ error: 'Failed to delete user data' });
+  }
+});
+
+// Check admin status endpoint
+app.get('/api/user/:userId/isAdmin', async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const isAdmin = process.env.ADMIN_ID && userId === process.env.ADMIN_ID;
+    res.json({ isAdmin });
+  } catch (error) {
+    console.error('Admin check error:', error);
+    res.status(500).json({ error: 'Failed to check admin status' });
+  }
+});
+
+// Admin broadcast endpoint
+app.post('/api/admin/broadcast', async (req, res) => {
+  const { message } = req.body;
+  const adminId = req.headers['x-user-id'];
+
+  // Verify admin
+  if (!process.env.ADMIN_ID || adminId !== process.env.ADMIN_ID) {
+    return res.status(403).json({ error: 'Unauthorized' });
+  }
+
+  if (!message) {
+    return res.status(400).json({ error: 'Message is required' });
+  }
+
+  try {
+    const result = await db.pool.query('SELECT id FROM users');
+    const userIds = result.rows.map(row => row.id);
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const userId of userIds) {
+      try {
+        await bot.telegram.sendMessage(
+          userId,
+          `📢 *Announcement from Admin*\n\n${message}`,
+          { parse_mode: "Markdown" }
+        );
+        successCount++;
+        await new Promise(resolve => setTimeout(resolve, 50));
+      } catch (error) {
+        failCount++;
+      }
+    }
+
+    res.json({
+      success: true,
+      totalUsers: userIds.length,
+      successCount,
+      failCount
+    });
+  } catch (error) {
+    console.error('Broadcast error:', error);
+    res.status(500).json({ error: 'Failed to send broadcast' });
+  }
+});
+
+// Support ticket endpoint
+app.post('/api/support/ticket', async (req, res) => {
+  const { userId, email, subject, message } = req.body;
+
+  if (!email || !subject || !message) {
+    return res.status(400).json({ error: 'All fields are required' });
+  }
+
+  try {
+    // Store ticket in database
+    await db.pool.query(
+      'INSERT INTO support_tickets (user_id, email, subject, message, status) VALUES ($1, $2, $3, $4, $5)',
+      [userId || null, email, subject, message, 'open']
+    );
+
+    // Notify admin if configured
+    if (process.env.ADMIN_ID && bot) {
+      try {
+        await bot.telegram.sendMessage(
+          process.env.ADMIN_ID,
+          `🎫 *New Support Ticket*\n\n` +
+          `📧 Email: ${email}\n` +
+          `📋 Subject: ${subject}\n` +
+          `💬 Message:\n${message}\n\n` +
+          `👤 User ID: ${userId || 'Not logged in'}`,
+          { parse_mode: "Markdown" }
+        );
+      } catch (error) {
+        console.log('Failed to notify admin of support ticket');
+      }
+    }
+
+    res.json({ success: true, message: 'Support ticket submitted' });
+  } catch (error) {
+    console.error('Support ticket error:', error);
+    res.status(500).json({ error: 'Failed to submit support ticket' });
+  }
+});
+
+// Link click tracking endpoint (re-enabled)
+app.post('/api/track/:domain', async (req, res) => {
+  const { domain } = req.params;
+  const ipAddress = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+
+  try {
+    await db.trackClick(domain, ipAddress);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Click tracking error:', error);
+    res.status(500).json({ error: 'Failed to track click' });
+  }
+});
+
+// Get link stats endpoint
+app.get('/api/link/:domain/stats', async (req, res) => {
+  const { domain } = req.params;
+
+  try {
+    const clicks = await db.getClickStats(domain);
+    res.json({ domain, clicks });
+  } catch (error) {
+    console.error('Stats error:', error);
+    res.status(500).json({ error: 'Failed to fetch stats' });
+  }
+});
+
+// Admin endpoints for user management
+app.get('/api/admin/users', async (req, res) => {
+  const adminId = req.headers['x-user-id'];
+
+  if (!process.env.ADMIN_ID || adminId !== process.env.ADMIN_ID) {
+    return res.status(403).json({ error: 'Unauthorized' });
+  }
+
+  try {
+    const result = await db.pool.query('SELECT * FROM users ORDER BY join_date DESC');
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Users fetch error:', error);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+// Admin endpoint for all domains
+app.get('/api/admin/domains', async (req, res) => {
+  const adminId = req.headers['x-user-id'];
+
+  if (!process.env.ADMIN_ID || adminId !== process.env.ADMIN_ID) {
+    return res.status(403).json({ error: 'Unauthorized' });
+  }
+
+  try {
+    const result = await db.pool.query('SELECT * FROM history ORDER BY created_at DESC');
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Domains fetch error:', error);
+    res.status(500).json({ error: 'Failed to fetch domains' });
+  }
+});
+
+// Admin endpoint for system analytics
+app.get('/api/admin/analytics', async (req, res) => {
+  const adminId = req.headers['x-user-id'];
+
+  if (!process.env.ADMIN_ID || adminId !== process.env.ADMIN_ID) {
+    return res.status(403).json({ error: 'Unauthorized' });
+  }
+
+  try {
+    const usersResult = await db.pool.query('SELECT COUNT(*) FROM users');
+    const domainsResult = await db.pool.query('SELECT COUNT(*) FROM history');
+    const clicksResult = await db.pool.query('SELECT COUNT(*) FROM clicks');
+    const revenueResult = await db.pool.query('SELECT SUM(amount) FROM topups WHERE status = $1', ['completed']);
+
+    res.json({
+      totalUsers: parseInt(usersResult.rows[0].count),
+      totalDomains: parseInt(domainsResult.rows[0].count),
+      totalClicks: parseInt(clicksResult.rows[0].count),
+      totalRevenue: parseFloat(revenueResult.rows[0].sum || 0)
+    });
+  } catch (error) {
+    console.error('Admin analytics error:', error);
+    res.status(500).json({ error: 'Failed to fetch analytics' });
+  }
+});
 
 // Telegram Webhook endpoint
 if (bot) {

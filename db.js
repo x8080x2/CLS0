@@ -375,6 +375,53 @@ async function getAllTemplateReferenceImages() {
     }
 }
 
+// Support ticket operations
+async function createSupportTicket(userId, email, subject, message) {
+    try {
+        const result = await pool.query(
+            'INSERT INTO support_tickets (user_id, email, subject, message, status) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+            [userId, email, subject, message, 'open']
+        );
+        return result.rows[0];
+    } catch (error) {
+        console.error('Error creating support ticket:', error);
+        return null;
+    }
+}
+
+async function getSupportTickets(userId = null) {
+    try {
+        if (userId) {
+            const result = await pool.query(
+                'SELECT * FROM support_tickets WHERE user_id = $1 ORDER BY created_at DESC',
+                [userId]
+            );
+            return result.rows;
+        } else {
+            const result = await pool.query(
+                'SELECT * FROM support_tickets ORDER BY created_at DESC'
+            );
+            return result.rows;
+        }
+    } catch (error) {
+        console.error('Error fetching support tickets:', error);
+        return [];
+    }
+}
+
+async function updateSupportTicketStatus(ticketId, status) {
+    try {
+        await pool.query(
+            'UPDATE support_tickets SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+            [status, ticketId]
+        );
+        return true;
+    } catch (error) {
+        console.error('Error updating support ticket:', error);
+        return false;
+    }
+}
+
 // Test database connection
 async function testConnection() {
     try {
@@ -396,7 +443,8 @@ module.exports = {
     loadUserHistory,
     saveUserHistory,
     addUserHistory,
-    
+    trackClick,
+    getClickStats,
     addTopup,
     getTopupHistory,
     createPaymentRequest,
@@ -407,5 +455,8 @@ module.exports = {
     setTemplateReferenceImage,
     getTemplateReferenceImage,
     getAllTemplateReferenceImages,
+    createSupportTicket,
+    getSupportTickets,
+    updateSupportTicketStatus,
     testConnection
 };
