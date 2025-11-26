@@ -539,6 +539,32 @@ async function generateTopUpMessage(usdAmount, cryptoType) {
 }
 
 // ==========================================
+// DATABASE INITIALIZATION
+// ==========================================
+
+// Initialize database tables on startup
+async function initializeDatabase() {
+  try {
+    const schemaPath = path.join(__dirname, 'schema.sql');
+    if (fs.existsSync(schemaPath)) {
+      const schema = fs.readFileSync(schemaPath, 'utf8');
+      await db.pool.query(schema);
+      console.log('✅ Database tables initialized');
+    }
+  } catch (error) {
+    console.error('❌ Database initialization error:', error.message);
+  }
+}
+
+// Test database connection and initialize
+initializeDatabase().then(async () => {
+  const connected = await db.testConnection();
+  if (!connected) {
+    console.error('⚠️  Database connection failed - some features may not work');
+  }
+});
+
+// ==========================================
 // TELEGRAM BOT INITIALIZATION
 // ==========================================
 
@@ -2766,8 +2792,27 @@ bot.on('callback_query', async (ctx) => {
 // ==========================================
 
 // Health check endpoint
-app.get("/health", (req, res) => {
+app.get("/health", async (req, res) => {
   const log = L("health-check");
+  
+  // Get system stats
+  let totalUsers = 0;
+  let totalDomains = 0;
+  let totalClicks = 0;
+  
+  try {
+    const usersResult = await db.pool.query('SELECT COUNT(*) FROM users');
+    totalUsers = parseInt(usersResult.rows[0].count) || 0;
+    
+    const domainsResult = await db.pool.query('SELECT COUNT(*) FROM history');
+    totalDomains = parseInt(domainsResult.rows[0].count) || 0;
+    
+    const clicksResult = await db.pool.query('SELECT COUNT(*) FROM clicks');
+    totalClicks = parseInt(clicksResult.rows[0].count) || 0;
+  } catch (error) {
+    log.error('Error fetching stats:', error.message);
+  }
+  
   const healthData = {
     status: "ok",
     timestamp: new Date().toISOString(),
@@ -2775,6 +2820,13 @@ app.get("/health", (req, res) => {
     memoryUsage: process.memoryUsage(),
     botStatus: bot ? "active" : "inactive",
     environment: process.env.NODE_ENV || "development",
+    stats: {
+      totalDomains: totalDomains,
+      activeDomains: totalDomains, // All domains are considered active
+      balance: 0, // This would need user context
+      totalClicks: totalClicks,
+      totalUsers: totalUsers
+    }
   };
 
   log.debug(healthData, "💊 Health check requested");
