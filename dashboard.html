@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -11,7 +10,7 @@
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             line-height: 1.6;
@@ -19,7 +18,7 @@
             background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
             min-height: 100vh;
         }
-        
+
         .navbar {
             background: rgba(44, 62, 80, 0.95);
             backdrop-filter: blur(10px);
@@ -29,7 +28,7 @@
             top: 0;
             z-index: 1000;
         }
-        
+
         .navbar-content {
             max-width: 1200px;
             margin: 0 auto;
@@ -37,36 +36,36 @@
             justify-content: space-between;
             align-items: center;
         }
-        
+
         .logo {
             color: white;
             font-size: 1.5rem;
             font-weight: bold;
             text-decoration: none;
         }
-        
+
         .nav-links {
             display: flex;
             gap: 2rem;
             list-style: none;
         }
-        
+
         .nav-links a {
             color: white;
             text-decoration: none;
             transition: color 0.3s;
         }
-        
+
         .nav-links a:hover {
             color: #3498db;
         }
-        
+
         .container {
             max-width: 1200px;
             margin: 2rem auto;
             padding: 0 20px;
         }
-        
+
         .page {
             display: none;
             background: white;
@@ -75,16 +74,16 @@
             box-shadow: 0 4px 20px rgba(0,0,0,0.1);
             animation: fadeIn 0.3s ease-in;
         }
-        
+
         .page.active {
             display: block;
         }
-        
+
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        
+
         .hero {
             text-align: center;
             padding: 3rem 0;
@@ -93,24 +92,24 @@
             border-radius: 10px;
             margin-bottom: 2rem;
         }
-        
+
         .hero h1 {
             font-size: 2.5rem;
             margin-bottom: 1rem;
         }
-        
+
         .hero p {
             font-size: 1.2rem;
             opacity: 0.9;
         }
-        
+
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 1.5rem;
             margin: 2rem 0;
         }
-        
+
         .stat-card {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -119,29 +118,29 @@
             text-align: center;
             transition: transform 0.3s;
         }
-        
+
         .stat-card:hover {
             transform: translateY(-5px);
         }
-        
+
         .stat-number {
             font-size: 2.5rem;
             font-weight: bold;
             margin-bottom: 0.5rem;
         }
-        
+
         .stat-label {
             font-size: 1rem;
             opacity: 0.9;
         }
-        
+
         .feature-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 2rem;
             margin: 2rem 0;
         }
-        
+
         .feature-card {
             background: #f8f9fa;
             padding: 2rem;
@@ -149,30 +148,30 @@
             border-left: 4px solid #3498db;
             transition: transform 0.3s, box-shadow 0.3s;
         }
-        
+
         .feature-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
         }
-        
+
         .feature-card h3 {
             color: #2c3e50;
             margin-bottom: 1rem;
             font-size: 1.3rem;
         }
-        
+
         .feature-card p {
             color: #666;
             line-height: 1.6;
         }
-        
+
         .pricing-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 2rem;
             margin: 2rem 0;
         }
-        
+
         .pricing-card {
             background: white;
             border: 2px solid #e0e0e0;
@@ -181,48 +180,48 @@
             text-align: center;
             transition: transform 0.3s, border-color 0.3s;
         }
-        
+
         .pricing-card.featured {
             border-color: #3498db;
             transform: scale(1.05);
         }
-        
+
         .pricing-card:hover {
             transform: translateY(-5px);
             border-color: #3498db;
         }
-        
+
         .pricing-card h3 {
             font-size: 1.5rem;
             margin-bottom: 1rem;
             color: #2c3e50;
         }
-        
+
         .price {
             font-size: 3rem;
             font-weight: bold;
             color: #3498db;
             margin: 1rem 0;
         }
-        
+
         .price-features {
             list-style: none;
             margin: 2rem 0;
             text-align: left;
         }
-        
+
         .price-features li {
             padding: 0.5rem 0;
             border-bottom: 1px solid #eee;
         }
-        
+
         .price-features li:before {
             content: "✓ ";
             color: #27ae60;
             font-weight: bold;
             margin-right: 0.5rem;
         }
-        
+
         .btn {
             display: inline-block;
             padding: 0.8rem 2rem;
@@ -235,12 +234,12 @@
             cursor: pointer;
             font-size: 1rem;
         }
-        
+
         .btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 20px rgba(0,0,0,0.2);
         }
-        
+
         .btn-secondary {
             background: linear-gradient(135deg, #3498db 0%, #2c3e50 100%);
         }
@@ -248,14 +247,14 @@
         .btn-danger {
             background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
         }
-        
+
         .faq-item {
             background: #f8f9fa;
             margin: 1rem 0;
             border-radius: 8px;
             overflow: hidden;
         }
-        
+
         .faq-question {
             padding: 1.5rem;
             background: #e9ecef;
@@ -263,31 +262,31 @@
             font-weight: bold;
             transition: background 0.3s;
         }
-        
+
         .faq-question:hover {
             background: #dee2e6;
         }
-        
+
         .faq-answer {
             padding: 1.5rem;
             display: none;
         }
-        
+
         .faq-answer.active {
             display: block;
         }
-        
+
         .form-group {
             margin: 1.5rem 0;
         }
-        
+
         .form-group label {
             display: block;
             margin-bottom: 0.5rem;
             font-weight: 500;
             color: #2c3e50;
         }
-        
+
         .form-group input,
         .form-group textarea,
         .form-group select {
@@ -298,14 +297,14 @@
             font-size: 1rem;
             transition: border-color 0.3s;
         }
-        
+
         .form-group input:focus,
         .form-group textarea:focus,
         .form-group select:focus {
             outline: none;
             border-color: #3498db;
         }
-        
+
         .link-item {
             background: #f8f9fa;
             padding: 1.5rem;
@@ -315,12 +314,12 @@
             justify-content: space-between;
             align-items: center;
         }
-        
+
         .link-actions {
             display: flex;
             gap: 0.5rem;
         }
-        
+
         .status-indicator {
             display: inline-block;
             width: 10px;
@@ -330,19 +329,19 @@
             margin-right: 8px;
             animation: pulse 2s infinite;
         }
-        
+
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
         }
-        
+
         .footer {
             text-align: center;
             padding: 2rem;
             color: white;
             margin-top: 3rem;
         }
-        
+
         .analytics-chart {
             background: #f8f9fa;
             padding: 2rem;
@@ -442,16 +441,16 @@
             border-color: #17a2b8;
             color: #0c5460;
         }
-        
+
         @media (max-width: 768px) {
             .nav-links {
                 display: none;
             }
-            
+
             .hero h1 {
                 font-size: 2rem;
             }
-            
+
             .pricing-card.featured {
                 transform: scale(1);
             }
@@ -723,7 +722,7 @@
             <p style="margin-bottom: 2rem;">Find answers to common questions or contact our support team.</p>
 
             <h2 style="margin: 2rem 0 1rem;">Frequently Asked Questions</h2>
-            
+
             <div class="faq-item">
                 <div class="faq-question" onclick="toggleFAQ(this)">
                     How do I create a redirect domain?
@@ -979,35 +978,62 @@
                 currentUser = { id: userId };
                 updateNavForAuth();
                 loadUserData();
+                showPage('dashboard');
             } else {
                 showPage('login');
             }
         }
 
-        function handleLogin(event) {
+        async function handleLogin(event) {
             event.preventDefault();
             const userId = document.getElementById('loginUserId').value;
-            localStorage.setItem('userId', userId);
-            currentUser = { id: userId };
-            updateNavForAuth();
-            loadUserData();
-            showPage('dashboard');
-            showAlert('success', 'Login successful!');
+            try {
+                const response = await fetch(`/api/user/${userId}`);
+                if (!response.ok) {
+                    throw new Error('User not found or invalid ID');
+                }
+                const userData = await response.json();
+                localStorage.setItem('userId', userId);
+                currentUser = { id: userId, ...userData };
+                updateNavForAuth();
+                loadUserData();
+                showPage('dashboard');
+                showAlert('success', 'Login successful!');
+            } catch (error) {
+                console.error('Login error:', error);
+                showAlert('error', 'Login failed: ' + error.message);
+            }
         }
 
-        function handleRegister(event) {
+        async function handleRegister(event) {
             event.preventDefault();
             const userId = document.getElementById('regUserId').value;
-            localStorage.setItem('userId', userId);
-            currentUser = { id: userId };
-            updateNavForAuth();
-            showPage('dashboard');
-            showAlert('success', 'Registration successful! Complete setup in the Telegram bot.');
+            const username = document.getElementById('regUsername').value || null;
+
+            try {
+                const response = await fetch('/api/register', { // Assuming a /api/register endpoint
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, username })
+                });
+                if (!response.ok) {
+                    throw new Error('Registration failed');
+                }
+                localStorage.setItem('userId', userId);
+                currentUser = { id: userId, username: username };
+                updateNavForAuth();
+                showPage('dashboard');
+                showAlert('success', 'Registration successful! Complete setup in the Telegram bot.');
+            } catch (error) {
+                console.error('Registration error:', error);
+                showAlert('error', 'Registration failed: ' + error.message);
+            }
         }
 
         function logout() {
             localStorage.removeItem('userId');
             currentUser = null;
+            userLinks = [];
             updateNavForAuth();
             showPage('login');
             showAlert('info', 'Logged out successfully');
@@ -1015,10 +1041,15 @@
 
         function updateNavForAuth() {
             const logoutLink = document.getElementById('logoutNavLink');
+            const adminNavLink = document.getElementById('adminNavLink');
             if (currentUser) {
                 logoutLink.style.display = 'block';
+                // Admin access check would happen here or be dynamic based on user data
+                // For now, assuming admin access is not automatically granted on login
+                // if (currentUser.isAdmin) { adminNavLink.style.display = 'block'; }
             } else {
                 logoutLink.style.display = 'none';
+                adminNavLink.style.display = 'none';
             }
         }
 
@@ -1032,8 +1063,11 @@
             document.querySelectorAll('.page').forEach(page => {
                 page.classList.remove('active');
             });
-            
-            document.getElementById(pageId).classList.add('active');
+
+            const pageToShow = document.getElementById(pageId);
+            if (pageToShow) {
+                pageToShow.classList.add('active');
+            }
             window.scrollTo(0, 0);
 
             // Load page-specific data
@@ -1043,6 +1077,8 @@
                 loadAnalytics();
             } else if (pageId === 'admin') {
                 checkAdminAccess();
+            } else if (pageId === 'profile') {
+                loadProfileData();
             }
         }
 
@@ -1056,8 +1092,9 @@
         async function checkHealth() {
             try {
                 const response = await fetch('/health');
+                if (!response.ok) throw new Error('Health check failed');
                 const data = await response.json();
-                
+
                 if (data.stats) {
                     document.getElementById('totalDomains').textContent = data.stats.totalDomains || 0;
                     document.getElementById('activeDomains').textContent = data.stats.activeDomains || 0;
@@ -1065,64 +1102,106 @@
                     document.getElementById('totalClicks').textContent = data.stats.totalClicks || 0;
                 }
             } catch (error) {
-                console.error('Health check failed:', error);
+                console.error('Health check error:', error);
+                // Optionally display an error to the user
             }
         }
 
-        // Load user data
+        // Load user data (for profile and initial dashboard stats)
         async function loadUserData() {
             if (!currentUser) return;
-            
+
             try {
-                // This would connect to your backend API
-                // For now, using placeholder data
-                updateProfile();
+                const response = await fetch(`/api/user/${currentUser.id}`);
+                if (!response.ok) throw new Error('Failed to load user data');
+                const userData = await response.json();
+                currentUser = { ...currentUser, ...userData };
+                updateProfileDisplay();
             } catch (error) {
-                console.error('Failed to load user data:', error);
+                console.error('Error loading user data:', error);
+                showAlert('error', 'Failed to load your data.');
             }
         }
 
         // Update profile display
-        function updateProfile() {
+        function updateProfileDisplay() {
             if (!currentUser) return;
-            
+
             document.getElementById('profileUserId').value = currentUser.id;
-            document.getElementById('profileUsername').value = '@' + (currentUser.username || 'user');
-            document.getElementById('profileJoinDate').value = new Date().toLocaleDateString();
+            document.getElementById('profileUsername').value = currentUser.username ? `@${currentUser.username}` : '@user';
+            document.getElementById('profileJoinDate').value = currentUser.joinDate ? new Date(currentUser.joinDate).toLocaleDateString() : 'Unknown';
+            document.getElementById('profileEmail').value = currentUser.email || '';
+            document.getElementById('profileTemplate').value = currentUser.templateType || 'html';
+            document.getElementById('profileNotifications').value = currentUser.notifications || 'all';
+            document.getElementById('profileSubStatus').textContent = currentUser.subscriptionStatus || 'Not Active';
+        }
+
+        // Load profile data specifically for the profile page
+        function loadProfileData() {
+            updateProfileDisplay();
         }
 
         // Save profile
-        function saveProfile() {
+        async function saveProfile() {
+            if (!currentUser) return;
+
             const email = document.getElementById('profileEmail').value;
             const template = document.getElementById('profileTemplate').value;
             const notifications = document.getElementById('profileNotifications').value;
-            
-            // Save to backend
-            showAlert('success', 'Profile updated successfully!');
+
+            try {
+                const response = await fetch(`/api/user/${currentUser.id}/profile`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, templateType: template, notifications })
+                });
+                if (!response.ok) {
+                    throw new Error('Failed to save profile');
+                }
+                // Update local currentUser object
+                currentUser.email = email;
+                currentUser.templateType = template;
+                currentUser.notifications = notifications;
+                showAlert('success', 'Profile updated successfully!');
+            } catch (error) {
+                console.error('Error saving profile:', error);
+                showAlert('error', 'Failed to save profile: ' + error.message);
+            }
         }
 
         // Load links
-        function loadLinks() {
+        async function loadLinks() {
             const linksList = document.getElementById('linksList');
-            
-            // This would fetch from backend
-            // For demo, showing placeholder
-            if (userLinks.length === 0) {
-                linksList.innerHTML = '<p style="text-align: center; color: #999; margin-top: 2rem;">Your created domains will appear here. Use the Telegram bot to create your first domain.</p>';
-            } else {
-                linksList.innerHTML = userLinks.map(link => `
-                    <div class="link-item">
-                        <div>
-                            <strong>${link.domain}</strong>
-                            <p style="color: #666; margin-top: 0.5rem;">Redirects to: ${link.redirectUrl}</p>
-                            <small style="color: #999;">Created: ${link.date} • ${link.clicks} clicks</small>
+            if (!currentUser) {
+                linksList.innerHTML = '<p style="text-align: center; color: #999; margin-top: 2rem;">Please log in to view your links.</p>';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/user/${currentUser.id}/history`);
+                if (!response.ok) throw new Error('Failed to load links');
+                userLinks = await response.json();
+
+                if (userLinks.length === 0) {
+                    linksList.innerHTML = '<p style="text-align: center; color: #999; margin-top: 2rem;">Your created domains will appear here. Use the Telegram bot to create your first domain.</p>';
+                } else {
+                    linksList.innerHTML = userLinks.map(link => `
+                        <div class="link-item">
+                            <div>
+                                <strong>${link.domain}</strong>
+                                <p style="color: #666; margin-top: 0.5rem;">Redirects to: ${link.redirectUrl}</p>
+                                <small style="color: #999;">Created: ${new Date(link.date).toLocaleDateString()} • ${link.clicks || 0} clicks</small>
+                            </div>
+                            <div class="link-actions">
+                                <button class="btn" style="padding: 0.5rem 1rem;" onclick="editLink('${link.domain}')">Edit</button>
+                                <button class="btn btn-secondary" style="padding: 0.5rem 1rem;" onclick="viewStats('${link.domain}')">Stats</button>
+                            </div>
                         </div>
-                        <div class="link-actions">
-                            <button class="btn" style="padding: 0.5rem 1rem;" onclick="editLink('${link.domain}')">Edit</button>
-                            <button class="btn btn-secondary" style="padding: 0.5rem 1rem;" onclick="viewStats('${link.domain}')">Stats</button>
-                        </div>
-                    </div>
-                `).join('');
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Error loading links:', error);
+                linksList.innerHTML = '<p style="text-align: center; color: #999; margin-top: 2rem;">Failed to load your domains.</p>';
             }
         }
 
@@ -1130,7 +1209,7 @@
         function filterLinks() {
             const search = document.getElementById('searchLinks').value.toLowerCase();
             const links = document.querySelectorAll('.link-item');
-            
+
             links.forEach(link => {
                 const text = link.textContent.toLowerCase();
                 link.style.display = text.includes(search) ? 'flex' : 'none';
@@ -1138,31 +1217,71 @@
         }
 
         // Load analytics
-        function loadAnalytics() {
-            // This would fetch real analytics from backend
-            document.getElementById('analyticsClicks').textContent = '0';
-            document.getElementById('analyticsConversion').textContent = '0%';
-            document.getElementById('analyticsAvgTime').textContent = '0s';
-            document.getElementById('analyticsTopDomain').textContent = 'N/A';
+        async function loadAnalytics() {
+            if (!currentUser) return;
+
+            try {
+                const response = await fetch(`/api/user/${currentUser.id}/analytics`);
+                if (!response.ok) throw new Error('Failed to load analytics');
+                const analyticsData = await response.json();
+
+                document.getElementById('analyticsClicks').textContent = analyticsData.totalClicks || 0;
+                document.getElementById('analyticsConversion').textContent = analyticsData.conversionRate || '0%';
+                document.getElementById('analyticsAvgTime').textContent = analyticsData.avgTimeOnPage || '0s';
+                document.getElementById('analyticsTopDomain').textContent = analyticsData.topDomain || 'N/A';
+
+                // Populate table
+                const analyticsTableBody = document.getElementById('analyticsTable');
+                if (analyticsData.domains && analyticsData.domains.length > 0) {
+                    analyticsTableBody.innerHTML = analyticsData.domains.map(domainStat => `
+                        <tr>
+                            <td>${domainStat.domain}</td>
+                            <td>${domainStat.clicks || 0}</td>
+                            <td>${domainStat.conversion || '0%'}</td>
+                            <td>${domainStat.lastActive ? new Date(domainStat.lastActive).toLocaleDateString() : 'N/A'}</td>
+                        </tr>
+                    `).join('');
+                } else {
+                    analyticsTableBody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #999;">No data available yet</td></tr>';
+                }
+            } catch (error) {
+                console.error('Error loading analytics:', error);
+                document.getElementById('analyticsClicks').textContent = 'Error';
+                document.getElementById('analyticsConversion').textContent = 'Error';
+                document.getElementById('analyticsAvgTime').textContent = 'Error';
+                document.getElementById('analyticsTopDomain').textContent = 'Error';
+            }
         }
 
         // Admin functions
-        function checkAdminAccess() {
-            // Check if user is admin
-            const isAdmin = false; // This would check against backend
-            
+        async function checkAdminAccess() {
+            // This requires a backend endpoint to check admin status
+            // For now, hardcoding as false
+            const isAdmin = false;
+            // Example:
+            // try {
+            //     const response = await fetch(`/api/user/${currentUser.id}/isAdmin`);
+            //     if (!response.ok) throw new Error('Could not verify admin status');
+            //     const data = await response.json();
+            //     isAdmin = data.isAdmin;
+            // } catch (error) {
+            //     console.error('Admin check error:', error);
+            // }
+
             if (!isAdmin) {
                 showPage('dashboard');
                 showAlert('error', 'Admin access required');
                 return;
             }
-            
+
             document.getElementById('adminNavLink').style.display = 'block';
+            // Optionally, load a default admin section
+            // showAdminSection('users');
         }
 
         function showAdminSection(section) {
             const content = document.getElementById('adminContent');
-            
+
             switch(section) {
                 case 'users':
                     content.innerHTML = '<h2>User Management</h2><p>User management interface coming soon</p>';
@@ -1191,36 +1310,70 @@
                 case 'settings':
                     content.innerHTML = '<h2>System Settings</h2><p>System configuration interface coming soon</p>';
                     break;
+                default:
+                    content.innerHTML = '<div class="alert alert-info">Select an action above to get started</div>';
             }
         }
 
-        function sendBroadcast(event) {
+        async function sendBroadcast(event) {
             event.preventDefault();
             const message = document.getElementById('broadcastMessage').value;
-            // Send to backend
-            showAlert('success', 'Broadcast sent successfully!');
+            try {
+                const response = await fetch('/api/admin/broadcast', { // Assuming a broadcast endpoint
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message })
+                });
+                if (!response.ok) throw new Error('Broadcast failed');
+                showAlert('success', 'Broadcast sent successfully!');
+                document.getElementById('broadcastMessage').value = ''; // Clear textarea
+            } catch (error) {
+                console.error('Broadcast error:', error);
+                showAlert('error', 'Failed to send broadcast: ' + error.message);
+            }
         }
 
         // Support ticket
-        function submitSupportTicket(event) {
+        async function submitSupportTicket(event) {
             event.preventDefault();
+            const userId = currentUser ? currentUser.id : null;
             const email = document.getElementById('supportEmail').value;
             const subject = document.getElementById('supportSubject').value;
             const message = document.getElementById('supportMessage').value;
-            
-            // Send to backend
-            showAlert('success', 'Support ticket submitted! We\'ll get back to you soon.');
-            
-            // Clear form
-            event.target.reset();
+
+            try {
+                const response = await fetch('/api/support/ticket', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, email, subject, message })
+                });
+                if (!response.ok) throw new Error('Ticket submission failed');
+                showAlert('success', 'Support ticket submitted! We\'ll get back to you soon.');
+                event.target.reset(); // Clear form
+            } catch (error) {
+                console.error('Support ticket error:', error);
+                showAlert('error', 'Failed to submit ticket: ' + error.message);
+            }
         }
 
         // Clear all data
-        function clearAllData() {
+        async function clearAllData() {
+            if (!currentUser) {
+                showAlert('error', 'Please log in to clear your data.');
+                return;
+            }
             if (confirm('Are you sure? This will delete all your data and cannot be undone!')) {
-                // Call backend to clear data
-                showAlert('success', 'All data cleared successfully');
-                logout();
+                try {
+                    const response = await fetch(`/api/user/${currentUser.id}/delete`, { // Assuming a delete endpoint
+                        method: 'DELETE'
+                    });
+                    if (!response.ok) throw new Error('Failed to clear data');
+                    showAlert('success', 'All data cleared successfully');
+                    logout();
+                } catch (error) {
+                    console.error('Clear data error:', error);
+                    showAlert('error', 'Failed to clear data: ' + error.message);
+                }
             }
         }
 
@@ -1234,20 +1387,24 @@
             alertDiv.style.right = '20px';
             alertDiv.style.zIndex = '10000';
             alertDiv.style.maxWidth = '400px';
-            
+
             document.body.appendChild(alertDiv);
-            
+
             setTimeout(() => {
-                alertDiv.remove();
+                if (alertDiv && alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
             }, 5000);
         }
 
         // Link actions
         function editLink(domain) {
+            // Placeholder for edit functionality
             showAlert('info', `Edit functionality for ${domain} coming soon`);
         }
 
         function viewStats(domain) {
+            // Placeholder for viewing stats of a specific domain
             showAlert('info', `Statistics for ${domain} coming soon`);
         }
     </script>
