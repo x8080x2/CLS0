@@ -1,8 +1,8 @@
 const { Pool } = require('pg');
 
-// Database connection pool (using Neon PostgreSQL - works on both Replit and Render)
+// Database connection pool (using Replit PostgreSQL)
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL || 'postgresql://neondb_owner:npg_gkbAPU7aWF3Y@ep-raspy-brook-a150lned-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require',
+    connectionString: process.env.DATABASE_URL,
     max: 20,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 10000,
