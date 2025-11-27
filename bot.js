@@ -2927,10 +2927,14 @@ app.post('/api/register', auth.rateLimit({ windowMs: 60000, maxRequests: 3 }), a
   }
 
   try {
-    let userData = await getUserData(userId);
-    if (userData && userData.joinDate) {
+    // Use loadUserData instead of getUserData to check if user exists
+    // getUserData auto-creates users, which causes the "already registered" issue
+    let existingUser = await loadUserData(userId);
+    if (existingUser && existingUser.joinDate) {
       return res.status(400).json({ error: 'User already registered' });
     }
+    
+    let userData;
 
     userData = {
       id: userId,
