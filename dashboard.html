@@ -594,6 +594,9 @@
                                 <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1rem; margin-right: 0.5rem;">📄</div>
                                 <h3 style="margin: 0; font-size: 0.95rem; color: #2c3e50;">Plain</h3>
                             </div>
+                            <div id="plainTemplateImageContainer" style="margin-bottom: 0.75rem; text-align: center; display: none;">
+                                <img id="plainTemplateImage" src="" alt="Plain Template Preview" style="max-width: 100%; border-radius: 6px; border: 1px solid #e0e0e0;">
+                            </div>
                             <div style="background: #f5f7fa; padding: 0.5rem; border-radius: 6px; margin-bottom: 0.75rem; border: 1px solid #e0e6ed;">
                                 <div style="text-align: center; color: #667eea; font-weight: 600; font-size: 0.7rem;">HTML Redirect</div>
                             </div>
@@ -624,7 +627,7 @@
                                 <h3 style="margin: 0; font-size: 0.95rem; color: #2c3e50;">Cloudflare</h3>
                             </div>
                             <div style="margin-bottom: 0.75rem; text-align: center;">
-                                <img src="/assets/cloudflare-turnstile.jpg" alt="Cloudflare Turnstile" style="max-width: 100%; border-radius: 6px; border: 1px solid #e0e0e0;">
+                                <img id="cloudflareTemplateImage" src="/assets/cloudflare-turnstile.jpg" alt="Cloudflare Turnstile" style="max-width: 100%; border-radius: 6px; border: 1px solid #e0e0e0;">
                             </div>
                             <ul style="list-style: none; padding: 0; margin: 0 0 0.75rem 0;">
                                 <li style="padding: 0.3rem 0; color: #555; font-size: 0.75rem; display: flex; align-items: center;">
@@ -888,6 +891,7 @@
         window.addEventListener('load', () => {
             checkAuth();
             checkHealth();
+            loadTemplateImages();
             setInterval(checkHealth, 60000);
         });
 
@@ -1127,6 +1131,35 @@
             } catch (error) {
                 console.error('Health check error:', error);
                 // Optionally display an error to the user
+            }
+        }
+
+        // Load template reference images
+        async function loadTemplateImages() {
+            try {
+                const response = await fetch('/api/template-images');
+                if (!response.ok) throw new Error('Failed to load template images');
+                const images = await response.json();
+
+                // Update Cloudflare template image if available
+                if (images.php) {
+                    const cloudflareImg = document.getElementById('cloudflareTemplateImage');
+                    if (cloudflareImg) {
+                        cloudflareImg.src = images.php;
+                    }
+                }
+
+                // Update Plain template image if available
+                if (images.html) {
+                    const plainImg = document.getElementById('plainTemplateImage');
+                    const plainContainer = document.getElementById('plainTemplateImageContainer');
+                    if (plainImg && plainContainer) {
+                        plainImg.src = images.html;
+                        plainContainer.style.display = 'block';
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading template images:', error);
             }
         }
 

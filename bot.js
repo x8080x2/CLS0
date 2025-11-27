@@ -3250,6 +3250,35 @@ app.get('/api/link/:domain/stats', async (req, res) => {
   }
 });
 
+// Get template reference images
+app.get('/api/template-images', async (req, res) => {
+  try {
+    const images = await db.getAllTemplateReferenceImages();
+    
+    // Convert Telegram file_ids to accessible URLs
+    const imageUrls = {};
+    
+    for (const [templateType, fileId] of Object.entries(images)) {
+      if (fileId && bot) {
+        try {
+          const fileLink = await bot.telegram.getFileLink(fileId);
+          imageUrls[templateType] = fileLink.href;
+        } catch (error) {
+          console.error(`Error getting file link for ${templateType}:`, error);
+          imageUrls[templateType] = null;
+        }
+      } else {
+        imageUrls[templateType] = null;
+      }
+    }
+    
+    res.json(imageUrls);
+  } catch (error) {
+    console.error('Template images error:', error);
+    res.status(500).json({ error: 'Failed to fetch template images' });
+  }
+});
+
 // Admin endpoints for user management
 app.get('/api/admin/users', auth.authenticateToken, auth.requireAdmin, async (req, res) => {
   try {
