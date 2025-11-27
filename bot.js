@@ -28,6 +28,7 @@ app.use(auth.rateLimit({ windowMs: 60000, maxRequests: 100 }));
 
 // Serve static files
 app.use(express.static("."));
+app.use('/assets', express.static("attached_assets"));
 
 // Root route - redirect to dashboard
 app.get("/", (_, res) => {
