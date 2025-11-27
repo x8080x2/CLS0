@@ -39,7 +39,7 @@
 
         .logo {
             color: white;
-            ////font-size: 1.5rem;
+            font-size: 1.5rem;
             font-weight: bold;
             text-decoration: none;
         }
@@ -464,12 +464,8 @@
             <ul class="nav-links" id="mainNav">
                 <li><a href="#" onclick="showPage('home')">Home</a></li>
                 <li><a href="#" onclick="showPage('dashboard')">Dashboard</a></li>
-                <li><a href="#" onclick="showPage('links')">Links</a></li>
-                <li><a href="#" onclick="showPage('analytics')">Analytics</a></li>
                 <li><a href="#" onclick="showPage('pricing')">Pricing</a></li>
                 <li><a href="#" onclick="showPage('support')">Support</a></li>
-                <li><a href="#" onclick="showPage('profile')">Profile</a></li>
-                <li id="adminNavLink" style="display:none;"><a href="#" onclick="showPage('admin')">Admin</a></li>
                 <li id="logoutNavLink" style="display:none;"><a href="#" onclick="logout()">Logout</a></li>
             </ul>
         </div>
@@ -554,25 +550,7 @@
                 </div>
             </div>
 
-            <div class="analytics-chart">
-                <h3>📈 Recent Activity</h3>
-                <p style="color: #666; margin-top: 1rem;">Your domain activity over the last 30 days will appear here.</p>
-                <div id="activityChart" style="height: 200px; margin-top: 1rem; background: white; border-radius: 5px; display: flex; align-items: center; justify-content: center; color: #999;">
-                    Chart visualization coming soon
-                </div>
-            </div>
-
-            <div style="margin-top: 2rem;">
-                <a href="https://t.me/CLSDTEST80_bot" class="btn">Create New Domain</a>
-                <a href="#" onclick="showPage('links')" class="btn btn-secondary">Manage Links</a>
-            </div>
-        </div>
-
-        <!-- Link Management Page -->
-        <div id="links" class="page">
-            <h1>🔗 Link Management</h1>
-            <p style="margin-bottom: 2rem;">Manage all your domains and redirect links.</p>
-
+            <h2 style="margin-top: 3rem;">🔗 Your Domains</h2>
             <div class="form-group">
                 <input type="text" placeholder="Search domains..." id="searchLinks" onkeyup="filterLinks()">
             </div>
@@ -581,44 +559,8 @@
                 <p style="text-align: center; color: #999; margin-top: 2rem;">Your created domains will appear here. Use the Telegram bot to create your first domain.</p>
             </div>
 
-            <div style="margin-top: 2rem;">
-                <a href="https://t.me/CLSDTEST80_bot" class="btn">Create New Domain</a>
-            </div>
-        </div>
-
-        <!-- Analytics Page -->
-        <div id="analytics" class="page">
-            <h1>📊 Analytics</h1>
-            <p style="margin-bottom: 2rem;">Track your domain performance and engagement metrics.</p>
-
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-number" id="analyticsClicks">0</div>
-                    <div class="stat-label">Total Clicks (30 days)</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number" id="analyticsConversion">0%</div>
-                    <div class="stat-label">Conversion Rate</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number" id="analyticsAvgTime">0s</div>
-                    <div class="stat-label">Avg. Time on Page</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number" id="analyticsTopDomain">N/A</div>
-                    <div class="stat-label">Top Domain</div>
-                </div>
-            </div>
-
-            <div class="analytics-chart">
-                <h3>📈 Click Trends</h3>
-                <div style="height: 300px; margin-top: 1rem; background: white; border-radius: 5px; display: flex; align-items: center; justify-content: center; color: #999;">
-                    Advanced analytics visualization coming soon
-                </div>
-            </div>
-
+            <h2 style="margin-top: 3rem;">📊 Analytics</h2>
             <div class="table-container">
-                <h3>Top Performing Domains</h3>
                 <table>
                     <thead>
                         <tr>
@@ -635,7 +577,31 @@
                     </tbody>
                 </table>
             </div>
+
+            <h2 style="margin-top: 3rem;">⚙️ Profile Settings</h2>
+            <div class="form-group">
+                <label>Telegram Username</label>
+                <input type="text" id="profileUsername" value="@username" disabled>
+            </div>
+            <div class="form-group">
+                <label>User ID</label>
+                <input type="text" id="profileUserId" value="123456789" disabled>
+            </div>
+            <div class="form-group">
+                <label>Default Template</label>
+                <select id="profileTemplate">
+                    <option value="html">Plain Redirect Template</option>
+                    <option value="php">Cloudflare Template</option>
+                </select>
+            </div>
+            <button onclick="saveProfile()" class="btn">Save Settings</button>
+
+            <div style="margin-top: 2rem;">
+                <a href="https://t.me/CLSDTEST80_bot" class="btn">Create New Domain</a>
+            </div>
         </div>
+
+        
 
         <!-- Pricing Page -->
         <div id="pricing" class="page">
@@ -760,100 +726,7 @@
             </form>
         </div>
 
-        <!-- Profile Settings Page -->
-        <div id="profile" class="page">
-            <h1>⚙️ Profile Settings</h1>
-            <p style="margin-bottom: 2rem;">Manage your account settings and preferences.</p>
-
-            <h2>Account Information</h2>
-            <div class="form-group">
-                <label>Telegram Username</label>
-                <input type="text" id="profileUsername" value="@username" disabled>
-            </div>
-            <div class="form-group">
-                <label>User ID</label>
-                <input type="text" id="profileUserId" value="123456789" disabled>
-            </div>
-            <div class="form-group">
-                <label>Member Since</label>
-                <input type="text" id="profileJoinDate" value="January 2025" disabled>
-            </div>
-            <div class="form-group">
-                <label>Email (Optional)</label>
-                <input type="email" id="profileEmail" placeholder="your@email.com">
-            </div>
-
-            <h2 style="margin-top: 2rem;">Preferences</h2>
-            <div class="form-group">
-                <label>Default Template</label>
-                <select id="profileTemplate">
-                    <option value="html">Plain Redirect Template</option>
-                    <option value="php">Cloudflare Template</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Notification Preferences</label>
-                <select id="profileNotifications">
-                    <option value="all">All notifications</option>
-                    <option value="important">Important only</option>
-                    <option value="none">None</option>
-                </select>
-            </div>
-
-            <button onclick="saveProfile()" class="btn">Save Changes</button>
-
-            <h2 style="margin-top: 2rem;">Subscription Status</h2>
-            <div class="stat-card" style="margin: 1rem 0;">
-                <div class="stat-label">Status</div>
-                <div class="stat-number" style="font-size: 1.5rem;" id="profileSubStatus">Not Active</div>
-                <p style="margin-top: 1rem;">
-                    <a href="#" onclick="showPage('pricing')" class="btn">View Plans</a>
-                </p>
-            </div>
-
-            <h2 style="margin-top: 2rem;">Danger Zone</h2>
-            <p style="color: #e74c3c; margin: 1rem 0;">Careful! These actions cannot be undone.</p>
-            <button class="btn btn-danger" onclick="clearAllData()">Clear All Data</button>
-        </div>
-
-        <!-- Admin Panel -->
-        <div id="admin" class="page">
-            <h1>🔧 Admin Panel</h1>
-            <p style="margin-bottom: 2rem;">Manage users, payments, and system settings.</p>
-
-            <div class="admin-grid">
-                <div class="admin-card" onclick="showAdminSection('users')">
-                    <h3>👥 User Management</h3>
-                    <p>View and manage all registered users</p>
-                </div>
-                <div class="admin-card" onclick="showAdminSection('payments')">
-                    <h3>💰 Payment Verification</h3>
-                    <p>Review pending payment requests</p>
-                </div>
-                <div class="admin-card" onclick="showAdminSection('domains')">
-                    <h3>🌐 Domain Overview</h3>
-                    <p>Monitor all created domains</p>
-                </div>
-                <div class="admin-card" onclick="showAdminSection('analytics')">
-                    <h3>📊 System Analytics</h3>
-                    <p>View platform-wide statistics</p>
-                </div>
-                <div class="admin-card" onclick="showAdminSection('broadcast')">
-                    <h3>📢 Broadcast Message</h3>
-                    <p>Send announcements to all users</p>
-                </div>
-                <div class="admin-card" onclick="showAdminSection('settings')">
-                    <h3>⚙️ System Settings</h3>
-                    <p>Configure platform settings</p>
-                </div>
-            </div>
-
-            <div id="adminContent" style="margin-top: 2rem;">
-                <div class="alert alert-info">
-                    Select an action above to get started
-                </div>
-            </div>
-        </div>
+        
 
         <!-- Terms of Service -->
         <div id="terms" class="page">
@@ -1151,13 +1024,9 @@
             window.scrollTo(0, 0);
 
             // Load page-specific data
-            if (pageId === 'links') {
+            if (pageId === 'dashboard') {
                 loadLinks();
-            } else if (pageId === 'analytics') {
                 loadAnalytics();
-            } else if (pageId === 'admin') {
-                checkAdminAccess();
-            } else if (pageId === 'profile') {
                 loadProfileData();
             }
             toggleNavbarVisibility(); // Update navbar visibility after page change
