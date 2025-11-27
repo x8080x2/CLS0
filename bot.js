@@ -821,11 +821,15 @@ if (bot) {
 
       if (success) {
         const templateName = templateType === 'html' ? 'Plain Redirect Template' : 'Cloudflare Template';
+        
+        // Log the update for dashboard sync
+        console.log(`Template image updated: ${templateType} - Dashboard will sync on next poll`);
+        
         await ctx.reply(
           `✅ *Reference Image Set!*\n\n` +
           `Template: ${templateName}\n` +
           `Image has been saved successfully.\n\n` +
-          `Users will now see this image when selecting this template.`,
+          `Users will see this image in the dashboard within 30 seconds.`,
           { parse_mode: "Markdown" }
         );
       } else {

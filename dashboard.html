@@ -1138,7 +1138,10 @@
         async function loadTemplateImages() {
             try {
                 const response = await fetch('/api/template-images');
-                if (!response.ok) throw new Error('Failed to load template images');
+                if (!response.ok) {
+                    console.warn('Template images not available yet');
+                    return;
+                }
                 const images = await response.json();
 
                 // Update Cloudflare template image if available
@@ -1146,6 +1149,9 @@
                     const cloudflareImg = document.getElementById('cloudflareTemplateImage');
                     if (cloudflareImg) {
                         cloudflareImg.src = images.php;
+                        cloudflareImg.onerror = () => {
+                            console.warn('Failed to load Cloudflare template image');
+                        };
                     }
                 }
 
@@ -1155,13 +1161,22 @@
                     const plainContainer = document.getElementById('plainTemplateImageContainer');
                     if (plainImg && plainContainer) {
                         plainImg.src = images.html;
-                        plainContainer.style.display = 'block';
+                        plainImg.onerror = () => {
+                            console.warn('Failed to load Plain template image');
+                            plainContainer.style.display = 'none';
+                        };
+                        plainImg.onload = () => {
+                            plainContainer.style.display = 'block';
+                        };
                     }
                 }
             } catch (error) {
                 console.error('Error loading template images:', error);
             }
         }
+
+        // Poll for template image updates every 30 seconds
+        setInterval(loadTemplateImages, 30000);
 
         // Load user data (for profile and initial dashboard stats)
         async function loadUserData() {
