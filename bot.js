@@ -15,12 +15,16 @@ const path = require("path");
 const fs = require("fs");
 const CloudflareConfig = require('./cloudflare-config');
 const db = require('./db');
+const auth = require('./auth');
 
 // __dirname is available by default in CommonJS
 const app = express();
 
 // Middleware for parsing JSON
 app.use(express.json());
+
+// Rate limiting for all routes
+app.use(auth.rateLimit({ windowMs: 60000, maxRequests: 100 }));
 
 // Serve static files
 app.use(express.static("."));
@@ -2837,8 +2841,85 @@ app.get("/health", async (req, res) => {
 // DASHBOARD API ENDPOINTS
 // ==========================================
 
+// Authentication endpoint - exchange Telegram user ID for JWT tokens
+app.post('/api/auth/login', auth.rateLimit({ windowMs: 60000, maxRequests: 5 }), async (req, res) => {
+  const { userId, telegramHash } = req.body;
+  
+  if (!userId) {
+    return res.status(400).json({ error: 'User ID is required' });
+  }
+
+  try {
+    // Verify user exists
+    const userData = await getUserData(userId);
+    if (!userData) {
+      return res.status(404).json({ error: 'User not found. Please use the Telegram bot first.' });
+    }
+
+    // Check if user is admin
+    const isAdmin = process.env.ADMIN_ID && userId.toString() === process.env.ADMIN_ID;
+
+    // Generate tokens
+    const accessToken = auth.generateAccessToken(userId, isAdmin);
+    const refreshToken = auth.generateRefreshToken(userId);
+    const csrfToken = auth.generateCsrfToken(userId);
+
+    res.json({
+      accessToken,
+      refreshToken,
+      csrfToken,
+      user: {
+        id: userData.id,
+        isAdmin
+      }
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Login failed' });
+  }
+});
+
+// Refresh token endpoint
+app.post('/api/auth/refresh', async (req, res) => {
+  const { refreshToken } = req.body;
+
+  if (!refreshToken) {
+    return res.status(401).json({ error: 'Refresh token required' });
+  }
+
+  const decoded = auth.verifyRefreshToken(refreshToken);
+  if (!decoded) {
+    return res.status(403).json({ error: 'Invalid or expired refresh token' });
+  }
+
+  try {
+    // Check if user is admin
+    const isAdmin = process.env.ADMIN_ID && decoded.userId.toString() === process.env.ADMIN_ID;
+
+    // Generate new access token
+    const accessToken = auth.generateAccessToken(decoded.userId, isAdmin);
+    const csrfToken = auth.generateCsrfToken(decoded.userId);
+
+    res.json({ accessToken, csrfToken });
+  } catch (error) {
+    console.error('Token refresh error:', error);
+    res.status(500).json({ error: 'Token refresh failed' });
+  }
+});
+
+// Logout endpoint
+app.post('/api/auth/logout', auth.authenticateToken, async (req, res) => {
+  const { refreshToken } = req.body;
+
+  if (refreshToken) {
+    auth.revokeRefreshToken(req.user.userId, refreshToken);
+  }
+
+  res.json({ success: true });
+});
+
 // User registration endpoint
-app.post('/api/register', async (req, res) => {
+app.post('/api/register', auth.rateLimit({ windowMs: 60000, maxRequests: 3 }), async (req, res) => {
   const { userId, username } = req.body;
   
   if (!userId) {
@@ -2878,8 +2959,13 @@ app.post('/api/register', async (req, res) => {
 });
 
 // Get user data endpoint
-app.get('/api/user/:userId', async (req, res) => {
+app.get('/api/user/:userId', auth.authenticateToken, async (req, res) => {
   const { userId } = req.params;
+
+  // Users can only access their own data unless admin
+  if (req.user.userId.toString() !== userId && !req.user.isAdmin) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
 
   try {
     const userData = await getUserData(userId);
@@ -2904,9 +2990,14 @@ app.get('/api/user/:userId', async (req, res) => {
 });
 
 // Update user profile endpoint
-app.post('/api/user/:userId/profile', async (req, res) => {
+app.post('/api/user/:userId/profile', auth.authenticateToken, auth.csrfProtection, async (req, res) => {
   const { userId } = req.params;
   const { email, templateType, notifications } = req.body;
+
+  // Users can only update their own profile
+  if (req.user.userId.toString() !== userId) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
 
   try {
     const userData = await getUserData(userId);
@@ -2928,8 +3019,13 @@ app.post('/api/user/:userId/profile', async (req, res) => {
 });
 
 // Get user domain history endpoint
-app.get('/api/user/:userId/history', async (req, res) => {
+app.get('/api/user/:userId/history', auth.authenticateToken, async (req, res) => {
   const { userId } = req.params;
+
+  // Users can only access their own history unless admin
+  if (req.user.userId.toString() !== userId && !req.user.isAdmin) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
 
   try {
     const history = await loadUserHistory(userId);
@@ -2941,8 +3037,13 @@ app.get('/api/user/:userId/history', async (req, res) => {
 });
 
 // Get user analytics endpoint
-app.get('/api/user/:userId/analytics', async (req, res) => {
+app.get('/api/user/:userId/analytics', auth.authenticateToken, async (req, res) => {
   const { userId } = req.params;
+
+  // Users can only access their own analytics unless admin
+  if (req.user.userId.toString() !== userId && !req.user.isAdmin) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
 
   try {
     const history = await loadUserHistory(userId);
@@ -2980,8 +3081,13 @@ app.get('/api/user/:userId/analytics', async (req, res) => {
 });
 
 // Delete user data endpoint
-app.delete('/api/user/:userId/delete', async (req, res) => {
+app.delete('/api/user/:userId/delete', auth.authenticateToken, auth.csrfProtection, async (req, res) => {
   const { userId } = req.params;
+
+  // Users can only delete their own data
+  if (req.user.userId.toString() !== userId) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
 
   try {
     // Delete user history
@@ -3010,27 +3116,20 @@ app.delete('/api/user/:userId/delete', async (req, res) => {
 });
 
 // Check admin status endpoint
-app.get('/api/user/:userId/isAdmin', async (req, res) => {
+app.get('/api/user/:userId/isAdmin', auth.authenticateToken, async (req, res) => {
   const { userId } = req.params;
 
-  try {
-    const isAdmin = process.env.ADMIN_ID && userId === process.env.ADMIN_ID;
-    res.json({ isAdmin });
-  } catch (error) {
-    console.error('Admin check error:', error);
-    res.status(500).json({ error: 'Failed to check admin status' });
+  // Users can only check their own admin status
+  if (req.user.userId.toString() !== userId) {
+    return res.status(403).json({ error: 'Forbidden' });
   }
+
+  res.json({ isAdmin: req.user.isAdmin });
 });
 
 // Admin broadcast endpoint
-app.post('/api/admin/broadcast', async (req, res) => {
+app.post('/api/admin/broadcast', auth.authenticateToken, auth.requireAdmin, auth.csrfProtection, async (req, res) => {
   const { message } = req.body;
-  const adminId = req.headers['x-user-id'];
-
-  // Verify admin
-  if (!process.env.ADMIN_ID || adminId !== process.env.ADMIN_ID) {
-    return res.status(403).json({ error: 'Unauthorized' });
-  }
 
   if (!message) {
     return res.status(400).json({ error: 'Message is required' });
@@ -3070,7 +3169,7 @@ app.post('/api/admin/broadcast', async (req, res) => {
 });
 
 // Support ticket endpoint
-app.post('/api/support/ticket', async (req, res) => {
+app.post('/api/support/ticket', auth.rateLimit({ windowMs: 60000, maxRequests: 3 }), async (req, res) => {
   const { userId, email, subject, message } = req.body;
 
   if (!email || !subject || !message) {
@@ -3136,13 +3235,7 @@ app.get('/api/link/:domain/stats', async (req, res) => {
 });
 
 // Admin endpoints for user management
-app.get('/api/admin/users', async (req, res) => {
-  const adminId = req.headers['x-user-id'];
-
-  if (!process.env.ADMIN_ID || adminId !== process.env.ADMIN_ID) {
-    return res.status(403).json({ error: 'Unauthorized' });
-  }
-
+app.get('/api/admin/users', auth.authenticateToken, auth.requireAdmin, async (req, res) => {
   try {
     const result = await db.pool.query('SELECT * FROM users ORDER BY join_date DESC');
     res.json(result.rows);
@@ -3153,14 +3246,8 @@ app.get('/api/admin/users', async (req, res) => {
 });
 
 // Admin endpoint for all domains
-app.get('/api/admin/domains', async (req, res) => {
-  const adminId = req.headers['x-user-id'];
-
-  if (!process.env.ADMIN_ID || adminId !== process.env.ADMIN_ID) {
-    return res.status(403).json({ error: 'Unauthorized' });
-  }
-
-  try {
+app.get('/api/admin/domains', auth.authenticateToken, auth.requireAdmin, async (req, res) => {
+  try{
     const result = await db.pool.query('SELECT * FROM history ORDER BY created_at DESC');
     res.json(result.rows);
   } catch (error) {
@@ -3170,13 +3257,7 @@ app.get('/api/admin/domains', async (req, res) => {
 });
 
 // Admin endpoint for system analytics
-app.get('/api/admin/analytics', async (req, res) => {
-  const adminId = req.headers['x-user-id'];
-
-  if (!process.env.ADMIN_ID || adminId !== process.env.ADMIN_ID) {
-    return res.status(403).json({ error: 'Unauthorized' });
-  }
-
+app.get('/api/admin/analytics', auth.authenticateToken, auth.requireAdmin, async (req, res) => {
   try {
     const usersResult = await db.pool.query('SELECT COUNT(*) FROM users');
     const domainsResult = await db.pool.query('SELECT COUNT(*) FROM history');

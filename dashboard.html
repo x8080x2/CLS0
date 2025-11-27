@@ -971,10 +971,67 @@
             setInterval(checkHealth, 60000);
         });
 
+        // Authenticated fetch with automatic token refresh
+        async function authenticatedFetch(url, options = {}) {
+            let accessToken = localStorage.getItem('accessToken');
+            
+            // Set default headers
+            const headers = {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${accessToken}`,
+                ...options.headers
+            };
+            
+            // Add CSRF token for state-changing requests
+            if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(options.method)) {
+                headers['X-CSRF-Token'] = localStorage.getItem('csrfToken');
+            }
+            
+            let response = await fetch(url, { ...options, headers });
+            
+            // If token expired, try to refresh
+            if (response.status === 403 || response.status === 401) {
+                const refreshToken = localStorage.getItem('refreshToken');
+                if (!refreshToken) {
+                    logout();
+                    throw new Error('Session expired. Please log in again.');
+                }
+                
+                try {
+                    const refreshResponse = await fetch('/api/auth/refresh', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ refreshToken })
+                    });
+                    
+                    if (!refreshResponse.ok) {
+                        logout();
+                        throw new Error('Session expired. Please log in again.');
+                    }
+                    
+                    const refreshData = await refreshResponse.json();
+                    localStorage.setItem('accessToken', refreshData.accessToken);
+                    localStorage.setItem('csrfToken', refreshData.csrfToken);
+                    
+                    // Retry original request with new token
+                    headers['Authorization'] = `Bearer ${refreshData.accessToken}`;
+                    headers['X-CSRF-Token'] = refreshData.csrfToken;
+                    response = await fetch(url, { ...options, headers });
+                } catch (error) {
+                    logout();
+                    throw error;
+                }
+            }
+            
+            return response;
+        }
+
         // Authentication functions
         function checkAuth() {
+            const accessToken = localStorage.getItem('accessToken');
             const userId = localStorage.getItem('userId');
-            if (userId) {
+            
+            if (accessToken && userId) {
                 currentUser = { id: userId };
                 updateNavForAuth();
                 loadUserData();
@@ -988,13 +1045,26 @@
             event.preventDefault();
             const userId = document.getElementById('loginUserId').value;
             try {
-                const response = await fetch(`/api/user/${userId}`);
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId })
+                });
+                
                 if (!response.ok) {
-                    throw new Error('User not found or invalid ID');
+                    const error = await response.json();
+                    throw new Error(error.error || 'Login failed');
                 }
-                const userData = await response.json();
-                localStorage.setItem('userId', userId);
-                currentUser = { id: userId, ...userData };
+                
+                const data = await response.json();
+                
+                // Store tokens securely
+                localStorage.setItem('accessToken', data.accessToken);
+                localStorage.setItem('refreshToken', data.refreshToken);
+                localStorage.setItem('csrfToken', data.csrfToken);
+                localStorage.setItem('userId', data.user.id);
+                
+                currentUser = { id: data.user.id, isAdmin: data.user.isAdmin };
                 updateNavForAuth();
                 loadUserData();
                 showPage('dashboard');
@@ -1030,7 +1100,20 @@
             }
         }
 
-        function logout() {
+        async function logout() {
+            try {
+                const refreshToken = localStorage.getItem('refreshToken');
+                await authenticatedFetch('/api/auth/logout', {
+                    method: 'POST',
+                    body: JSON.stringify({ refreshToken })
+                });
+            } catch (error) {
+                console.error('Logout error:', error);
+            }
+            
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken');
+            localStorage.removeItem('csrfToken');
             localStorage.removeItem('userId');
             currentUser = null;
             userLinks = [];
@@ -1112,7 +1195,7 @@
             if (!currentUser) return;
 
             try {
-                const response = await fetch(`/api/user/${currentUser.id}`);
+                const response = await authenticatedFetch(`/api/user/${currentUser.id}`);
                 if (!response.ok) throw new Error('Failed to load user data');
                 const userData = await response.json();
                 currentUser = { ...currentUser, ...userData };
@@ -1150,9 +1233,8 @@
             const notifications = document.getElementById('profileNotifications').value;
 
             try {
-                const response = await fetch(`/api/user/${currentUser.id}/profile`, {
+                const response = await authenticatedFetch(`/api/user/${currentUser.id}/profile`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email, templateType: template, notifications })
                 });
                 if (!response.ok) {
