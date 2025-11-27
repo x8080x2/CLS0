@@ -1,4 +1,4 @@
-modules = ["nodejs-20"]
+modules = ["nodejs-20", "web", "php-8.2"]
 [agent]
 expertMode = true
 
@@ -29,3 +29,10 @@ outputType = "webview"
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[[ports]]
+localPort = 45465
+externalPort = 3000
+
+[nix]
+channel = "stable-25_05"
