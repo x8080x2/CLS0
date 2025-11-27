@@ -460,9 +460,8 @@
 <body>
     <nav class="navbar" id="mainNavbar" style="display:none;">
         <div class="navbar-content">
-            <a href="#" class="logo" onclick="showPage('home')">🚀 CLS Redirect Bot</a>
+            <a href="#" class="logo" onclick="showPage('dashboard')">🚀 CLS Redirect Bot</a>
             <ul class="nav-links" id="mainNav">
-                <li><a href="#" onclick="showPage('home')">Home</a></li>
                 <li><a href="#" onclick="showPage('dashboard')">Dashboard</a></li>
                 <li><a href="#" onclick="showPage('pricing')">Pricing</a></li>
                 <li><a href="#" onclick="showPage('support')">Support</a></li>
@@ -514,8 +513,8 @@
             </div>
         </div>
 
-        <!-- Home Page -->
-        <div id="home" class="page active">
+        <!-- Dashboard Page (merged with Home) -->
+        <div id="dashboard" class="page active">
             <div class="hero">
                 <h1>🚀 Domain Provisioning Bot</h1>
                 <p>Automated hosting setup and domain management at your fingertips</p>
@@ -523,86 +522,6 @@
                 <a href="https://t.me/CLSDTEST80_bot" class="btn">Get Started on Telegram</a>
             </div>
 
-            <h2 style="text-align: center; margin: 2rem 0 0.5rem; font-size: 1.5rem; color: #2c3e50;">🎨 Available Templates</h2>
-            <p style="text-align: center; color: #666; margin-bottom: 1.5rem; font-size: 0.9rem;">Choose the perfect template for your redirect</p>
-
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(175px, 1fr)); gap: 1rem; margin: 1rem 0; max-width: 600px; margin-left: auto; margin-right: auto;">
-                <!-- Plain Redirect Template -->
-                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; padding: 2px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);">
-                    <div style="background: white; border-radius: 9px; padding: 1rem; height: 100%;">
-                        <div style="display: flex; align-items: center; margin-bottom: 0.75rem;">
-                            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1rem; margin-right: 0.5rem;">📄</div>
-                            <h3 style="margin: 0; font-size: 0.95rem; color: #2c3e50;">Plain</h3>
-                        </div>
-                        
-                        <div style="background: #f5f7fa; padding: 0.5rem; border-radius: 6px; margin-bottom: 0.75rem; border: 1px solid #e0e6ed;">
-                            <div style="text-align: center; color: #667eea; font-weight: 600; font-size: 0.7rem;">HTML Redirect</div>
-                        </div>
-
-                        <ul style="list-style: none; padding: 0; margin: 0 0 0.75rem 0;">
-                            <li style="padding: 0.3rem 0; color: #555; font-size: 0.75rem; display: flex; align-items: center;">
-                                <span style="color: #27ae60; margin-right: 0.4rem; font-weight: bold;">✓</span>
-                                <span>Lightning-fast</span>
-                            </li>
-                            <li style="padding: 0.3rem 0; color: #555; font-size: 0.75rem; display: flex; align-items: center;">
-                                <span style="color: #27ae60; margin-right: 0.4rem; font-weight: bold;">✓</span>
-                                <span>Email support</span>
-                            </li>
-                            <li style="padding: 0.3rem 0; color: #555; font-size: 0.75rem; display: flex; align-items: center;">
-                                <span style="color: #27ae60; margin-right: 0.4rem; font-weight: bold;">✓</span>
-                                <span>Minimal overhead</span>
-                            </li>
-                        </ul>
-
-                        <div style="background: #f8f9fa; padding: 0.5rem; border-radius: 5px; font-size: 0.7rem;">
-                            <div style="color: #666;"><strong>Type:</strong> <span style="color: #667eea;">.html</span></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Cloudflare Template -->
-                <div style="background: linear-gradient(135deg, #3498db 0%, #2c3e50 100%); border-radius: 10px; padding: 2px; box-shadow: 0 4px 15px rgba(52, 152, 219, 0.2);">
-                    <div style="background: white; border-radius: 9px; padding: 1rem; height: 100%;">
-                        <div style="display: flex; align-items: center; margin-bottom: 0.75rem;">
-                            <div style="background: linear-gradient(135deg, #3498db 0%, #2c3e50 100%); width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1rem; margin-right: 0.5rem;">☁️</div>
-                            <h3 style="margin: 0; font-size: 0.95rem; color: #2c3e50;">Cloudflare</h3>
-                        </div>
-                        
-                        <div style="background: #e8f4f8; padding: 0.5rem; border-radius: 6px; margin-bottom: 0.75rem; border: 1px solid #b8dce8;">
-                            <div style="text-align: center; color: #2c3e50; font-weight: 600; font-size: 0.7rem;">Bot Protection</div>
-                        </div>
-
-                        <ul style="list-style: none; padding: 0; margin: 0 0 0.75rem 0;">
-                            <li style="padding: 0.3rem 0; color: #555; font-size: 0.75rem; display: flex; align-items: center;">
-                                <span style="color: #27ae60; margin-right: 0.4rem; font-weight: bold;">✓</span>
-                                <span>Turnstile verify</span>
-                            </li>
-                            <li style="padding: 0.3rem 0; color: #555; font-size: 0.75rem; display: flex; align-items: center;">
-                                <span style="color: #27ae60; margin-right: 0.4rem; font-weight: bold;">✓</span>
-                                <span>Bot detection</span>
-                            </li>
-                            <li style="padding: 0.3rem 0; color: #555; font-size: 0.75rem; display: flex; align-items: center;">
-                                <span style="color: #27ae60; margin-right: 0.4rem; font-weight: bold;">✓</span>
-                                <span>Scanner blocking</span>
-                            </li>
-                        </ul>
-
-                        <div style="background: #f8f9fa; padding: 0.5rem; border-radius: 5px; font-size: 0.7rem;">
-                            <div style="color: #666;"><strong>Type:</strong> <span style="color: #3498db;">.php</span></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div style="text-align: center; margin: 3rem 0;">
-                <p style="margin-bottom: 1rem; color: #666;">Ready to create your first redirect?</p>
-                <a href="https://t.me/CLSDTEST80_bot" class="btn" style="margin-right: 1rem;">Start Creating</a>
-                <a href="#" onclick="showPage('pricing')" class="btn btn-secondary">View Pricing</a>
-            </div>
-        </div>
-
-        <!-- Dashboard Page -->
-        <div id="dashboard" class="page">
             <h1>📊 Dashboard</h1>
             <p style="margin-bottom: 2rem;">Welcome back! Here's your account overview.</p>
 
@@ -673,6 +592,70 @@
 
             <div style="margin-top: 2rem;">
                 <a href="https://t.me/CLSDTEST80_bot" class="btn">Create New Domain</a>
+            </div>
+
+            <h2 style="text-align: center; margin: 3rem 0 0.5rem; font-size: 1.5rem; color: #2c3e50;">🎨 Available Templates</h2>
+            <p style="text-align: center; color: #666; margin-bottom: 1.5rem; font-size: 0.9rem;">Choose the perfect template for your redirect</p>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(175px, 1fr)); gap: 1rem; margin: 1rem 0; max-width: 600px; margin-left: auto; margin-right: auto;">
+                <!-- Plain Redirect Template -->
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; padding: 2px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);">
+                    <div style="background: white; border-radius: 9px; padding: 1rem; height: 100%;">
+                        <div style="display: flex; align-items: center; margin-bottom: 0.75rem;">
+                            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1rem; margin-right: 0.5rem;">📄</div>
+                            <h3 style="margin: 0; font-size: 0.95rem; color: #2c3e50;">Plain</h3>
+                        </div>
+                        <div style="background: #f5f7fa; padding: 0.5rem; border-radius: 6px; margin-bottom: 0.75rem; border: 1px solid #e0e6ed;">
+                            <div style="text-align: center; color: #667eea; font-weight: 600; font-size: 0.7rem;">HTML Redirect</div>
+                        </div>
+                        <ul style="list-style: none; padding: 0; margin: 0 0 0.75rem 0;">
+                            <li style="padding: 0.3rem 0; color: #555; font-size: 0.75rem; display: flex; align-items: center;">
+                                <span style="color: #27ae60; margin-right: 0.4rem; font-weight: bold;">✓</span>
+                                <span>Lightning-fast</span>
+                            </li>
+                            <li style="padding: 0.3rem 0; color: #555; font-size: 0.75rem; display: flex; align-items: center;">
+                                <span style="color: #27ae60; margin-right: 0.4rem; font-weight: bold;">✓</span>
+                                <span>Email support</span>
+                            </li>
+                            <li style="padding: 0.3rem 0; color: #555; font-size: 0.75rem; display: flex; align-items: center;">
+                                <span style="color: #27ae60; margin-right: 0.4rem; font-weight: bold;">✓</span>
+                                <span>Minimal overhead</span>
+                            </li>
+                        </ul>
+                        <div style="background: #f8f9fa; padding: 0.5rem; border-radius: 5px; font-size: 0.7rem;">
+                            <div style="color: #666;"><strong>Type:</strong> <span style="color: #667eea;">.html</span></div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Cloudflare Template -->
+                <div style="background: linear-gradient(135deg, #3498db 0%, #2c3e50 100%); border-radius: 10px; padding: 2px; box-shadow: 0 4px 15px rgba(52, 152, 219, 0.2);">
+                    <div style="background: white; border-radius: 9px; padding: 1rem; height: 100%;">
+                        <div style="display: flex; align-items: center; margin-bottom: 0.75rem;">
+                            <div style="background: linear-gradient(135deg, #3498db 0%, #2c3e50 100%); width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1rem; margin-right: 0.5rem;">☁️</div>
+                            <h3 style="margin: 0; font-size: 0.95rem; color: #2c3e50;">Cloudflare</h3>
+                        </div>
+                        <div style="background: #e8f4f8; padding: 0.5rem; border-radius: 6px; margin-bottom: 0.75rem; border: 1px solid #b8dce8;">
+                            <div style="text-align: center; color: #2c3e50; font-weight: 600; font-size: 0.7rem;">Bot Protection</div>
+                        </div>
+                        <ul style="list-style: none; padding: 0; margin: 0 0 0.75rem 0;">
+                            <li style="padding: 0.3rem 0; color: #555; font-size: 0.75rem; display: flex; align-items: center;">
+                                <span style="color: #27ae60; margin-right: 0.4rem; font-weight: bold;">✓</span>
+                                <span>Turnstile verify</span>
+                            </li>
+                            <li style="padding: 0.3rem 0; color: #555; font-size: 0.75rem; display: flex; align-items: center;">
+                                <span style="color: #27ae60; margin-right: 0.4rem; font-weight: bold;">✓</span>
+                                <span>Bot detection</span>
+                            </li>
+                            <li style="padding: 0.3rem 0; color: #555; font-size: 0.75rem; display: flex; align-items: center;">
+                                <span style="color: #27ae60; margin-right: 0.4rem; font-weight: bold;">✓</span>
+                                <span>Scanner blocking</span>
+                            </li>
+                        </ul>
+                        <div style="background: #f8f9fa; padding: 0.5rem; border-radius: 5px; font-size: 0.7rem;">
+                            <div style="color: #666;"><strong>Type:</strong> <span style="color: #3498db;">.php</span></div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
