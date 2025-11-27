@@ -1070,13 +1070,21 @@
             const username = document.getElementById('regUsername').value || null;
 
             try {
-                const response = await fetch('/api/register', { // Assuming a /api/register endpoint
+                const response = await fetch('/api/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ userId, username })
                 });
+                const data = await response.json();
+                
                 if (!response.ok) {
-                    throw new Error('Registration failed');
+                    // Check if user is already registered
+                    if (data.error && data.error.includes('already registered')) {
+                        showAlert('info', 'You are already registered! Redirecting to login...');
+                        setTimeout(() => showPage('login'), 1500);
+                        return;
+                    }
+                    throw new Error(data.error || 'Registration failed');
                 }
                 localStorage.setItem('userId', userId);
                 currentUser = { id: userId, username: username };
