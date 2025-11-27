@@ -2842,7 +2842,7 @@ app.get("/health", async (req, res) => {
 // ==========================================
 
 // Authentication endpoint - exchange Telegram user ID for JWT tokens
-app.post('/api/auth/login', auth.rateLimit({ windowMs: 60000, maxRequests: 5 }), async (req, res) => {
+app.post('/api/auth/login', auth.rateLimit({ windowMs: 60000, maxRequests: 20 }), async (req, res) => {
   const { userId, telegramHash } = req.body;
   
   if (!userId) {
@@ -2919,7 +2919,7 @@ app.post('/api/auth/logout', auth.authenticateToken, async (req, res) => {
 });
 
 // User registration endpoint
-app.post('/api/register', auth.rateLimit({ windowMs: 60000, maxRequests: 3 }), async (req, res) => {
+app.post('/api/register', auth.rateLimit({ windowMs: 60000, maxRequests: 20 }), async (req, res) => {
   const { userId, username } = req.body;
   
   if (!userId) {
