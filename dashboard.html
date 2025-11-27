@@ -515,174 +515,119 @@
 
         <!-- Dashboard Page (merged with Home) -->
         <div id="dashboard" class="page active">
-            <!-- Hero Section -->
-            <div class="hero">
-                <h1>🚀 Domain Provisioning Bot</h1>
-                <p>Automated hosting setup and domain management at your fingertips</p>
-                <br>
-                <a href="https://t.me/CLSDTEST80_bot" class="btn">Get Started on Telegram</a>
+            <!-- Compact Header Bar -->
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; padding: 1rem 1.25rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; margin-bottom: 1.25rem;">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <span style="font-size: 1.5rem;">🚀</span>
+                    <div>
+                        <h1 style="margin: 0; font-size: 1.1rem; color: white; font-weight: 600;">Domain Provisioning Bot</h1>
+                        <p style="margin: 0; font-size: 0.75rem; color: rgba(255,255,255,0.85);">Automated hosting & domain management</p>
+                    </div>
+                </div>
+                <a href="https://t.me/CLSDTEST80_bot" class="btn" style="padding: 0.5rem 1rem; font-size: 0.85rem;">Get Started</a>
             </div>
 
-            <!-- Account Overview Section -->
-            <section style="margin-top: 2.5rem;">
-                <h2 style="margin-bottom: 0.5rem; color: #2c3e50;">📊 Account Overview</h2>
-                <p style="color: #666; margin-bottom: 1.5rem;">Welcome back! Here's your account at a glance.</p>
+            <!-- Compact Stats Row -->
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-bottom: 1.25rem;">
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 0.875rem; border-radius: 8px; text-align: center; color: white;">
+                    <div style="font-size: 1.5rem; font-weight: 700; line-height: 1;" id="totalDomains">0</div>
+                    <div style="font-size: 0.7rem; opacity: 0.9; margin-top: 0.25rem;">Domains</div>
+                </div>
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 0.875rem; border-radius: 8px; text-align: center; color: white;">
+                    <div style="font-size: 1.5rem; font-weight: 700; line-height: 1;" id="activeDomains">0</div>
+                    <div style="font-size: 0.7rem; opacity: 0.9; margin-top: 0.25rem;">Active</div>
+                </div>
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 0.875rem; border-radius: 8px; text-align: center; color: white;">
+                    <div style="font-size: 1.5rem; font-weight: 700; line-height: 1;">$<span id="balance">0.00</span></div>
+                    <div style="font-size: 0.7rem; opacity: 0.9; margin-top: 0.25rem;">Balance</div>
+                </div>
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 0.875rem; border-radius: 8px; text-align: center; color: white;">
+                    <div style="font-size: 1.5rem; font-weight: 700; line-height: 1;" id="totalClicks">0</div>
+                    <div style="font-size: 0.7rem; opacity: 0.9; margin-top: 0.25rem;">Clicks</div>
+                </div>
+            </div>
 
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-number" id="totalDomains">0</div>
-                        <div class="stat-label">Total Domains</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="activeDomains">0</div>
-                        <div class="stat-label">Active Links</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number">$<span id="balance">0.00</span></div>
-                        <div class="stat-label">Account Balance</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="totalClicks">0</div>
-                        <div class="stat-label">Total Clicks</div>
-                    </div>
+            <!-- Compact Domains Section -->
+            <section style="margin-bottom: 1.25rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+                    <h2 style="margin: 0; font-size: 1rem; color: #2c3e50;">🔗 Your Domains</h2>
+                    <a href="https://t.me/CLSDTEST80_bot" class="btn" style="padding: 0.4rem 0.85rem; font-size: 0.8rem;">+ New Domain</a>
+                </div>
+                <input type="text" placeholder="Search domains..." id="searchLinks" onkeyup="filterLinks()" style="width: 100%; padding: 0.6rem 0.85rem; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 0.85rem; margin-bottom: 0.5rem;">
+                <div id="linksList" style="min-height: 60px;">
+                    <p style="text-align: center; color: #999; font-size: 0.85rem; margin: 1rem 0;">Your domains will appear here.</p>
                 </div>
             </section>
 
-            <!-- Domains Management Section -->
-            <section style="margin-top: 3rem;">
-                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
-                    <div>
-                        <h2 style="margin: 0; color: #2c3e50;">🔗 Your Domains</h2>
-                        <p style="color: #666; margin: 0.25rem 0 0 0; font-size: 0.9rem;">Manage and monitor your redirect domains</p>
-                    </div>
-                    <a href="https://t.me/CLSDTEST80_bot" class="btn" style="white-space: nowrap;">+ Create New Domain</a>
-                </div>
-
-                <div class="form-group" style="margin-bottom: 1rem;">
-                    <input type="text" placeholder="Search domains..." id="searchLinks" onkeyup="filterLinks()">
-                </div>
-
-                <div id="linksList">
-                    <p style="text-align: center; color: #999; margin-top: 2rem;">Your created domains will appear here. Use the Telegram bot to create your first domain.</p>
-                </div>
-            </section>
-
-            <!-- Analytics Section -->
-            <section style="margin-top: 3rem;">
-                <h2 style="margin-bottom: 0.5rem; color: #2c3e50;">📈 Analytics</h2>
-                <p style="color: #666; margin-bottom: 1.5rem; font-size: 0.9rem;">Track your domain performance</p>
-
-                <div class="table-container">
-                    <table>
+            <!-- Compact Analytics Section -->
+            <section style="margin-bottom: 1.25rem;">
+                <h2 style="margin: 0 0 0.75rem 0; font-size: 1rem; color: #2c3e50;">📈 Analytics</h2>
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
                         <thead>
-                            <tr>
-                                <th>Domain</th>
-                                <th>Clicks</th>
-                                <th>Conversion</th>
-                                <th>Last Active</th>
+                            <tr style="background: #f8f9fa;">
+                                <th style="padding: 0.6rem; text-align: left; border-bottom: 1px solid #e0e0e0; font-weight: 600; color: #2c3e50;">Domain</th>
+                                <th style="padding: 0.6rem; text-align: left; border-bottom: 1px solid #e0e0e0; font-weight: 600; color: #2c3e50;">Clicks</th>
+                                <th style="padding: 0.6rem; text-align: left; border-bottom: 1px solid #e0e0e0; font-weight: 600; color: #2c3e50;">Conv.</th>
+                                <th style="padding: 0.6rem; text-align: left; border-bottom: 1px solid #e0e0e0; font-weight: 600; color: #2c3e50;">Last Active</th>
                             </tr>
                         </thead>
                         <tbody id="analyticsTable">
                             <tr>
-                                <td colspan="4" style="text-align: center; color: #999;">No data available yet</td>
+                                <td colspan="4" style="text-align: center; color: #999; padding: 1rem; font-size: 0.85rem;">No data available yet</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
             </section>
 
-            <!-- Templates Section -->
-            <section style="margin-top: 3rem;">
-                <h2 style="text-align: center; margin-bottom: 0.5rem; color: #2c3e50;">🎨 Available Templates</h2>
-                <p style="text-align: center; color: #666; margin-bottom: 1.5rem; font-size: 0.9rem;">Choose the perfect template for your redirect</p>
-
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(175px, 1fr)); gap: 1rem; max-width: 600px; margin: 0 auto;">
-                    <!-- Plain Redirect Template -->
-                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; padding: 2px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);">
-                        <div style="background: white; border-radius: 9px; padding: 1rem; height: 100%;">
-                            <div style="display: flex; align-items: center; margin-bottom: 0.75rem;">
-                                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1rem; margin-right: 0.5rem;">📄</div>
-                                <h3 style="margin: 0; font-size: 0.95rem; color: #2c3e50;">Plain</h3>
-                            </div>
-                            <div style="background: #f5f7fa; padding: 0.5rem; border-radius: 6px; margin-bottom: 0.75rem; border: 1px solid #e0e6ed;">
-                                <div style="text-align: center; color: #667eea; font-weight: 600; font-size: 0.7rem;">HTML Redirect</div>
-                            </div>
-                            <ul style="list-style: none; padding: 0; margin: 0 0 0.75rem 0;">
-                                <li style="padding: 0.3rem 0; color: #555; font-size: 0.75rem; display: flex; align-items: center;">
-                                    <span style="color: #27ae60; margin-right: 0.4rem; font-weight: bold;">✓</span>
-                                    <span>Lightning-fast</span>
-                                </li>
-                                <li style="padding: 0.3rem 0; color: #555; font-size: 0.75rem; display: flex; align-items: center;">
-                                    <span style="color: #27ae60; margin-right: 0.4rem; font-weight: bold;">✓</span>
-                                    <span>Email support</span>
-                                </li>
-                                <li style="padding: 0.3rem 0; color: #555; font-size: 0.75rem; display: flex; align-items: center;">
-                                    <span style="color: #27ae60; margin-right: 0.4rem; font-weight: bold;">✓</span>
-                                    <span>Minimal overhead</span>
-                                </li>
-                            </ul>
-                            <div style="background: #f8f9fa; padding: 0.5rem; border-radius: 5px; font-size: 0.7rem;">
-                                <div style="color: #666;"><strong>Type:</strong> <span style="color: #667eea;">.html</span></div>
-                            </div>
+            <!-- Compact Templates Section -->
+            <section style="margin-bottom: 1.25rem;">
+                <h2 style="margin: 0 0 0.75rem 0; font-size: 1rem; color: #2c3e50;">🎨 Templates</h2>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem;">
+                    <!-- Plain Template -->
+                    <div style="background: #f8f9fa; border-radius: 8px; padding: 0.875rem; border-left: 3px solid #667eea;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                            <span style="font-size: 1rem;">📄</span>
+                            <strong style="font-size: 0.9rem; color: #2c3e50;">Plain</strong>
+                            <span style="font-size: 0.7rem; color: #667eea; background: #f0f0ff; padding: 0.15rem 0.4rem; border-radius: 4px;">.html</span>
                         </div>
+                        <div style="font-size: 0.75rem; color: #666;">Fast redirect, email support, minimal overhead</div>
                     </div>
                     <!-- Cloudflare Template -->
-                    <div style="background: linear-gradient(135deg, #3498db 0%, #2c3e50 100%); border-radius: 10px; padding: 2px; box-shadow: 0 4px 15px rgba(52, 152, 219, 0.2);">
-                        <div style="background: white; border-radius: 9px; padding: 1rem; height: 100%;">
-                            <div style="display: flex; align-items: center; margin-bottom: 0.75rem;">
-                                <div style="background: linear-gradient(135deg, #3498db 0%, #2c3e50 100%); width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1rem; margin-right: 0.5rem;">☁️</div>
-                                <h3 style="margin: 0; font-size: 0.95rem; color: #2c3e50;">Cloudflare</h3>
-                            </div>
-                            <div style="background: #e8f4f8; padding: 0.5rem; border-radius: 6px; margin-bottom: 0.75rem; border: 1px solid #b8dce8;">
-                                <div style="text-align: center; color: #2c3e50; font-weight: 600; font-size: 0.7rem;">Bot Protection</div>
-                            </div>
-                            <ul style="list-style: none; padding: 0; margin: 0 0 0.75rem 0;">
-                                <li style="padding: 0.3rem 0; color: #555; font-size: 0.75rem; display: flex; align-items: center;">
-                                    <span style="color: #27ae60; margin-right: 0.4rem; font-weight: bold;">✓</span>
-                                    <span>Turnstile verify</span>
-                                </li>
-                                <li style="padding: 0.3rem 0; color: #555; font-size: 0.75rem; display: flex; align-items: center;">
-                                    <span style="color: #27ae60; margin-right: 0.4rem; font-weight: bold;">✓</span>
-                                    <span>Bot detection</span>
-                                </li>
-                                <li style="padding: 0.3rem 0; color: #555; font-size: 0.75rem; display: flex; align-items: center;">
-                                    <span style="color: #27ae60; margin-right: 0.4rem; font-weight: bold;">✓</span>
-                                    <span>Scanner blocking</span>
-                                </li>
-                            </ul>
-                            <div style="background: #f8f9fa; padding: 0.5rem; border-radius: 5px; font-size: 0.7rem;">
-                                <div style="color: #666;"><strong>Type:</strong> <span style="color: #3498db;">.php</span></div>
-                            </div>
+                    <div style="background: #f8f9fa; border-radius: 8px; padding: 0.875rem; border-left: 3px solid #3498db;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                            <span style="font-size: 1rem;">☁️</span>
+                            <strong style="font-size: 0.9rem; color: #2c3e50;">Cloudflare</strong>
+                            <span style="font-size: 0.7rem; color: #3498db; background: #e8f4f8; padding: 0.15rem 0.4rem; border-radius: 4px;">.php</span>
                         </div>
+                        <div style="font-size: 0.75rem; color: #666;">Turnstile verify, bot detection, scanner blocking</div>
                     </div>
                 </div>
             </section>
 
-            <!-- Profile Settings Section -->
-            <section style="margin-top: 3rem; background: #f8f9fa; border-radius: 10px; padding: 2rem;">
-                <h2 style="margin-bottom: 0.5rem; color: #2c3e50;">⚙️ Profile Settings</h2>
-                <p style="color: #666; margin-bottom: 1.5rem; font-size: 0.9rem;">Manage your account preferences</p>
-
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
-                    <div class="form-group" style="margin: 0;">
-                        <label>Telegram Username</label>
-                        <input type="text" id="profileUsername" value="@username" disabled>
+            <!-- Compact Profile Settings Section -->
+            <section style="background: #f8f9fa; border-radius: 8px; padding: 1rem;">
+                <h2 style="margin: 0 0 0.75rem 0; font-size: 1rem; color: #2c3e50;">⚙️ Settings</h2>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.75rem; align-items: end;">
+                    <div>
+                        <label style="display: block; font-size: 0.75rem; color: #666; margin-bottom: 0.25rem;">Username</label>
+                        <input type="text" id="profileUsername" value="@username" disabled style="width: 100%; padding: 0.5rem; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 0.85rem; background: #fff;">
                     </div>
-                    <div class="form-group" style="margin: 0;">
-                        <label>User ID</label>
-                        <input type="text" id="profileUserId" value="123456789" disabled>
+                    <div>
+                        <label style="display: block; font-size: 0.75rem; color: #666; margin-bottom: 0.25rem;">User ID</label>
+                        <input type="text" id="profileUserId" value="123456789" disabled style="width: 100%; padding: 0.5rem; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 0.85rem; background: #fff;">
                     </div>
-                    <div class="form-group" style="margin: 0;">
-                        <label>Default Template</label>
-                        <select id="profileTemplate">
-                            <option value="html">Plain Redirect Template</option>
-                            <option value="php">Cloudflare Template</option>
+                    <div>
+                        <label style="display: block; font-size: 0.75rem; color: #666; margin-bottom: 0.25rem;">Template</label>
+                        <select id="profileTemplate" style="width: 100%; padding: 0.5rem; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 0.85rem; background: #fff;">
+                            <option value="html">Plain (.html)</option>
+                            <option value="php">Cloudflare (.php)</option>
                         </select>
                     </div>
-                </div>
-
-                <div style="margin-top: 1.5rem;">
-                    <button onclick="saveProfile()" class="btn">Save Settings</button>
+                    <div>
+                        <button onclick="saveProfile()" class="btn" style="padding: 0.5rem 1rem; font-size: 0.85rem; width: 100%;">Save</button>
+                    </div>
                 </div>
             </section>
         </div>
