@@ -821,14 +821,13 @@
         // Helper to toggle navbar visibility based on current page
         function toggleNavbarVisibility() {
             const navbar = document.getElementById('mainNavbar');
-            const currentPath = window.location.pathname; // This is a simplification; a better approach would be to track the active page ID.
             const currentPageId = document.querySelector('.page.active')?.id;
 
-            // Show navbar for authenticated pages, hide for login/register/home
-            if (currentUser && currentPageId !== 'login' && currentPageId !== 'register') {
-                navbar.style.display = 'block';
-            } else {
+            // Show navbar on most pages, hide only on login/register
+            if (currentPageId === 'login' || currentPageId === 'register') {
                 navbar.style.display = 'none';
+            } else {
+                navbar.style.display = 'block';
             }
         }
 
@@ -996,13 +995,14 @@
             const logoutLink = document.getElementById('logoutNavLink');
             const adminNavLink = document.getElementById('adminNavLink');
             if (currentUser) {
-                logoutLink.style.display = 'block';
+                if (logoutLink) logoutLink.style.display = 'block';
                 // Admin access check would happen here or be dynamic based on user data
-                // For now, assuming admin access is not automatically granted on login
-                // if (currentUser.isAdmin) { adminNavLink.style.display = 'block'; }
+                if (adminNavLink && currentUser.isAdmin) {
+                    adminNavLink.style.display = 'block';
+                }
             } else {
-                logoutLink.style.display = 'none';
-                adminNavLink.style.display = 'none';
+                if (logoutLink) logoutLink.style.display = 'none';
+                if (adminNavLink) adminNavLink.style.display = 'none';
             }
         }
 
@@ -1077,13 +1077,16 @@
         function updateProfileDisplay() {
             if (!currentUser) return;
 
-            document.getElementById('profileUserId').value = currentUser.id;
-            document.getElementById('profileUsername').value = currentUser.username ? `@${currentUser.username}` : '@user';
-            document.getElementById('profileJoinDate').value = currentUser.joinDate ? new Date(currentUser.joinDate).toLocaleDateString() : 'Unknown';
-            document.getElementById('profileEmail').value = currentUser.email || '';
-            document.getElementById('profileTemplate').value = currentUser.templateType || 'html';
-            document.getElementById('profileNotifications').value = currentUser.notifications || 'all';
-            document.getElementById('profileSubStatus').textContent = currentUser.subscriptionStatus || 'Not Active';
+            const elements = {
+                profileUserId: currentUser.id,
+                profileUsername: currentUser.username ? `@${currentUser.username}` : '@user',
+                profileTemplate: currentUser.templateType || 'html'
+            };
+
+            for (const [id, value] of Object.entries(elements)) {
+                const elem = document.getElementById(id);
+                if (elem) elem.value = value;
+            }
         }
 
         // Load profile data specifically for the profile page
@@ -1174,11 +1177,6 @@
                 if (!response.ok) throw new Error('Failed to load analytics');
                 const analyticsData = await response.json();
 
-                document.getElementById('analyticsClicks').textContent = analyticsData.totalClicks || 0;
-                document.getElementById('analyticsConversion').textContent = analyticsData.conversionRate || '0%';
-                document.getElementById('analyticsAvgTime').textContent = analyticsData.avgTimeOnPage || '0s';
-                document.getElementById('analyticsTopDomain').textContent = analyticsData.topDomain || 'N/A';
-
                 // Populate table
                 const analyticsTableBody = document.getElementById('analyticsTable');
                 if (analyticsData.domains && analyticsData.domains.length > 0) {
@@ -1195,10 +1193,10 @@
                 }
             } catch (error) {
                 console.error('Error loading analytics:', error);
-                document.getElementById('analyticsClicks').textContent = 'Error';
-                document.getElementById('analyticsConversion').textContent = 'Error';
-                document.getElementById('analyticsAvgTime').textContent = 'Error';
-                document.getElementById('analyticsTopDomain').textContent = 'Error';
+                const analyticsTableBody = document.getElementById('analyticsTable');
+                if (analyticsTableBody) {
+                    analyticsTableBody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #999;">No data available yet</td></tr>';
+                }
             }
         }
 
