@@ -458,7 +458,7 @@
     </style>
 </head>
 <body>
-    <nav class="navbar">
+    <nav class="navbar" id="mainNavbar" style="display:none;">
         <div class="navbar-content">
             <a href="#" class="logo" onclick="showPage('home')">🚀 CLS Redirect Bot</a>
             <ul class="nav-links" id="mainNav">
@@ -527,7 +527,7 @@
                 <a href="https://t.me/CLSDTEST80_bot" class="btn">Get Started on Telegram</a>
             </div>
 
-        
+
         </div>
 
         <!-- Dashboard Page -->
@@ -945,24 +945,38 @@
             setInterval(checkHealth, 60000);
         });
 
+        // Helper to toggle navbar visibility based on current page
+        function toggleNavbarVisibility() {
+            const navbar = document.getElementById('mainNavbar');
+            const currentPath = window.location.pathname; // This is a simplification; a better approach would be to track the active page ID.
+            const currentPageId = document.querySelector('.page.active')?.id;
+
+            // Show navbar for authenticated pages, hide for login/register/home
+            if (currentUser && currentPageId !== 'login' && currentPageId !== 'register') {
+                navbar.style.display = 'block';
+            } else {
+                navbar.style.display = 'none';
+            }
+        }
+
         // Authenticated fetch with automatic token refresh
         async function authenticatedFetch(url, options = {}) {
             let accessToken = localStorage.getItem('accessToken');
-            
+
             // Set default headers
             const headers = {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${accessToken}`,
                 ...options.headers
             };
-            
+
             // Add CSRF token for state-changing requests
             if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(options.method)) {
                 headers['X-CSRF-Token'] = localStorage.getItem('csrfToken');
             }
-            
+
             let response = await fetch(url, { ...options, headers });
-            
+
             // If token expired, try to refresh
             if (response.status === 403 || response.status === 401) {
                 const refreshToken = localStorage.getItem('refreshToken');
@@ -970,23 +984,23 @@
                     logout();
                     throw new Error('Session expired. Please log in again.');
                 }
-                
+
                 try {
                     const refreshResponse = await fetch('/api/auth/refresh', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ refreshToken })
                     });
-                    
+
                     if (!refreshResponse.ok) {
                         logout();
                         throw new Error('Session expired. Please log in again.');
                     }
-                    
+
                     const refreshData = await refreshResponse.json();
                     localStorage.setItem('accessToken', refreshData.accessToken);
                     localStorage.setItem('csrfToken', refreshData.csrfToken);
-                    
+
                     // Retry original request with new token
                     headers['Authorization'] = `Bearer ${refreshData.accessToken}`;
                     headers['X-CSRF-Token'] = refreshData.csrfToken;
@@ -996,7 +1010,7 @@
                     throw error;
                 }
             }
-            
+
             return response;
         }
 
@@ -1004,7 +1018,7 @@
         function checkAuth() {
             const accessToken = localStorage.getItem('accessToken');
             const userId = localStorage.getItem('userId');
-            
+
             if (accessToken && userId) {
                 currentUser = { id: userId };
                 updateNavForAuth();
@@ -1013,6 +1027,7 @@
             } else {
                 showPage('login');
             }
+            toggleNavbarVisibility(); // Initial call
         }
 
         async function handleLogin(event) {
@@ -1024,20 +1039,20 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ userId })
                 });
-                
+
                 if (!response.ok) {
                     const error = await response.json();
                     throw new Error(error.error || 'Login failed');
                 }
-                
+
                 const data = await response.json();
-                
+
                 // Store tokens securely
                 localStorage.setItem('accessToken', data.accessToken);
                 localStorage.setItem('refreshToken', data.refreshToken);
                 localStorage.setItem('csrfToken', data.csrfToken);
                 localStorage.setItem('userId', data.user.id);
-                
+
                 currentUser = { id: data.user.id, isAdmin: data.user.isAdmin };
                 updateNavForAuth();
                 loadUserData();
@@ -1084,7 +1099,7 @@
             } catch (error) {
                 console.error('Logout error:', error);
             }
-            
+
             localStorage.removeItem('accessToken');
             localStorage.removeItem('refreshToken');
             localStorage.removeItem('csrfToken');
@@ -1137,6 +1152,7 @@
             } else if (pageId === 'profile') {
                 loadProfileData();
             }
+            toggleNavbarVisibility(); // Update navbar visibility after page change
         }
 
         // FAQ toggle
@@ -1501,7 +1517,7 @@
             try {
                 const response = await fetch('/api/admin/broadcast', {
                     method: 'POST',
-                    headers: { 
+                    headers: {
                         'Content-Type': 'application/json',
                         'x-user-id': currentUser.id
                     },
