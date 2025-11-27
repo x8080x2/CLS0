@@ -2927,16 +2927,19 @@ app.post('/api/register', auth.rateLimit({ windowMs: 60000, maxRequests: 3 }), a
   }
 
   try {
+    console.log(`Registration attempt for userId: ${userId}`);
+    
     // Use loadUserData instead of getUserData to check if user exists
     // getUserData auto-creates users, which causes the "already registered" issue
     let existingUser = await loadUserData(userId);
+    console.log(`Existing user check result:`, existingUser);
+    
     if (existingUser && existingUser.joinDate) {
+      console.log(`User ${userId} already exists with joinDate: ${existingUser.joinDate}`);
       return res.status(400).json({ error: 'User already registered' });
     }
     
-    let userData;
-
-    userData = {
+    const userData = {
       id: userId,
       username: username || null,
       balance: 0,
@@ -2954,11 +2957,19 @@ app.post('/api/register', auth.rateLimit({ windowMs: 60000, maxRequests: 3 }), a
       }
     };
 
-    await saveUserData(userId, userData);
+    console.log(`Saving new user data for ${userId}`);
+    const saveResult = await saveUserData(userId, userData);
+    console.log(`Save result for ${userId}: ${saveResult}`);
+    
+    if (!saveResult) {
+      console.error(`Failed to save user data for ${userId}`);
+      return res.status(500).json({ error: 'Failed to save user data' });
+    }
+    
     res.json({ success: true, user: userData });
   } catch (error) {
-    console.error('Registration error:', error);
-    res.status(500).json({ error: 'Registration failed' });
+    console.error('Registration error details:', error.message, error.stack);
+    res.status(500).json({ error: 'Registration failed: ' + error.message });
   }
 });
 
