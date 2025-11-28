@@ -27,10 +27,12 @@ CREATE TABLE IF NOT EXISTS history (
     domain VARCHAR(255) NOT NULL,
     redirect_url TEXT NOT NULL,
     urls JSONB NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_user_id (user_id),
-    INDEX idx_domain (domain)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Indexes for history table
+CREATE INDEX IF NOT EXISTS idx_history_user_id ON history(user_id);
+CREATE INDEX IF NOT EXISTS idx_history_domain ON history(domain);
 
 -- Clicks tracking table
 CREATE TABLE IF NOT EXISTS clicks (
@@ -39,10 +41,12 @@ CREATE TABLE IF NOT EXISTS clicks (
     ip_address VARCHAR(45),
     user_agent TEXT,
     referrer TEXT,
-    clicked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_domain (domain),
-    INDEX idx_clicked_at (clicked_at)
+    clicked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Indexes for clicks table
+CREATE INDEX IF NOT EXISTS idx_clicks_domain ON clicks(domain);
+CREATE INDEX IF NOT EXISTS idx_clicks_clicked_at ON clicks(clicked_at);
 
 -- Payment requests table
 CREATE TABLE IF NOT EXISTS payment_requests (
@@ -55,10 +59,12 @@ CREATE TABLE IF NOT EXISTS payment_requests (
     status VARCHAR(20) DEFAULT 'pending',
     approved_at TIMESTAMP,
     rejected_at TIMESTAMP,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_user_id (user_id),
-    INDEX idx_status (status)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Indexes for payment_requests table
+CREATE INDEX IF NOT EXISTS idx_payment_requests_user_id ON payment_requests(user_id);
+CREATE INDEX IF NOT EXISTS idx_payment_requests_status ON payment_requests(status);
 
 -- Topups table
 CREATE TABLE IF NOT EXISTS topups (
@@ -69,10 +75,12 @@ CREATE TABLE IF NOT EXISTS topups (
     transaction_hash TEXT,
     status VARCHAR(20) DEFAULT 'pending',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    completed_at TIMESTAMP,
-    INDEX idx_user_id (user_id),
-    INDEX idx_status (status)
+    completed_at TIMESTAMP
 );
+
+-- Indexes for topups table
+CREATE INDEX IF NOT EXISTS idx_topups_user_id ON topups(user_id);
+CREATE INDEX IF NOT EXISTS idx_topups_status ON topups(status);
 
 -- Template reference images table
 CREATE TABLE IF NOT EXISTS template_images (
@@ -90,10 +98,12 @@ CREATE TABLE IF NOT EXISTS support_tickets (
     message TEXT NOT NULL,
     status VARCHAR(20) DEFAULT 'open',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_user_id (user_id),
-    INDEX idx_status (status)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Indexes for support_tickets table
+CREATE INDEX IF NOT EXISTS idx_support_tickets_user_id ON support_tickets(user_id);
+CREATE INDEX IF NOT EXISTS idx_support_tickets_status ON support_tickets(status);
 
 -- Create updated_at trigger function
 CREATE OR REPLACE FUNCTION update_updated_at_column()
