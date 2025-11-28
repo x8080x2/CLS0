@@ -1121,9 +1121,9 @@
         // Initialize on load
         window.addEventListener('load', () => {
             checkAuth();
-            checkHealth();
+            loadDashboardStats();
             loadTemplateImages();
-            setInterval(checkHealth, 60000);
+            setInterval(loadDashboardStats, 60000);
         });
 
         // Helper to toggle navbar visibility based on current page
