@@ -1488,7 +1488,7 @@
             }
 
             try {
-                const response = await fetch(`/api/user/${currentUser.id}/history`);
+                const response = await authenticatedFetch(`/api/user/${currentUser.id}/history`);
                 if (!response.ok) throw new Error('Failed to load links');
                 userLinks = await response.json();
 
@@ -1531,7 +1531,7 @@
             if (!currentUser) return;
 
             try {
-                const response = await fetch(`/api/user/${currentUser.id}/analytics`);
+                const response = await authenticatedFetch(`/api/user/${currentUser.id}/analytics`);
                 if (!response.ok) throw new Error('Failed to load analytics');
                 const analyticsData = await response.json();
 
