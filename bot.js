@@ -2458,24 +2458,28 @@ bot.on('callback_query', async (ctx) => {
               `\n⚠️ Update your domain with these nameservers for Cloudflare to work!`;
           }
 
-          const successEmoji = '✅';
-
+          // Build status text based on results
+          let statusText = '*Security Settings:*\n';
+          statusText += `• Always Use HTTPS: ${results.alwaysUseHttps ? '✅' : '❌'}\n`;
+          statusText += `• Auto HTTPS Rewrites: ${results.autoHttpsRewrites ? '✅' : '❌'}\n`;
+          statusText += `• Browser Integrity Check: ${results.browserIntegrityCheck ? '✅' : '❌'}\n`;
+          statusText += `• Security Level: ${results.securityLevel ? '✅ High' : '❌'}\n`;
+          statusText += `• SSL/TLS: ${results.sslEnabled ? '✅' : '❌'}`;
 
           // Add error details if any settings failed
           let errorDetails = '';
           if (results.errors && results.errors.length > 0) {
             errorDetails = '\n\n⚠️ *Some settings could not be enabled:*\n' +
-              results.errors.map(err => `• ${err.setting}: ${err.error}`).join('\n');
+              results.errors.map(err => `• ${err.setting}: ${escapeMarkdown(err.error)}`).join('\n');
           }
 
           await ctx.telegram.editMessageText(
             ctx.chat.id,
             statusMsg.message_id,
             null,
-            `✅ *Setup Configured!*\n\n` +
+            `✅ *Cloudflare Setup Configured!*\n\n` +
             `${statusText}${dnsMessage}${turnstileMessage}${nameserverMessage}${errorDetails}\n\n` +
-            `🔒 Your domain is now protected with Cloudflare  ${results.sslEnabled ? '  SSL Certificates are Activated' : ''}!\n\n` +
-            `💡`,
+            `🔒 Your domain is now protected with Cloudflare${results.sslEnabled ? ' with SSL Certificates Activated' : ''}!`,
             {
               parse_mode: "Markdown",
               reply_markup: {
