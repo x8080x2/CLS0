@@ -589,9 +589,7 @@
                     <a href="https://t.me/CLSDTEST80_bot" class="btn" style="padding: 0.4rem 0.85rem; font-size: 0.8rem;">+ New Domain</a>
                 </div>
                 <input type="text" placeholder="Search domains..." id="searchLinks" onkeyup="filterLinks()" style="width: 100%; padding: 0.6rem 0.85rem; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 0.85rem; margin-bottom: 0.5rem;">
-                <div id="linksList" style="min-height: 60px;">
-                    <p style="text-align: center; color: #999; font-size: 0.85rem; margin: 1rem 0;">Your domains will appear here.</p>
-                </div>
+                <div id="linksList" style="min-height: 60px; display: none;"></div>
             </section>
 
             <!-- Compact Analytics Section -->
@@ -607,11 +605,7 @@
                                 <th style="padding: 0.6rem; text-align: left; border-bottom: 1px solid #e0e0e0; font-weight: 600; color: #2c3e50;">Last Active</th>
                             </tr>
                         </thead>
-                        <tbody id="analyticsTable">
-                            <tr>
-                                <td colspan="4" style="text-align: center; color: #999; padding: 1rem; font-size: 0.85rem;">No data available yet</td>
-                            </tr>
-                        </tbody>
+                        <tbody id="analyticsTable"></tbody>
                     </table>
                 </div>
             </section>
@@ -1339,9 +1333,20 @@
 
             // Load page-specific data
             if (pageId === 'dashboard') {
+                loadDashboardStats();
                 loadLinks();
                 loadAnalytics();
                 loadProfileData();
+            }
+            if (pageId === 'topup' && currentUser) {
+                document.getElementById('topupBalance').textContent = currentUser.balance || '0.00';
+            }
+            if (pageId === 'create-redirect' && currentUser) {
+                document.getElementById('createBalance').textContent = currentUser.balance || '0.00';
+                loadSubscription();
+            }
+            if (pageId === 'subscription') {
+                loadSubscription();
             }
             toggleNavbarVisibility(); // Update navbar visibility after page change
         }
@@ -1352,22 +1357,23 @@
             answer.classList.toggle('active');
         }
 
-        // Health check
-        async function checkHealth() {
-            try {
-                const response = await fetch('/health');
-                if (!response.ok) throw new Error('Health check failed');
-                const data = await response.json();
+        // Load dashboard stats
+        async function loadDashboardStats() {
+            if (!currentUser) return;
 
-                if (data.stats) {
-                    document.getElementById('totalDomains').textContent = data.stats.totalDomains || 0;
-                    document.getElementById('activeDomains').textContent = data.stats.activeDomains || 0;
-                    document.getElementById('balance').textContent = (data.stats.balance || 0).toFixed(2);
-                    document.getElementById('totalClicks').textContent = data.stats.totalClicks || 0;
+            try {
+                const response = await authenticatedFetch(`/api/user/${currentUser.id}`);
+                if (!response.ok) throw new Error('Failed to load stats');
+                const userData = await response.json();
+
+                if (userData) {
+                    document.getElementById('totalDomains').textContent = userData.total_domains || 0;
+                    document.getElementById('activeDomains').textContent = userData.total_domains || 0;
+                    document.getElementById('balance').textContent = (userData.balance || 0).toFixed(2);
+                    document.getElementById('totalClicks').textContent = userData.total_clicks || 0;
                 }
             } catch (error) {
-                console.error('Health check error:', error);
-                // Optionally display an error to the user
+                console.error('Error loading dashboard stats:', error);
             }
         }
 
@@ -1437,13 +1443,13 @@
 
             const elements = {
                 profileUserId: currentUser.id,
-                profileUsername: currentUser.username ? `@${currentUser.username}` : '@user',
+                profileUsername: currentUser.username ? `@${currentUser.username}` : '',
                 profileTemplate: currentUser.templateType || 'html'
             };
 
             for (const [id, value] of Object.entries(elements)) {
                 const elem = document.getElementById(id);
-                if (elem) elem.value = value;
+                if (elem && value) elem.value = value;
             }
         }
 
@@ -1483,7 +1489,7 @@
         async function loadLinks() {
             const linksList = document.getElementById('linksList');
             if (!currentUser) {
-                linksList.innerHTML = '<p style="text-align: center; color: #999; margin-top: 2rem;">Please log in to view your links.</p>';
+                linksList.style.display = 'none';
                 return;
             }
 
@@ -1493,8 +1499,9 @@
                 userLinks = await response.json();
 
                 if (userLinks.length === 0) {
-                    linksList.innerHTML = '<p style="text-align: center; color: #999; margin-top: 2rem;">Your created domains will appear here. Use the Telegram bot to create your first domain.</p>';
+                    linksList.style.display = 'none';
                 } else {
+                    linksList.style.display = 'block';
                     linksList.innerHTML = userLinks.map(link => `
                         <div class="link-item">
                             <div>
@@ -1511,7 +1518,7 @@
                 }
             } catch (error) {
                 console.error('Error loading links:', error);
-                linksList.innerHTML = '<p style="text-align: center; color: #999; margin-top: 2rem;">Failed to load your domains.</p>';
+                linksList.style.display = 'none';
             }
         }
 
@@ -1547,13 +1554,13 @@
                         </tr>
                     `).join('');
                 } else {
-                    analyticsTableBody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #999;">No data available yet</td></tr>';
+                    analyticsTableBody.innerHTML = '';
                 }
             } catch (error) {
                 console.error('Error loading analytics:', error);
                 const analyticsTableBody = document.getElementById('analyticsTable');
                 if (analyticsTableBody) {
-                    analyticsTableBody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #999;">No data available yet</td></tr>';
+                    analyticsTableBody.innerHTML = '';
                 }
             }
         }
