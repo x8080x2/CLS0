@@ -1860,7 +1860,8 @@ bot.on('callback_query', async (ctx) => {
               }
             );
           } catch (adminError) {
-            console.log("Failed to send admin notification");
+            console.log("Failed to send admin notification:", adminError.message);
+            console.log("Admin ID:", process.env.ADMIN_ID);
           }
         }
 
