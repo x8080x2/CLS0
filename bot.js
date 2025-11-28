@@ -3363,6 +3363,532 @@ app.get('/api/admin/analytics', auth.authenticateToken, auth.requireAdmin, async
   }
 });
 
+// ==========================================
+// WEB DASHBOARD API ENDPOINTS
+// ==========================================
+
+// Get crypto wallet addresses
+app.get('/api/crypto/wallets', auth.authenticateToken, (req, res) => {
+  res.json({
+    BTC: CRYPTO_WALLETS.BTC,
+    USDT_TRC20: CRYPTO_WALLETS.USDT_TRC20,
+    USDT_ERC20: CRYPTO_WALLETS.USDT_ERC20
+  });
+});
+
+// Calculate crypto amount for USD
+app.post('/api/crypto/calculate', auth.authenticateToken, async (req, res) => {
+  try {
+    const { amount, cryptoType } = req.body;
+    if (!amount || !cryptoType) {
+      return res.status(400).json({ error: 'Amount and crypto type required' });
+    }
+    
+    const cryptoAmount = await calculateCryptoAmount(parseFloat(amount), cryptoType);
+    if (!cryptoAmount) {
+      return res.status(500).json({ error: 'Unable to fetch crypto prices' });
+    }
+    
+    res.json({
+      usdAmount: parseFloat(amount),
+      cryptoAmount,
+      cryptoType,
+      wallet: CRYPTO_WALLETS[cryptoType]
+    });
+  } catch (error) {
+    console.error('Crypto calculate error:', error);
+    res.status(500).json({ error: 'Failed to calculate crypto amount' });
+  }
+});
+
+// Submit payment for verification
+app.post('/api/payment/submit', auth.authenticateToken, async (req, res) => {
+  try {
+    const { userId, amount, cryptoType, transactionHash } = req.body;
+    if (!userId || !amount || !cryptoType) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    
+    const requestId = `PAY_${userId}_${Date.now()}`;
+    const paymentRequest = await db.createPaymentRequest(userId, requestId, parseFloat(amount), null, transactionHash || 'Web submission');
+    
+    if (!paymentRequest) {
+      return res.status(500).json({ error: 'Failed to create payment request' });
+    }
+    
+    // Send notification to admin via Telegram
+    if (process.env.ADMIN_ID && bot) {
+      try {
+        const cryptoSymbol = cryptoType === 'BTC' ? 'BTC' : 'USDT';
+        const network = cryptoType.includes('TRC20') ? ' [TRC20]' : cryptoType.includes('ERC20') ? ' [ERC20]' : '';
+        
+        await bot.telegram.sendMessage(
+          process.env.ADMIN_ID,
+          `💰 *Web Payment Verification Request*\n\n` +
+          `👤 User ID: ${userId}\n` +
+          `💵 Amount: $${amount}\n` +
+          `₿ Crypto: ${cryptoSymbol}${network}\n` +
+          `🔗 Hash: \`${transactionHash || 'Not provided'}\`\n` +
+          `🆔 ID: \`${requestId}\`\n\n` +
+          `📱 Source: Web Dashboard`,
+          {
+            parse_mode: "Markdown",
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  { text: '✅ Approve', callback_data: `approve_payment_${requestId}` },
+                  { text: '❌ Reject', callback_data: `reject_payment_${requestId}` }
+                ]
+              ]
+            }
+          }
+        );
+      } catch (tgError) {
+        console.error('Failed to notify admin:', tgError.message);
+      }
+    }
+    
+    res.json({ success: true, requestId });
+  } catch (error) {
+    console.error('Payment submit error:', error);
+    res.status(500).json({ error: 'Failed to submit payment' });
+  }
+});
+
+// Get pending payments (admin)
+app.get('/api/admin/payments', auth.authenticateToken, auth.requireAdmin, async (req, res) => {
+  try {
+    const result = await db.pool.query(
+      "SELECT * FROM payment_requests WHERE status = 'pending' ORDER BY created_at DESC"
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Payments fetch error:', error);
+    res.status(500).json({ error: 'Failed to fetch payments' });
+  }
+});
+
+// Approve payment (admin)
+app.post('/api/admin/payments/:requestId/approve', auth.authenticateToken, auth.requireAdmin, async (req, res) => {
+  try {
+    const { requestId } = req.params;
+    
+    // Get payment request
+    const result = await db.pool.query(
+      'SELECT * FROM payment_requests WHERE request_id = $1',
+      [requestId]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Payment request not found' });
+    }
+    
+    const payment = result.rows[0];
+    
+    // Update payment status
+    await db.pool.query(
+      "UPDATE payment_requests SET status = 'approved' WHERE request_id = $1",
+      [requestId]
+    );
+    
+    // Add balance to user
+    await db.updateUserBalance(payment.user_id, payment.amount);
+    
+    // Record in topups
+    await db.pool.query(
+      'INSERT INTO topups (user_id, amount, status, transaction_id) VALUES ($1, $2, $3, $4)',
+      [payment.user_id, payment.amount, 'completed', requestId]
+    );
+    
+    // Notify user via Telegram if bot is available
+    if (bot) {
+      try {
+        await bot.telegram.sendMessage(
+          payment.user_id,
+          `✅ *Payment Approved!*\n\n` +
+          `💰 Amount: $${payment.amount}\n` +
+          `🆔 Request: \`${requestId}\`\n\n` +
+          `Your balance has been updated.`,
+          { parse_mode: "Markdown" }
+        );
+      } catch (tgError) {
+        console.log('Could not notify user:', tgError.message);
+      }
+    }
+    
+    res.json({ success: true, message: 'Payment approved' });
+  } catch (error) {
+    console.error('Payment approve error:', error);
+    res.status(500).json({ error: 'Failed to approve payment' });
+  }
+});
+
+// Reject payment (admin)
+app.post('/api/admin/payments/:requestId/reject', auth.authenticateToken, auth.requireAdmin, async (req, res) => {
+  try {
+    const { requestId } = req.params;
+    const { reason } = req.body;
+    
+    // Get payment request
+    const result = await db.pool.query(
+      'SELECT * FROM payment_requests WHERE request_id = $1',
+      [requestId]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Payment request not found' });
+    }
+    
+    const payment = result.rows[0];
+    
+    // Update payment status
+    await db.pool.query(
+      "UPDATE payment_requests SET status = 'rejected' WHERE request_id = $1",
+      [requestId]
+    );
+    
+    // Notify user via Telegram
+    if (bot) {
+      try {
+        await bot.telegram.sendMessage(
+          payment.user_id,
+          `❌ *Payment Rejected*\n\n` +
+          `💰 Amount: $${payment.amount}\n` +
+          `🆔 Request: \`${requestId}\`\n` +
+          `${reason ? `📝 Reason: ${reason}\n` : ''}\n` +
+          `Please contact support if you believe this is an error.`,
+          { parse_mode: "Markdown" }
+        );
+      } catch (tgError) {
+        console.log('Could not notify user:', tgError.message);
+      }
+    }
+    
+    res.json({ success: true, message: 'Payment rejected' });
+  } catch (error) {
+    console.error('Payment reject error:', error);
+    res.status(500).json({ error: 'Failed to reject payment' });
+  }
+});
+
+// Update template settings
+app.post('/api/user/:userId/template', auth.authenticateToken, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { templateType } = req.body;
+    
+    if (!['html', 'php'].includes(templateType)) {
+      return res.status(400).json({ error: 'Invalid template type' });
+    }
+    
+    const user = await getUserData(userId);
+    user.templateType = templateType;
+    const success = await saveUserData(userId, user);
+    
+    if (success) {
+      res.json({ success: true, templateType });
+    } else {
+      res.status(500).json({ error: 'Failed to update template' });
+    }
+  } catch (error) {
+    console.error('Template update error:', error);
+    res.status(500).json({ error: 'Failed to update template' });
+  }
+});
+
+// Get subscription info
+app.get('/api/user/:userId/subscription', auth.authenticateToken, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const user = await getUserData(userId);
+    
+    const DAILY_DOMAIN_LIMIT = 2;
+    const today = new Date().toDateString();
+    const lastUsedDate = user.subscription.lastDomainDate ? new Date(user.subscription.lastDomainDate).toDateString() : null;
+    const dailyUsed = (today === lastUsedDate) ? user.subscription.dailyDomainsUsed : 0;
+    
+    res.json({
+      active: user.subscription.active,
+      endDate: user.subscription.endDate,
+      domainsUsed: user.subscription.domainsUsed,
+      dailyDomainsUsed: dailyUsed,
+      dailyLimit: DAILY_DOMAIN_LIMIT,
+      hasEverSubscribed: user.subscription.hasEverSubscribed,
+      price: user.subscription.hasEverSubscribed ? 200 : 250
+    });
+  } catch (error) {
+    console.error('Subscription fetch error:', error);
+    res.status(500).json({ error: 'Failed to fetch subscription' });
+  }
+});
+
+// Purchase subscription
+app.post('/api/user/:userId/subscribe', auth.authenticateToken, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const user = await getUserData(userId);
+    
+    const isFirstTime = !user.subscription.hasEverSubscribed;
+    const subscriptionPrice = isFirstTime ? 250 : 200;
+    
+    if (user.balance < subscriptionPrice) {
+      return res.status(400).json({ 
+        error: 'Insufficient balance',
+        required: subscriptionPrice,
+        current: user.balance
+      });
+    }
+    
+    // Deduct balance
+    user.balance -= subscriptionPrice;
+    
+    // Activate subscription
+    const endDate = new Date();
+    endDate.setDate(endDate.getDate() + 30);
+    
+    user.subscription.active = true;
+    user.subscription.endDate = endDate;
+    user.subscription.hasEverSubscribed = true;
+    user.subscription.domainsUsed = 0;
+    user.subscription.dailyDomainsUsed = 0;
+    
+    await saveUserData(userId, user);
+    
+    res.json({ 
+      success: true, 
+      message: 'Subscription activated',
+      endDate: endDate,
+      newBalance: user.balance
+    });
+  } catch (error) {
+    console.error('Subscribe error:', error);
+    res.status(500).json({ error: 'Failed to subscribe' });
+  }
+});
+
+// Request VIP access
+app.post('/api/vip/request', auth.authenticateToken, async (req, res) => {
+  try {
+    const { userId, username, firstName, reason } = req.body;
+    
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID required' });
+    }
+    
+    // Send to admin via Telegram
+    if (process.env.ADMIN_ID && bot) {
+      try {
+        await bot.telegram.sendMessage(
+          process.env.ADMIN_ID,
+          `🔑 *VIP Access Request (Web)*\n\n` +
+          `👤 User: @${username || 'Unknown'} (${userId})\n` +
+          `👋 Name: ${firstName || 'Unknown'}\n` +
+          `📝 Reason: ${reason || 'No reason provided'}\n\n` +
+          `📱 Source: Web Dashboard`,
+          {
+            parse_mode: "Markdown",
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  { text: '✅ Grant VIP', callback_data: `grant_vip_${userId}` },
+                  { text: '❌ Deny', callback_data: `deny_vip_${userId}` }
+                ]
+              ]
+            }
+          }
+        );
+        res.json({ success: true, message: 'VIP request submitted' });
+      } catch (tgError) {
+        console.error('Failed to send VIP request:', tgError.message);
+        res.status(500).json({ error: 'Failed to submit request' });
+      }
+    } else {
+      res.status(500).json({ error: 'Admin notification not available' });
+    }
+  } catch (error) {
+    console.error('VIP request error:', error);
+    res.status(500).json({ error: 'Failed to submit VIP request' });
+  }
+});
+
+// Create redirect domain
+app.post('/api/redirect/create', auth.authenticateToken, async (req, res) => {
+  try {
+    const { userId, domain, redirectUrl, turnstileKey } = req.body;
+    
+    if (!userId || !domain || !redirectUrl) {
+      return res.status(400).json({ error: 'Domain and redirect URL required' });
+    }
+    
+    const user = await getUserData(userId);
+    const cost = 80;
+    const DAILY_DOMAIN_LIMIT = 2;
+    
+    // Check payment/subscription
+    const today = new Date().toDateString();
+    const lastUsedDate = user.subscription.lastDomainDate ? new Date(user.subscription.lastDomainDate).toDateString() : null;
+    const dailyUsed = (today === lastUsedDate) ? user.subscription.dailyDomainsUsed : 0;
+    const hasSubscription = user.subscription.active && dailyUsed < DAILY_DOMAIN_LIMIT;
+    
+    let paymentType = '';
+    
+    if (hasSubscription) {
+      paymentType = 'subscription';
+      user.subscription.domainsUsed++;
+      user.subscription.dailyDomainsUsed = dailyUsed + 1;
+      user.subscription.lastDomainDate = new Date();
+    } else if (user.balance >= cost) {
+      paymentType = 'balance';
+      user.balance -= cost;
+    } else {
+      return res.status(400).json({ 
+        error: 'Insufficient balance or subscription',
+        required: cost,
+        current: user.balance,
+        hasSubscription: user.subscription.active
+      });
+    }
+    
+    // Create domain via WHM
+    const requestId = `WEB_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    const log = L(requestId);
+    
+    try {
+      const result = await createAccount(domain, log);
+      const { username, urls, ip } = result;
+      
+      // Upload redirect content
+      await uploadRedirectContent(domain, username, redirectUrl, turnstileKey || '', user.templateType || 'html', log);
+      
+      // Post-creation tasks
+      await performPostCreationTasks(domain, username, log);
+      
+      // Save user data
+      await saveUserData(userId, user);
+      
+      // Add to history
+      const historyItem = {
+        domain: domain,
+        redirectUrl: redirectUrl,
+        date: new Date(),
+        urls: urls
+      };
+      addUserHistory(userId, historyItem);
+      
+      // Notify admin
+      if (process.env.ADMIN_ID && bot) {
+        try {
+          const templateName = user.templateType === 'html' ? 'Plain Redirect Template' : 'Cloudflare Template';
+          await bot.telegram.sendMessage(
+            process.env.ADMIN_ID,
+            `🎉 *New CLS Redirect Order (Web)*\n\n` +
+            `👤 User ID: ${userId}\n` +
+            `🌐 Domain: \`${domain}\`\n` +
+            `🎯 Redirects To: ${redirectUrl}\n` +
+            `🖥️ Server IP: \`${ip}\`\n` +
+            `📋 Template: ${templateName}\n` +
+            `💰 Payment: ${paymentType === 'subscription' ? 'Subscription' : '$80'}\n` +
+            `📱 Source: Web Dashboard\n\n` +
+            `🔗 URLs:\n${urls.map((url, i) => `${i + 1}. ${url}`).join('\n')}`,
+            { parse_mode: "Markdown" }
+          );
+        } catch (tgError) {
+          console.error('Failed to notify admin:', tgError.message);
+        }
+      }
+      
+      res.json({
+        success: true,
+        domain,
+        urls,
+        ip,
+        paymentType,
+        newBalance: user.balance
+      });
+      
+    } catch (createError) {
+      console.error('Domain creation failed:', createError);
+      res.status(500).json({ error: createError.message || 'Domain creation failed' });
+    }
+    
+  } catch (error) {
+    console.error('Redirect create error:', error);
+    res.status(500).json({ error: 'Failed to create redirect' });
+  }
+});
+
+// Cloudflare setup - list zones
+app.post('/api/cloudflare/zones', auth.authenticateToken, async (req, res) => {
+  try {
+    const { email, apiKey } = req.body;
+    
+    if (!email || !apiKey) {
+      return res.status(400).json({ error: 'Cloudflare email and API key required' });
+    }
+    
+    const cf = new CloudflareConfig(email, apiKey);
+    const zones = await cf.listAllZones();
+    
+    res.json({ zones });
+  } catch (error) {
+    console.error('Cloudflare zones error:', error);
+    res.status(500).json({ error: 'Failed to fetch Cloudflare zones' });
+  }
+});
+
+// Cloudflare setup - configure zone
+app.post('/api/cloudflare/configure', auth.authenticateToken, async (req, res) => {
+  try {
+    const { email, apiKey, zoneId } = req.body;
+    
+    if (!email || !apiKey || !zoneId) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    
+    const cf = new CloudflareConfig(email, apiKey);
+    
+    // Configure security settings
+    const results = await cf.configureSecuritySettings(zoneId);
+    
+    // Get zone info
+    const zoneResponse = await cf.client.get(`/zones/${zoneId}`);
+    const domainName = zoneResponse.data.result.name;
+    
+    // Get nameservers
+    const nameserverInfo = await cf.getNameservers(zoneId);
+    
+    // Add DNS record if SERVER_IP is configured
+    let dnsResult = null;
+    if (process.env.SERVER_IP) {
+      try {
+        dnsResult = await cf.addDNSRecord(zoneId, domainName, process.env.SERVER_IP);
+      } catch (dnsError) {
+        console.error('DNS record error:', dnsError.message);
+      }
+    }
+    
+    // Create Turnstile widget
+    let turnstileResult = null;
+    try {
+      turnstileResult = await cf.createTurnstileWidget(domainName);
+    } catch (turnstileError) {
+      console.error('Turnstile error:', turnstileError.message);
+    }
+    
+    res.json({
+      success: true,
+      domain: domainName,
+      security: results,
+      nameservers: nameserverInfo.nameservers,
+      dns: dnsResult,
+      turnstile: turnstileResult
+    });
+  } catch (error) {
+    console.error('Cloudflare configure error:', error);
+    res.status(500).json({ error: error.message || 'Failed to configure Cloudflare' });
+  }
+});
+
 // Telegram Webhook endpoint
 if (bot) {
   const WEBHOOK_PATH = `/webhook/${process.env.TELEGRAM_BOT_TOKEN}`;

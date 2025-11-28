@@ -32,9 +32,18 @@ Preferred communication style: Simple, everyday language.
 
 ## Frontend Architecture
 
-**Dashboard Interface**: Single-page HTML dashboard (`dashboard.html`) with embedded CSS and client-side JavaScript. The dashboard provides a visual interface for monitoring domains and statistics.
+**Dashboard Interface**: Single-page HTML dashboard (`dashboard.html`) with embedded CSS and client-side JavaScript. The dashboard provides full feature parity with the Telegram bot interface, including:
 
-**Static Asset Serving**: Express serves static files from the root directory and a dedicated `/assets` route for attached resources.
+- **Top Up Balance**: Crypto payment interface with BTC, USDT TRC20/ERC20 support
+- **Create Redirect**: Domain creation form with template selection
+- **Subscription Management**: View status, purchase/renew subscriptions
+- **Cloudflare Security**: Configure security settings for domains
+- **VIP Access Request**: Submit requests for unlimited access
+- **Admin Panel**: Payment approval, user management, analytics (admin-only)
+- **Template Settings**: Choose between Plain HTML and Cloudflare templates
+- **Domain Analytics**: Click tracking and statistics per domain
+
+**Static Asset Serving**: Express serves static files from the root directory and a dedicated `/attached_assets` route for resources.
 
 **Template System**: HTML redirect templates (`redirect-template-plain.html`) that are dynamically populated with redirect URLs. Templates include JavaScript logic for email parameter handling and delayed redirects.
 

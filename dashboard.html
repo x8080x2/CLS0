@@ -463,8 +463,12 @@
             <a href="#" class="logo" onclick="showPage('dashboard')">🚀 CLS Redirect Bot</a>
             <ul class="nav-links" id="mainNav">
                 <li><a href="#" onclick="showPage('dashboard')">Dashboard</a></li>
-                <li><a href="#" onclick="showPage('pricing')">Pricing</a></li>
+                <li><a href="#" onclick="showPage('topup')">Top Up</a></li>
+                <li><a href="#" onclick="showPage('create-redirect')">Create</a></li>
+                <li><a href="#" onclick="showPage('subscription')">Subscription</a></li>
+                <li><a href="#" onclick="showPage('cloudflare')">Cloudflare</a></li>
                 <li><a href="#" onclick="showPage('support')">Support</a></li>
+                <li id="adminNavLink" style="display:none;"><a href="#" onclick="showPage('admin')">Admin</a></li>
                 <li id="logoutNavLink" style="display:none;"><a href="#" onclick="logout()">Logout</a></li>
             </ul>
         </div>
@@ -524,7 +528,10 @@
                         <p style="margin: 0; font-size: 0.75rem; color: rgba(255,255,255,0.85);">Automated hosting & domain management</p>
                     </div>
                 </div>
-                <a href="https://t.me/CLSDTEST80_bot" class="btn" style="padding: 0.5rem 1rem; font-size: 0.85rem;">Get Started</a>
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <button onclick="showPage('create-redirect')" class="btn" style="padding: 0.5rem 1rem; font-size: 0.85rem;">+ Create</button>
+                    <button onclick="showPage('topup')" class="btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.85rem;">💳 Top Up</button>
+                </div>
             </div>
 
             <!-- Compact Stats Row -->
@@ -627,7 +634,7 @@
                                 <h3 style="margin: 0; font-size: 0.95rem; color: #2c3e50;">Cloudflare</h3>
                             </div>
                             <div style="margin-bottom: 0.75rem; text-align: center;">
-                                <img id="cloudflareTemplateImage" src="/assets/cloudflare-turnstile.jpg" alt="Cloudflare Turnstile" style="max-width: 100%; border-radius: 6px; border: 1px solid #e0e0e0;">
+                                <img id="cloudflareTemplateImage" src="/attached_assets/cloudflare-turnstile.jpg" alt="Cloudflare Turnstile" style="max-width: 100%; border-radius: 6px; border: 1px solid #e0e0e0;">
                             </div>
                             <ul style="list-style: none; padding: 0; margin: 0 0 0.75rem 0;">
                                 <li style="padding: 0.3rem 0; color: #555; font-size: 0.75rem; display: flex; align-items: center;">
@@ -729,6 +736,208 @@
                     </ul>
                     <a href="https://t.me/CLSDTEST80_bot" class="btn">Request Access</a>
                 </div>
+            </div>
+        </div>
+
+        <!-- Top Up Page -->
+        <div id="topup" class="page">
+            <h1>💳 Top Up Balance</h1>
+            <p style="margin-bottom: 2rem;">Add funds to your account using cryptocurrency</p>
+            
+            <div style="max-width: 600px; margin: 0 auto;">
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 2rem; border-radius: 10px; color: white; text-align: center; margin-bottom: 2rem;">
+                    <div style="font-size: 0.9rem; opacity: 0.9;">Current Balance</div>
+                    <div style="font-size: 2.5rem; font-weight: bold;">$<span id="topupBalance">0.00</span></div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Amount (USD)</label>
+                    <input type="number" id="topupAmount" placeholder="Enter amount (e.g., 100)" min="10" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Payment Method</label>
+                    <select id="topupCrypto" onchange="calculateCryptoAmount()">
+                        <option value="">Select crypto...</option>
+                        <option value="BTC">Bitcoin (BTC)</option>
+                        <option value="USDT_TRC20">USDT (TRC20)</option>
+                        <option value="USDT_ERC20">USDT (ERC20)</option>
+                    </select>
+                </div>
+                
+                <div id="cryptoPaymentDetails" style="display: none;">
+                    <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 10px; margin: 1rem 0;">
+                        <h3 style="margin: 0 0 1rem 0; color: #2c3e50;">Payment Details</h3>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="font-size: 0.85rem; color: #666;">Wallet Address:</label>
+                            <div style="background: white; padding: 0.75rem; border-radius: 5px; font-family: monospace; font-size: 0.85rem; word-break: break-all; border: 1px solid #e0e0e0;" id="walletAddress">-</div>
+                            <button onclick="copyWallet()" class="btn btn-secondary" style="margin-top: 0.5rem; padding: 0.4rem 1rem; font-size: 0.8rem;">Copy Address</button>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div>
+                                <label style="font-size: 0.85rem; color: #666;">Amount to Send:</label>
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #667eea;" id="cryptoAmount">-</div>
+                            </div>
+                            <div>
+                                <label style="font-size: 0.85rem; color: #666;">USD Value:</label>
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #27ae60;" id="usdValue">$0</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Transaction Hash (Optional)</label>
+                        <input type="text" id="txHash" placeholder="Enter transaction hash after payment">
+                    </div>
+                    
+                    <button onclick="submitPayment()" class="btn" style="width: 100%;">Submit Payment for Verification</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Create Redirect Page -->
+        <div id="create-redirect" class="page">
+            <h1>🎯 Create Redirect</h1>
+            <p style="margin-bottom: 2rem;">Set up a new domain redirect</p>
+            
+            <div style="max-width: 600px; margin: 0 auto;">
+                <div style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>Balance: <strong>$<span id="createBalance">0.00</span></strong></span>
+                        <span>Cost: <strong>$80</strong> per domain</span>
+                    </div>
+                    <div id="subscriptionBadge" style="display: none; margin-top: 0.5rem; color: #27ae60;">
+                        ⭐ Subscription Active - <span id="dailyDomainsLeft">2</span> free domains left today
+                    </div>
+                </div>
+                
+                <form onsubmit="createRedirect(event)">
+                    <div class="form-group">
+                        <label>Domain Name</label>
+                        <input type="text" id="createDomain" placeholder="example.com" required>
+                        <small style="color: #666;">Enter domain without http:// or www</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Redirect URL</label>
+                        <input type="url" id="createRedirectUrl" placeholder="https://destination.com/path" required>
+                        <small style="color: #666;">Full URL including https://</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Cloudflare Turnstile Key (Optional)</label>
+                        <input type="text" id="createTurnstileKey" placeholder="0x4AAA... (for Cloudflare template)">
+                        <small style="color: #666;">Required only for Cloudflare template</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Template</label>
+                        <select id="createTemplate">
+                            <option value="html">Plain Redirect Template (.html)</option>
+                            <option value="php">Cloudflare Template (.php)</option>
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="btn" style="width: 100%;">Create Redirect ($80)</button>
+                </form>
+                
+                <div id="createResult" style="display: none; margin-top: 1.5rem;">
+                    <div class="alert alert-success">
+                        <h3 style="margin: 0 0 1rem 0;">✅ Domain Created!</h3>
+                        <div id="createdUrls"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Subscription Page -->
+        <div id="subscription" class="page">
+            <h1>⭐ Subscription</h1>
+            <p style="margin-bottom: 2rem;">Manage your monthly subscription</p>
+            
+            <div style="max-width: 600px; margin: 0 auto;">
+                <div id="subscriptionStatus" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 2rem; border-radius: 10px; color: white; margin-bottom: 2rem;">
+                    <h2 style="margin: 0 0 1rem 0;">Subscription Status</h2>
+                    <div id="subscriptionDetails">Loading...</div>
+                </div>
+                
+                <div id="subscriptionActions"></div>
+                
+                <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 10px; margin-top: 2rem;">
+                    <h3 style="margin: 0 0 1rem 0;">Subscription Benefits</h3>
+                    <ul style="margin: 0; padding-left: 1.5rem;">
+                        <li>2 domains per day (6 redirect links)</li>
+                        <li>60 domains per month</li>
+                        <li>Priority support</li>
+                        <li>Save $4,600+ monthly</li>
+                    </ul>
+                </div>
+                
+                <div style="margin-top: 2rem; text-align: center;">
+                    <button onclick="showPage('topup')" class="btn btn-secondary">Need More Balance?</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cloudflare Setup Page -->
+        <div id="cloudflare" class="page">
+            <h1>☁️ Cloudflare Security</h1>
+            <p style="margin-bottom: 2rem;">Configure Cloudflare security for your domains</p>
+            
+            <div style="max-width: 600px; margin: 0 auto;">
+                <div class="alert alert-info" style="margin-bottom: 1.5rem;">
+                    <strong>Note:</strong> You need a Cloudflare account with Global API key access to use this feature.
+                </div>
+                
+                <form id="cloudflareForm">
+                    <div class="form-group">
+                        <label>Cloudflare Email</label>
+                        <input type="email" id="cfEmail" placeholder="your@email.com" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Global API Key</label>
+                        <input type="password" id="cfApiKey" placeholder="Your Cloudflare Global API Key" required>
+                        <small style="color: #666;">Find this in Cloudflare: My Profile > API Tokens > Global API Key</small>
+                    </div>
+                    
+                    <button type="button" onclick="loadCloudflareZones()" class="btn" style="width: 100%;">Load My Domains</button>
+                </form>
+                
+                <div id="cloudflareZones" style="display: none; margin-top: 1.5rem;">
+                    <div class="form-group">
+                        <label>Select Domain to Configure</label>
+                        <select id="cfZoneSelect" onchange="enableConfigureBtn()">
+                            <option value="">Select a domain...</option>
+                        </select>
+                    </div>
+                    
+                    <button onclick="configureCloudflare()" id="cfConfigureBtn" class="btn" style="width: 100%;" disabled>Configure Security Settings</button>
+                </div>
+                
+                <div id="cloudflareResult" style="display: none; margin-top: 1.5rem;"></div>
+            </div>
+        </div>
+
+        <!-- VIP Access Page -->
+        <div id="vip" class="page">
+            <h1>🔑 VIP Access Request</h1>
+            <p style="margin-bottom: 2rem;">Request free unlimited access</p>
+            
+            <div style="max-width: 600px; margin: 0 auto;">
+                <div style="background: linear-gradient(135deg, #f39c12 0%, #e74c3c 100%); padding: 2rem; border-radius: 10px; color: white; margin-bottom: 2rem; text-align: center;">
+                    <h2 style="margin: 0 0 0.5rem 0;">VIP Benefits</h2>
+                    <p style="margin: 0; opacity: 0.9;">Unlimited domains, priority support, and more!</p>
+                </div>
+                
+                <form onsubmit="requestVipAccess(event)">
+                    <div class="form-group">
+                        <label>Reason for Request</label>
+                        <textarea id="vipReason" rows="4" placeholder="Tell us why you'd like VIP access..." required></textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn" style="width: 100%;">Submit VIP Request</button>
+                </form>
             </div>
         </div>
 
@@ -1613,6 +1822,484 @@
                 showAlert('error', `Failed to load stats for ${domain}`);
             }
         }
+
+        // ==========================================
+        // TOP UP FUNCTIONS
+        // ==========================================
+        
+        let cryptoWallets = {};
+        
+        async function calculateCryptoAmount() {
+            const amount = document.getElementById('topupAmount').value;
+            const cryptoType = document.getElementById('topupCrypto').value;
+            
+            if (!amount || !cryptoType) {
+                document.getElementById('cryptoPaymentDetails').style.display = 'none';
+                return;
+            }
+            
+            try {
+                const response = await authenticatedFetch('/api/crypto/calculate', {
+                    method: 'POST',
+                    body: JSON.stringify({ amount: parseFloat(amount), cryptoType })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to calculate crypto amount');
+                }
+                
+                const data = await response.json();
+                
+                document.getElementById('walletAddress').textContent = data.wallet;
+                document.getElementById('cryptoAmount').textContent = data.cryptoAmount + ' ' + (cryptoType === 'BTC' ? 'BTC' : 'USDT');
+                document.getElementById('usdValue').textContent = '$' + data.usdAmount;
+                document.getElementById('cryptoPaymentDetails').style.display = 'block';
+                
+                cryptoWallets = data;
+            } catch (error) {
+                console.error('Crypto calculation error:', error);
+                showAlert('error', 'Failed to calculate crypto amount. Try again.');
+            }
+        }
+        
+        function copyWallet() {
+            const wallet = document.getElementById('walletAddress').textContent;
+            navigator.clipboard.writeText(wallet);
+            showAlert('success', 'Wallet address copied!');
+        }
+        
+        async function submitPayment() {
+            const amount = document.getElementById('topupAmount').value;
+            const cryptoType = document.getElementById('topupCrypto').value;
+            const txHash = document.getElementById('txHash').value;
+            
+            if (!amount || !cryptoType) {
+                showAlert('error', 'Please enter amount and select crypto type');
+                return;
+            }
+            
+            try {
+                const response = await authenticatedFetch('/api/payment/submit', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        userId: currentUser.id,
+                        amount: parseFloat(amount),
+                        cryptoType,
+                        transactionHash: txHash
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Payment submission failed');
+                }
+                
+                const data = await response.json();
+                showAlert('success', `Payment submitted! Request ID: ${data.requestId}`);
+                
+                // Reset form
+                document.getElementById('topupAmount').value = '';
+                document.getElementById('topupCrypto').value = '';
+                document.getElementById('txHash').value = '';
+                document.getElementById('cryptoPaymentDetails').style.display = 'none';
+            } catch (error) {
+                console.error('Payment submit error:', error);
+                showAlert('error', 'Failed to submit payment: ' + error.message);
+            }
+        }
+
+        // ==========================================
+        // CREATE REDIRECT FUNCTIONS
+        // ==========================================
+        
+        async function createRedirect(event) {
+            event.preventDefault();
+            
+            const domain = document.getElementById('createDomain').value.trim();
+            const redirectUrl = document.getElementById('createRedirectUrl').value.trim();
+            const turnstileKey = document.getElementById('createTurnstileKey').value.trim();
+            const template = document.getElementById('createTemplate').value;
+            
+            if (!domain || !redirectUrl) {
+                showAlert('error', 'Domain and redirect URL are required');
+                return;
+            }
+            
+            try {
+                showAlert('info', 'Creating redirect... Please wait.');
+                
+                const response = await authenticatedFetch('/api/redirect/create', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        userId: currentUser.id,
+                        domain,
+                        redirectUrl,
+                        turnstileKey,
+                        templateType: template
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to create redirect');
+                }
+                
+                // Show success with URLs
+                document.getElementById('createdUrls').innerHTML = data.urls.map((url, i) => 
+                    `<div style="margin: 0.5rem 0;"><a href="${url}" target="_blank">${i + 1}. ${url}</a></div>`
+                ).join('');
+                document.getElementById('createResult').style.display = 'block';
+                
+                showAlert('success', 'Domain created successfully!');
+                
+                // Reset form
+                document.getElementById('createDomain').value = '';
+                document.getElementById('createRedirectUrl').value = '';
+                document.getElementById('createTurnstileKey').value = '';
+                
+                // Refresh user data
+                loadUserData();
+            } catch (error) {
+                console.error('Create redirect error:', error);
+                showAlert('error', 'Failed to create redirect: ' + error.message);
+            }
+        }
+
+        // ==========================================
+        // SUBSCRIPTION FUNCTIONS
+        // ==========================================
+        
+        async function loadSubscription() {
+            if (!currentUser) return;
+            
+            try {
+                const response = await authenticatedFetch(`/api/user/${currentUser.id}/subscription`);
+                if (!response.ok) throw new Error('Failed to load subscription');
+                
+                const sub = await response.json();
+                const detailsDiv = document.getElementById('subscriptionDetails');
+                const actionsDiv = document.getElementById('subscriptionActions');
+                
+                if (sub.active) {
+                    const endDate = new Date(sub.endDate);
+                    const daysLeft = Math.max(0, Math.ceil((endDate - new Date()) / (1000 * 60 * 60 * 24)));
+                    
+                    detailsDiv.innerHTML = `
+                        <div style="font-size: 1.2rem; margin-bottom: 0.5rem;">✅ Active</div>
+                        <div>Expires: ${endDate.toDateString()} (${daysLeft} days left)</div>
+                        <div>Today: ${sub.dailyDomainsUsed}/${sub.dailyLimit} domains used</div>
+                        <div>Total Used: ${sub.domainsUsed} domains</div>
+                    `;
+                    
+                    actionsDiv.innerHTML = `
+                        <button onclick="showPage('create-redirect')" class="btn" style="width: 100%;">Create Domain</button>
+                    `;
+                } else {
+                    detailsDiv.innerHTML = `
+                        <div style="font-size: 1.2rem; margin-bottom: 0.5rem;">❌ Not Active</div>
+                        <div>Price: $${sub.price} (${sub.hasEverSubscribed ? 'Renewal' : 'First Time'})</div>
+                    `;
+                    
+                    actionsDiv.innerHTML = `
+                        <button onclick="purchaseSubscription(${sub.price})" class="btn" style="width: 100%;">Subscribe Now ($${sub.price})</button>
+                    `;
+                }
+            } catch (error) {
+                console.error('Subscription load error:', error);
+            }
+        }
+        
+        async function purchaseSubscription(price) {
+            if (!confirm(`Subscribe for $${price}? This will be deducted from your balance.`)) {
+                return;
+            }
+            
+            try {
+                const response = await authenticatedFetch(`/api/user/${currentUser.id}/subscribe`, {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    if (data.error === 'Insufficient balance') {
+                        showAlert('error', `Insufficient balance. You need $${data.required}, current: $${data.current}`);
+                        return;
+                    }
+                    throw new Error(data.error || 'Subscription failed');
+                }
+                
+                showAlert('success', 'Subscription activated! Enjoy your domains.');
+                loadSubscription();
+                loadUserData();
+            } catch (error) {
+                console.error('Subscribe error:', error);
+                showAlert('error', 'Failed to subscribe: ' + error.message);
+            }
+        }
+
+        // ==========================================
+        // CLOUDFLARE FUNCTIONS
+        // ==========================================
+        
+        let cfCredentials = {};
+        
+        async function loadCloudflareZones() {
+            const email = document.getElementById('cfEmail').value;
+            const apiKey = document.getElementById('cfApiKey').value;
+            
+            if (!email || !apiKey) {
+                showAlert('error', 'Email and API key are required');
+                return;
+            }
+            
+            try {
+                showAlert('info', 'Loading domains from Cloudflare...');
+                
+                const response = await authenticatedFetch('/api/cloudflare/zones', {
+                    method: 'POST',
+                    body: JSON.stringify({ email, apiKey })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to load Cloudflare zones');
+                }
+                
+                const data = await response.json();
+                cfCredentials = { email, apiKey };
+                
+                const select = document.getElementById('cfZoneSelect');
+                select.innerHTML = '<option value="">Select a domain...</option>';
+                
+                data.zones.forEach(zone => {
+                    const option = document.createElement('option');
+                    option.value = zone.id;
+                    option.textContent = zone.name;
+                    select.appendChild(option);
+                });
+                
+                document.getElementById('cloudflareZones').style.display = 'block';
+                showAlert('success', `Loaded ${data.zones.length} domains`);
+            } catch (error) {
+                console.error('Cloudflare zones error:', error);
+                showAlert('error', 'Failed to load Cloudflare zones: ' + error.message);
+            }
+        }
+        
+        function enableConfigureBtn() {
+            const zoneId = document.getElementById('cfZoneSelect').value;
+            document.getElementById('cfConfigureBtn').disabled = !zoneId;
+        }
+        
+        async function configureCloudflare() {
+            const zoneId = document.getElementById('cfZoneSelect').value;
+            
+            if (!zoneId || !cfCredentials.email) {
+                showAlert('error', 'Please select a domain');
+                return;
+            }
+            
+            try {
+                showAlert('info', 'Configuring security settings...');
+                
+                const response = await authenticatedFetch('/api/cloudflare/configure', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        email: cfCredentials.email,
+                        apiKey: cfCredentials.apiKey,
+                        zoneId
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to configure Cloudflare');
+                }
+                
+                const data = await response.json();
+                
+                let resultHtml = `
+                    <div class="alert alert-success">
+                        <h3>✅ Cloudflare Configured!</h3>
+                        <p><strong>Domain:</strong> ${data.domain}</p>
+                        
+                        <h4>Security Settings:</h4>
+                        <ul>
+                            <li>Always Use HTTPS: ${data.security.alwaysUseHttps ? '✅' : '❌'}</li>
+                            <li>Auto HTTPS Rewrites: ${data.security.autoHttpsRewrites ? '✅' : '❌'}</li>
+                            <li>Browser Integrity Check: ${data.security.browserIntegrityCheck ? '✅' : '❌'}</li>
+                            <li>SSL/TLS: ${data.security.sslEnabled ? '✅' : '❌'}</li>
+                        </ul>
+                `;
+                
+                if (data.nameservers && data.nameservers.length > 0) {
+                    resultHtml += `
+                        <h4>Nameservers:</h4>
+                        <ul>
+                            ${data.nameservers.map(ns => `<li>${ns}</li>`).join('')}
+                        </ul>
+                        <p><strong>Update your domain registrar with these nameservers!</strong></p>
+                    `;
+                }
+                
+                if (data.turnstile && data.turnstile.success) {
+                    resultHtml += `
+                        <h4>Turnstile Widget:</h4>
+                        <p><strong>Site Key:</strong> <code>${data.turnstile.sitekey}</code></p>
+                    `;
+                }
+                
+                resultHtml += '</div>';
+                
+                document.getElementById('cloudflareResult').innerHTML = resultHtml;
+                document.getElementById('cloudflareResult').style.display = 'block';
+                
+                showAlert('success', 'Cloudflare configured successfully!');
+            } catch (error) {
+                console.error('Cloudflare configure error:', error);
+                showAlert('error', 'Failed to configure Cloudflare: ' + error.message);
+            }
+        }
+
+        // ==========================================
+        // VIP ACCESS FUNCTIONS
+        // ==========================================
+        
+        async function requestVipAccess(event) {
+            event.preventDefault();
+            
+            const reason = document.getElementById('vipReason').value;
+            
+            try {
+                const response = await authenticatedFetch('/api/vip/request', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        userId: currentUser.id,
+                        username: currentUser.username || 'Unknown',
+                        firstName: currentUser.firstName || 'Unknown',
+                        reason
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('VIP request failed');
+                }
+                
+                showAlert('success', 'VIP request submitted! Admin will review your request.');
+                document.getElementById('vipReason').value = '';
+            } catch (error) {
+                console.error('VIP request error:', error);
+                showAlert('error', 'Failed to submit VIP request: ' + error.message);
+            }
+        }
+
+        // ==========================================
+        // ADMIN PAYMENT APPROVAL FUNCTIONS
+        // ==========================================
+        
+        async function loadAdminPaymentsNew() {
+            const content = document.getElementById('adminContent');
+            try {
+                const response = await authenticatedFetch('/api/admin/payments');
+                if (!response.ok) throw new Error('Failed to load payments');
+                const payments = await response.json();
+
+                if (payments.length === 0) {
+                    content.innerHTML = `
+                        <h2>💰 Pending Payments</h2>
+                        <p style="color: #666;">No pending payments</p>
+                    `;
+                    return;
+                }
+
+                content.innerHTML = `
+                    <h2>💰 Pending Payments</h2>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>User ID</th>
+                                    <th>Amount</th>
+                                    <th>Request ID</th>
+                                    <th>Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${payments.map(p => `
+                                    <tr>
+                                        <td>${p.user_id}</td>
+                                        <td>$${p.amount}</td>
+                                        <td><code>${p.request_id}</code></td>
+                                        <td>${new Date(p.created_at).toLocaleString()}</td>
+                                        <td>
+                                            <button onclick="approvePayment('${p.request_id}')" class="btn" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;">Approve</button>
+                                            <button onclick="rejectPayment('${p.request_id}')" class="btn btn-danger" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;">Reject</button>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            } catch (error) {
+                content.innerHTML = '<p style="color: #e74c3c;">Failed to load payments</p>';
+            }
+        }
+        
+        async function approvePayment(requestId) {
+            if (!confirm('Approve this payment?')) return;
+            
+            try {
+                const response = await authenticatedFetch(`/api/admin/payments/${requestId}/approve`, {
+                    method: 'POST'
+                });
+                
+                if (!response.ok) throw new Error('Failed to approve payment');
+                
+                showAlert('success', 'Payment approved!');
+                loadAdminPaymentsNew();
+            } catch (error) {
+                console.error('Approve error:', error);
+                showAlert('error', 'Failed to approve payment: ' + error.message);
+            }
+        }
+        
+        async function rejectPayment(requestId) {
+            const reason = prompt('Enter rejection reason (optional):');
+            
+            try {
+                const response = await authenticatedFetch(`/api/admin/payments/${requestId}/reject`, {
+                    method: 'POST',
+                    body: JSON.stringify({ reason })
+                });
+                
+                if (!response.ok) throw new Error('Failed to reject payment');
+                
+                showAlert('success', 'Payment rejected');
+                loadAdminPaymentsNew();
+            } catch (error) {
+                console.error('Reject error:', error);
+                showAlert('error', 'Failed to reject payment: ' + error.message);
+            }
+        }
+
+        // Update page navigation to load data for new pages
+        const originalShowPage = showPage;
+        showPage = function(pageId) {
+            originalShowPage(pageId);
+            
+            // Load page-specific data
+            if (pageId === 'topup' && currentUser) {
+                document.getElementById('topupBalance').textContent = currentUser.balance || '0.00';
+            }
+            if (pageId === 'create-redirect' && currentUser) {
+                document.getElementById('createBalance').textContent = currentUser.balance || '0.00';
+                loadSubscription(); // Check subscription status
+            }
+            if (pageId === 'subscription') {
+                loadSubscription();
+            }
+        };
     </script>
 </body>
 </html>
