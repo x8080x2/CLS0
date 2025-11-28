@@ -1421,10 +1421,10 @@ if (bot) {
             await bot.telegram.sendMessage(
               process.env.ADMIN_ID,
               `🎉 *New CLS Redirect Order*\n\n` +
-              `👤 User: @${ctx.from.username || 'Unknown'} (${ctx.from.id})\n` +
-              `👤 Name: ${ctx.from.first_name || 'Unknown'}\n` +
+              `👤 User: @${escapeMarkdown(ctx.from.username || 'Unknown')} (${ctx.from.id})\n` +
+              `👤 Name: ${escapeMarkdown(ctx.from.first_name || 'Unknown')}\n` +
               `🌐 Domain: \`${domain}\`\n` +
-              `🎯 Redirects To: ${redirectUrl}\n` +
+              `🎯 Redirects To: ${escapeMarkdown(redirectUrl)}\n` +
               `🖥️ Server IP: \`${ip}\`\n` +
               `📋 Template: ${templateName}\n` +
               `💰 Payment: ${paymentType}${isSubscriptionUse ? ` (Today: ${currentUserData.subscription.dailyDomainsUsed}/2)` : isAdminFree ? ' - Free' : ' - $80'}\n` +
@@ -1432,7 +1432,7 @@ if (bot) {
               `🚀 Total URLs Created: ${urls.length}\n` +
               `🆔 Request ID: \`${requestId}\`\n\n` +
               `📊 User Balance: $${(currentUserData.balance || 0).toFixed(2)}\n` +
-              `🔗 URLs:\n${urls.map((url, i) => `${i + 1}. ${url}`).join('\n')}`,
+              `🔗 URLs:\n${urls.map((url, i) => `${i + 1}. ${escapeMarkdown(url)}`).join('\n')}`,
               { parse_mode: "Markdown" }
             );
             log.info({ requestId, adminId: process.env.ADMIN_ID }, "Admin notification sent successfully");
