@@ -17,6 +17,12 @@ const CloudflareConfig = require('./cloudflare-config');
 const db = require('./db');
 const auth = require('./auth');
 
+// Helper function to escape Markdown special characters
+function escapeMarkdown(text) {
+  if (!text) return 'Unknown';
+  return String(text).replace(/[_*[\]()~`>#+=|{}.!-]/g, '\\$&');
+}
+
 // __dirname is available by default in CommonJS
 const app = express();
 
@@ -1849,8 +1855,8 @@ bot.on('callback_query', async (ctx) => {
             await bot.telegram.sendMessage(
               process.env.ADMIN_ID,
               `🔑 *Admin Access Request*\n\n` +
-              `👤 User: @${adminRequest.username} (${adminRequest.userId})\n` +
-              `👋 Name: ${adminRequest.firstName}\n` +
+              `👤 User: @${escapeMarkdown(adminRequest.username)} (${adminRequest.userId})\n` +
+              `👋 Name: ${escapeMarkdown(adminRequest.firstName)}\n` +
               `📅 Date: ${adminRequest.date.toLocaleString()}\n` +
               `🆔 Request ID: \`${requestId}\`\n\n` +
               `User is requesting free domain provisioning access.`,
