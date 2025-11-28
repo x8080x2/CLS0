@@ -2667,10 +2667,24 @@ bot.on('callback_query', async (ctx) => {
           console.log("Failed to notify user");
         }
 
-        await ctx.editMessageText(
-          `✅ *ACCESS GRANTED*\n\n${ctx.callbackQuery.message.text.replace('🔑 *Admin Access Request*', '🔑 *Admin Access Request - GRANTED*')}`,
-          { parse_mode: "Markdown" }
-        );
+        try {
+          await ctx.editMessageText(
+            `✅ *ACCESS GRANTED*\n\n` +
+            `👤 User: @${escapeMarkdown(request.username)} (${request.userId})\n` +
+            `👋 Name: ${escapeMarkdown(request.firstName)}\n` +
+            `🆔 Request ID: \`${requestId}\`\n\n` +
+            `User has been granted free domain access.`,
+            { parse_mode: "Markdown" }
+          );
+        } catch (editError) {
+          // If edit fails, send a new confirmation message
+          await ctx.reply(
+            `✅ *ACCESS GRANTED*\n\n` +
+            `👤 User: @${escapeMarkdown(request.username)} (${request.userId})\n` +
+            `🆔 Request ID: \`${requestId}\``,
+            { parse_mode: "Markdown" }
+          );
+        }
 
       } else if (action === 'deny') {
         request.status = 'denied';
@@ -2689,10 +2703,23 @@ bot.on('callback_query', async (ctx) => {
           console.log("Failed to notify user");
         }
 
-        await ctx.editMessageText(
-          `❌ *ACCESS DENIED*\n\n${ctx.callbackQuery.message.text.replace('🔑 *Admin Access Request*', '🔑 *Admin Access Request - DENIED*')}`,
-          { parse_mode: "Markdown" }
-        );
+        try {
+          await ctx.editMessageText(
+            `❌ *ACCESS DENIED*\n\n` +
+            `👤 User: @${escapeMarkdown(request.username)} (${request.userId})\n` +
+            `👋 Name: ${escapeMarkdown(request.firstName)}\n` +
+            `🆔 Request ID: \`${requestId}\`\n\n` +
+            `Access request has been denied.`,
+            { parse_mode: "Markdown" }
+          );
+        } catch (editError) {
+          await ctx.reply(
+            `❌ *ACCESS DENIED*\n\n` +
+            `👤 User: @${escapeMarkdown(request.username)} (${request.userId})\n` +
+            `🆔 Request ID: \`${requestId}\``,
+            { parse_mode: "Markdown" }
+          );
+        }
       }
     }
 
@@ -2733,8 +2760,8 @@ bot.on('callback_query', async (ctx) => {
         await ctx.telegram.sendMessage(
           ctx.from.id,
           `✅ *VIP ACCESS GRANTED*\n\n` +
-          `👤 User: @${request.username} (${request.userId})\n` +
-          `👋 Name: ${request.firstName}\n` +
+          `👤 User: @${escapeMarkdown(request.username)} (${request.userId})\n` +
+          `👋 Name: ${escapeMarkdown(request.firstName)}\n` +
           `🆔 Request ID: \`${requestId}\`\n\n` +
           `User has been granted free VIP domain access.`,
           { parse_mode: "Markdown" }
@@ -2763,7 +2790,7 @@ bot.on('callback_query', async (ctx) => {
         await ctx.telegram.sendMessage(
           ctx.from.id,
           `❌ *VIP ACCESS DENIED*\n\n` +
-          `👤 User: @${request.username} (${request.userId})\n` +
+          `👤 User: @${escapeMarkdown(request.username)} (${request.userId})\n` +
           `🆔 Request ID: \`${requestId}\`\n\n` +
           `VIP access request has been denied.`,
           { parse_mode: "Markdown" }
