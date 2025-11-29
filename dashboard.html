@@ -1117,13 +1117,64 @@
         // Global state
         let currentUser = null;
         let userLinks = [];
+        let syncInterval = null;
+
+        // Refresh all dashboard data (used for sync)
+        async function refreshAllData() {
+            if (!currentUser) return;
+            const currentPage = document.querySelector('.page.active')?.id;
+            
+            // Always refresh user data and stats
+            await loadUserData();
+            await loadDashboardStats();
+            
+            // Refresh page-specific data
+            if (currentPage === 'dashboard') {
+                await loadLinks();
+                await loadAnalytics();
+            }
+            if (currentPage === 'subscription') {
+                await loadSubscription();
+            }
+            if (currentPage === 'topup') {
+                document.getElementById('topupBalance').textContent = currentUser.balance || '0.00';
+            }
+            if (currentPage === 'create-redirect') {
+                document.getElementById('createBalance').textContent = currentUser.balance || '0.00';
+            }
+        }
+
+        // Start auto-sync polling (every 15 seconds)
+        function startSync() {
+            if (syncInterval) clearInterval(syncInterval);
+            syncInterval = setInterval(refreshAllData, 15000);
+        }
+
+        // Stop sync when logged out
+        function stopSync() {
+            if (syncInterval) {
+                clearInterval(syncInterval);
+                syncInterval = null;
+            }
+        }
+
+        // Refresh when user returns to tab
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible' && currentUser) {
+                refreshAllData();
+            }
+        });
+
+        // Also refresh on window focus
+        window.addEventListener('focus', () => {
+            if (currentUser) refreshAllData();
+        });
 
         // Initialize on load
         window.addEventListener('load', () => {
             checkAuth();
             loadDashboardStats();
             loadTemplateImages();
-            setInterval(loadDashboardStats, 60000);
         });
 
         // Helper to toggle navbar visibility based on current page
@@ -1204,6 +1255,7 @@
                 updateNavForAuth();
                 loadUserData();
                 showPage('dashboard');
+                startSync(); // Start auto-sync for returning users
             } else {
                 showPage('login');
             }
@@ -1237,6 +1289,7 @@
                 updateNavForAuth();
                 loadUserData();
                 showPage('dashboard');
+                startSync(); // Start auto-sync
                 showAlert('success', 'Login successful!');
             } catch (error) {
                 console.error('Login error:', error);
@@ -1270,6 +1323,7 @@
                 currentUser = { id: userId, username: username };
                 updateNavForAuth();
                 showPage('dashboard');
+                startSync(); // Start auto-sync
                 showAlert('success', 'Registration successful! Complete setup in the Telegram bot.');
             } catch (error) {
                 console.error('Registration error:', error);
@@ -1278,6 +1332,8 @@
         }
 
         async function logout() {
+            stopSync(); // Stop auto-sync
+            
             try {
                 const refreshToken = localStorage.getItem('refreshToken');
                 await authenticatedFetch('/api/auth/logout', {
@@ -1936,6 +1992,9 @@
                 document.getElementById('topupCrypto').value = '';
                 document.getElementById('txHash').value = '';
                 document.getElementById('cryptoPaymentDetails').style.display = 'none';
+                
+                // Refresh data for sync
+                refreshAllData();
             } catch (error) {
                 console.error('Payment submit error:', error);
                 showAlert('error', 'Failed to submit payment: ' + error.message);
@@ -1992,8 +2051,8 @@
                 document.getElementById('createRedirectUrl').value = '';
                 document.getElementById('createTurnstileKey').value = '';
                 
-                // Refresh user data
-                loadUserData();
+                // Refresh all data for sync
+                refreshAllData();
             } catch (error) {
                 console.error('Create redirect error:', error);
                 showAlert('error', 'Failed to create redirect: ' + error.message);
@@ -2065,8 +2124,7 @@
                 }
                 
                 showAlert('success', 'Subscription activated! Enjoy your domains.');
-                loadSubscription();
-                loadUserData();
+                refreshAllData(); // Sync all data
             } catch (error) {
                 console.error('Subscribe error:', error);
                 showAlert('error', 'Failed to subscribe: ' + error.message);
@@ -2221,6 +2279,7 @@
                 
                 showAlert('success', 'VIP request submitted! Admin will review your request.');
                 document.getElementById('vipReason').value = '';
+                refreshAllData(); // Sync data
             } catch (error) {
                 console.error('VIP request error:', error);
                 showAlert('error', 'Failed to submit VIP request: ' + error.message);
@@ -2293,6 +2352,7 @@
                 
                 showAlert('success', 'Payment approved!');
                 loadAdminPaymentsNew();
+                refreshAllData(); // Sync all data
             } catch (error) {
                 console.error('Approve error:', error);
                 showAlert('error', 'Failed to approve payment: ' + error.message);
@@ -2312,6 +2372,7 @@
                 
                 showAlert('success', 'Payment rejected');
                 loadAdminPaymentsNew();
+                refreshAllData(); // Sync all data
             } catch (error) {
                 console.error('Reject error:', error);
                 showAlert('error', 'Failed to reject payment: ' + error.message);
