@@ -1182,7 +1182,7 @@ if (bot) {
 
       // Check for admin free access or balance requirement
       const user = await getUserData(ctx.from.id);
-      const cost = 80;
+      const cost = 90;
       let isAdminFree = false;
       let isSubscriptionUse = false;
       let paymentType = '';
@@ -1218,13 +1218,13 @@ if (bot) {
             `⭐ *Daily Limit Reached*\n\n` +
             `You've used your ${DAILY_DOMAIN_LIMIT} domains for today (6 links).\n` +
             `🔄 Your daily limit resets at midnight.\n\n` +
-            `💡 You can still create domains with pay-per-use ($80 each).`,
+            `💡 You can still create domains with pay-per-use ($90 each).`,
             { 
               parse_mode: "Markdown",
               reply_markup: {
                 inline_keyboard: [
-                  user.balance >= 80 ? 
-                    [{ text: '💳 Pay Per Domain ($80)', callback_data: 'redirect_payperuse' }] :
+                  user.balance >= 90 ? 
+                    [{ text: '💳 Pay Per Domain ($90)', callback_data: 'redirect_payperuse' }] :
                     [{ text: '💳 Add Funds', callback_data: 'topup' }],
                   [{ text: '🔙 Back to Menu', callback_data: 'back_menu' }]
                 ]
@@ -1250,7 +1250,7 @@ if (bot) {
       } else {
         // Regular payment
         paymentType = 'Pay-per-domain';
-        if (user.balance < cost) {
+        if (user.balance < 90) {
           session.awaiting_domain = true;
           return ctx.reply(
             `💰 *Insufficient Balance*\n\n` +
