@@ -1528,7 +1528,7 @@ bot.on('callback_query', async (ctx) => {
         if (user.subscription.active) {
           const endDate = new Date(user.subscription.endDate);
           const daysLeft = Math.max(0, Math.ceil((endDate - new Date()) / (1000 * 60 * 60 * 24)));
-          const currentPrice = user.subscription.isFirstTime ? '$200' : '$200';
+          const subscriptionType = user.subscription.type === 'weekly' ? 'Weekly' : 'Monthly';
 
           const timeDisplay = daysLeft === 0 ? 'Expires today' : `${daysLeft} days left`;
 
@@ -1540,7 +1540,7 @@ bot.on('callback_query', async (ctx) => {
           const dailyRemaining = DAILY_DOMAIN_LIMIT - dailyUsed;
 
           return ctx.editMessageText(
-            `⭐ *Subscription Active*\n\n` +
+            `⭐ *${subscriptionType} Subscription Active*\n\n` +
             `📅 Expires: ${endDate.toDateString()} (${timeDisplay})\n` +
             `🎯 Today: ${dailyUsed}/${DAILY_DOMAIN_LIMIT} domains (${dailyUsed * 3} links)\n` +
             `✨ Available: ${dailyRemaining} domains (${dailyRemaining * 3} links)\n` +
@@ -1558,22 +1558,29 @@ bot.on('callback_query', async (ctx) => {
         } else {
           // Check if this is user's first subscription
         const isFirstTime = !user.subscription.hasEverSubscribed;
-        const subscriptionPrice = isFirstTime ? 250 : 200;
-        const savings = (60 * 90) - subscriptionPrice;
+        const monthlyPrice = isFirstTime ? 250 : 200;
+        const weeklyPrice = 90;
+
+        const canAffordWeekly = user.balance >= weeklyPrice;
+        const canAffordMonthly = user.balance >= monthlyPrice;
 
         return ctx.editMessageText(
-            `⭐ *Monthly Subscription Plan*\n\n` +
-            `💎 *First Time User:* $250\n` +
-            `🔄 *Renewal:* $200\n\n` +
+            `⭐ *Subscription Plans*\n\n` +
+            `💰 *Your Balance:* $${user.balance.toFixed(2)}\n\n` +
+            `📅 *Weekly Plan:* $90\n` +
             `• 2 domains daily (6 links)\n` +
-            `• 30-day Access`,
+            `• 7-day Access\n\n` +
+            `📅 *Monthly Plan:* $${monthlyPrice}\n` +
+            `• 2 domains daily (6 links)\n` +
+            `• 30-day Access\n` +
+            `${isFirstTime ? '• First time: $250' : '• Renewal: $200'}`,
             { 
               parse_mode: "Markdown",
               reply_markup: {
                 inline_keyboard: [
-                  user.balance >= subscriptionPrice ? 
-                    [{ text: `⭐ Subscribe Now ($${subscriptionPrice})`, callback_data: 'subscribe_monthly' }] :
-                    [{ text: '💳 Add Funds First', callback_data: 'topup' }],
+                  [{ text: canAffordWeekly ? `⭐ Weekly ($${weeklyPrice})` : `⭐ Weekly ($${weeklyPrice}) - Need $${(weeklyPrice - user.balance).toFixed(0)} more`, callback_data: canAffordWeekly ? 'subscribe_weekly' : 'topup' }],
+                  [{ text: canAffordMonthly ? `⭐ Monthly ($${monthlyPrice})` : `⭐ Monthly ($${monthlyPrice}) - Need $${(monthlyPrice - user.balance).toFixed(0)} more`, callback_data: canAffordMonthly ? 'subscribe_monthly' : 'topup' }],
+                  [{ text: '💳 Add Funds', callback_data: 'topup' }],
                   [{ text: '🔙 Back to Menu', callback_data: 'back_menu' }]
                 ]
               }
@@ -2252,9 +2259,10 @@ bot.on('callback_query', async (ctx) => {
           );
         }
 
-        // Activate subscription
+        // Activate monthly subscription
         user.balance -= subscriptionPrice;
         user.subscription.active = true;
+        user.subscription.type = 'monthly';
         user.subscription.startDate = new Date();
         user.subscription.endDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
         user.subscription.domainsUsed = 0;
@@ -2335,9 +2343,142 @@ bot.on('callback_query', async (ctx) => {
         const savings = (60 * 90) - subscriptionPrice;
 
         return ctx.editMessageText(
-          `✅ *Subscription Activated!*\n\n` +
+          `✅ *Monthly Subscription Activated!*\n\n` +
           `🎯 *Daily Limit:* 2 domains (6 links)\n` +
           `📅 *Expires:* ${user.subscription.endDate.toDateString()}\n` +
+          `💰 *Balance:* $${user.balance.toFixed(2)}\n\n` +
+          `Start creating your first domain now!`,
+          { 
+            parse_mode: "Markdown",
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: '🎯 Create First Domain', callback_data: 'redirect' }],
+                [{ text: '🔙 Back to Menu', callback_data: 'back_menu' }]
+              ]
+            }
+          }
+        );
+      }
+
+      // Handle weekly subscription purchase
+      if (callbackData === 'subscribe_weekly') {
+        const user = await getUserData(ctx.from.id);
+        const weeklyPrice = 90;
+
+        if (user.balance < weeklyPrice) {
+          return ctx.editMessageText(
+            `❌ *Need $${(weeklyPrice - user.balance).toFixed(2)} more*\n\n` +
+            `Required: $${weeklyPrice}\nBalance: $${user.balance.toFixed(2)}`,
+            { 
+              parse_mode: "Markdown",
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: '💳 Add Funds', callback_data: 'topup' }],
+                  [{ text: '🔙 Back to Menu', callback_data: 'back_menu' }]
+                ]
+              }
+            }
+          );
+        }
+
+        if (user.subscription.active) {
+          return ctx.editMessageText(
+            `⭐ *Already Subscribed*\n\n` +
+            `You already have an active subscription.\n` +
+            `Wait for it to expire before renewing.`,
+            { 
+              parse_mode: "Markdown",
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: '🔙 Back to Menu', callback_data: 'back_menu' }]
+                ]
+              }
+            }
+          );
+        }
+
+        // Activate weekly subscription
+        user.balance -= weeklyPrice;
+        user.subscription.active = true;
+        user.subscription.type = 'weekly';
+        user.subscription.startDate = new Date();
+        user.subscription.endDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+        user.subscription.domainsUsed = 0;
+        user.subscription.dailyDomainsUsed = 0;
+        user.subscription.lastDomainDate = null;
+        user.subscription.hasEverSubscribed = true;
+
+        const saveSuccess = await saveUserData(ctx.from.id, user);
+
+        if (!saveSuccess) {
+          console.error(`Failed to save weekly subscription data for user ${ctx.from.id}`);
+          return ctx.editMessageText(
+            `❌ *Subscription Error*\n\n` +
+            `There was an error activating your subscription.\n` +
+            `Your balance has NOT been charged.\n\n` +
+            `Please try again or contact support.`,
+            { 
+              parse_mode: "Markdown",
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: '🔄 Try Again', callback_data: 'subscribe_weekly' }],
+                  [{ text: '🔙 Back to Menu', callback_data: 'back_menu' }]
+                ]
+              }
+            }
+          );
+        }
+
+        console.log(`✅ Weekly subscription activated for user ${ctx.from.id}. Expires: ${user.subscription.endDate.toISOString()}`);
+
+        // Verify subscription was saved correctly
+        const verifyUser = await getUserData(ctx.from.id);
+        if (!verifyUser.subscription.active) {
+          console.error(`❌ CRITICAL: Weekly subscription verification failed for user ${ctx.from.id}!`);
+          user.balance += weeklyPrice; // Refund
+          await saveUserData(ctx.from.id, user);
+
+          return ctx.editMessageText(
+            `❌ *Subscription Activation Failed*\n\n` +
+            `There was a critical error saving your subscription.\n` +
+            `Your payment has been refunded.\n\n` +
+            `Please try again or contact support if this persists.`,
+            { 
+              parse_mode: "Markdown",
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: '🔄 Try Again', callback_data: 'subscribe_weekly' }],
+                  [{ text: '🔙 Back to Menu', callback_data: 'back_menu' }]
+                ]
+              }
+            }
+          );
+        }
+
+        // Notify admin
+        if (process.env.ADMIN_ID && bot) {
+          try {
+            await bot.telegram.sendMessage(
+              process.env.ADMIN_ID,
+              `⭐ *New Weekly Subscription*\n\n` +
+              `👤 User: @${ctx.from.username || 'Unknown'} (${ctx.from.id})\n` +
+              `👤 Name: ${ctx.from.first_name || 'Unknown'}\n` +
+              `💰 Amount: $${weeklyPrice}\n` +
+              `📅 Start: ${user.subscription.startDate.toDateString()}\n` +
+              `📅 End: ${user.subscription.endDate.toDateString()}\n` +
+              `💳 New Balance: $${user.balance.toFixed(2)}`,
+              { parse_mode: "Markdown" }
+            );
+          } catch (error) {
+            console.log("Failed to notify admin of weekly subscription");
+          }
+        }
+
+        return ctx.editMessageText(
+          `✅ *Weekly Subscription Activated!*\n\n` +
+          `🎯 *Daily Limit:* 2 domains (6 links)\n` +
+          `📅 *Expires:* ${user.subscription.endDate.toDateString()}\n` +
+          `⏰ *Duration:* 7 days\n` +
           `💰 *Balance:* $${user.balance.toFixed(2)}\n\n` +
           `Start creating your first domain now!`,
           { 
