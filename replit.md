@@ -83,6 +83,28 @@ The system uses four main database tables defined in `schema.ts`:
 
 **Production Considerations**: Code comments indicate Redis should replace in-memory Maps for distributed deployments.
 
+## Data Synchronization
+
+**Sync Strategy**: The dashboard uses PostgreSQL as the single source of truth, with client-side polling to keep the UI in sync with Telegram bot actions.
+
+**Sync Lifecycle**:
+1. **Start Sync**: Called on login, registration, or page refresh for authenticated users
+2. **Auto-Polling**: Refreshes all data every 15 seconds via `refreshAllData()`
+3. **Focus/Visibility Refresh**: Data reloads when user returns to the tab or window gains focus
+4. **Action Refresh**: All mutations (create domain, subscribe, payments, VIP requests, admin actions) immediately trigger `refreshAllData()`
+5. **Stop Sync**: Called on logout to clean up intervals
+
+**Data Refreshed**:
+- User data (balance, subscription status, limits)
+- Dashboard stats (total users, domains, clicks)
+- Domain links and analytics (on dashboard page)
+- Subscription details (on subscription page)
+
+**Sync Functions**:
+- `startSync()`: Starts 15-second polling interval
+- `stopSync()`: Clears polling interval
+- `refreshAllData()`: Fetches all relevant data for current page
+
 # External Dependencies
 
 ## Cloudflare Integration
