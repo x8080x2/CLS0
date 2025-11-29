@@ -1119,12 +1119,14 @@
         let userLinks = [];
         let syncInterval = null;
 
-        // Refresh all dashboard data (used for sync)
+        let eventSource = null;
+
+        // Refresh all dashboard data (used after updates)
         async function refreshAllData() {
             if (!currentUser) return;
             const currentPage = document.querySelector('.page.active')?.id;
             
-            // Always refresh user data and stats
+            // Refresh user data and stats
             await loadUserData();
             await loadDashboardStats();
             
@@ -1144,17 +1146,33 @@
             }
         }
 
-        // Start auto-sync polling (every 15 seconds)
+        // Start real-time sync with Server-Sent Events (replaces polling)
         function startSync() {
-            if (syncInterval) clearInterval(syncInterval);
-            syncInterval = setInterval(refreshAllData, 15000);
+            if (eventSource) eventSource.close();
+            
+            const accessToken = localStorage.getItem('accessToken');
+            eventSource = new EventSource('/api/updates/stream');
+            
+            // Add auth token via query parameter for SSE
+            eventSource = new EventSource(`/api/updates/stream?token=${accessToken}`);
+            
+            eventSource.onmessage = (event) => {
+                if (event.data === 'ping') return; // Ignore heartbeat pings
+                refreshAllData();
+            };
+            
+            eventSource.onerror = () => {
+                console.log('SSE connection lost, reconnecting...');
+                eventSource.close();
+                setTimeout(startSync, 5000);
+            };
         }
 
-        // Stop sync when logged out
+        // Stop real-time sync when logged out
         function stopSync() {
-            if (syncInterval) {
-                clearInterval(syncInterval);
-                syncInterval = null;
+            if (eventSource) {
+                eventSource.close();
+                eventSource = null;
             }
         }
 

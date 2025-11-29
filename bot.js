@@ -143,6 +143,25 @@ WHM.interceptors.response.use(
 const sessions = new Map();
 const rateLimits = new Map();
 
+// SSE clients for real-time updates - replaces polling
+const sseClients = new Map(); // userId -> Set of response objects
+
+// Broadcast update to all connected clients
+function broadcastUpdate(userId, data) {
+  if (!sseClients.has(userId)) return;
+  
+  const clients = sseClients.get(userId);
+  const message = `data: ${JSON.stringify(data)}\n\n`;
+  
+  for (const res of clients) {
+    try {
+      res.write(message);
+    } catch (e) {
+      clients.delete(res);
+    }
+  }
+}
+
 // Cleanup old sessions and rate limits every 10 minutes
 setInterval(() => {
   const now = Date.now();
@@ -2948,6 +2967,48 @@ app.post('/api/auth/refresh', async (req, res) => {
     console.error('Token refresh error:', error);
     res.status(500).json({ error: 'Token refresh failed' });
   }
+});
+
+// SSE endpoint for real-time updates - replaces polling
+app.get('/api/updates/stream', auth.authenticateToken, (req, res) => {
+  const userId = req.user.userId;
+  
+  // Set up SSE headers
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  
+  // Add client to list
+  if (!sseClients.has(userId)) {
+    sseClients.set(userId, new Set());
+  }
+  sseClients.get(userId).add(res);
+  
+  // Send initial ping to confirm connection
+  res.write(`:ping\n\n`);
+  
+  // Keep connection alive with heartbeat every 30 seconds
+  const heartbeat = setInterval(() => {
+    try {
+      res.write(`:ping\n\n`);
+    } catch (e) {
+      clearInterval(heartbeat);
+      sseClients.get(userId)?.delete(res);
+    }
+  }, 30000);
+  
+  // Clean up on disconnect
+  req.on('close', () => {
+    clearInterval(heartbeat);
+    const clients = sseClients.get(userId);
+    if (clients) {
+      clients.delete(res);
+      if (clients.size === 0) {
+        sseClients.delete(userId);
+      }
+    }
+  });
 });
 
 // Logout endpoint
