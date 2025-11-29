@@ -2970,8 +2970,21 @@ app.post('/api/auth/refresh', async (req, res) => {
 });
 
 // SSE endpoint for real-time updates - replaces polling
-app.get('/api/updates/stream', auth.authenticateToken, (req, res) => {
-  const userId = req.user.userId;
+app.get('/api/updates/stream', (req, res) => {
+  // Extract token from query parameter (required for EventSource API)
+  const token = req.query.token || req.headers['authorization']?.split(' ')[1];
+  
+  if (!token) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+  
+  // Verify the token
+  const decoded = auth.verifyAccessToken(token);
+  if (!decoded) {
+    return res.status(403).json({ error: 'Invalid or expired token' });
+  }
+  
+  const userId = decoded.userId;
   
   // Set up SSE headers
   res.setHeader('Content-Type', 'text/event-stream');

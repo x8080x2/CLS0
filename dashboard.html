@@ -1151,9 +1151,8 @@
             if (eventSource) eventSource.close();
             
             const accessToken = localStorage.getItem('accessToken');
-            eventSource = new EventSource('/api/updates/stream');
             
-            // Add auth token via query parameter for SSE
+            // Connect to SSE stream with auth token in query parameter
             eventSource = new EventSource(`/api/updates/stream?token=${accessToken}`);
             
             eventSource.onmessage = (event) => {
